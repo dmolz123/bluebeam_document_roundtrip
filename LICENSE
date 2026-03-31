@@ -1,0 +1,55 @@
+REFERENCE IMPLEMENTATION LICENSE
+
+Copyright (c) 2025 Bluebeam, Inc.
+
+IMPORTANT — READ CAREFULLY BEFORE USING THIS SOFTWARE
+
+This repository contains a proof-of-concept reference implementation
+("Software") demonstrating how external systems may interact with the
+Bluebeam Studio API. It is made available solely for evaluation,
+educational, and development reference purposes.
+
+1. PERMITTED USE
+
+   You may use, copy, and modify the Software solely for internal
+   evaluation and development reference. You may not distribute,
+   sublicense, or make the Software or any derivative work available
+   to third parties without prior written permission.
+
+2. NOT FOR PRODUCTION USE
+
+   THE SOFTWARE IS A PROOF OF CONCEPT AND IS EXPRESSLY NOT INTENDED
+   FOR USE IN PRODUCTION ENVIRONMENTS. It has not been subjected to
+   security review, load testing, or quality assurance processes
+   appropriate for production software. You assume all risk associated
+   with any use of the Software beyond its intended evaluation purpose.
+
+3. NO OFFICIAL SUPPORT
+
+   This Software is not an official Bluebeam product. Bluebeam provides
+   no support, maintenance, updates, or bug fixes for this Software.
+   Issues filed against this repository may not receive a response.
+
+4. NO WARRANTY
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+   BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN
+   ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN
+   CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+
+5. THIRD-PARTY SERVICES
+
+   Use of this Software requires interaction with the Bluebeam Studio
+   API and other third-party services. Such use is governed separately
+   by Bluebeam's terms of service and developer agreements. This license
+   does not grant any rights to those services.
+
+6. NO ENDORSEMENT
+
+   Nothing in this Software or its documentation constitutes an
+   endorsement of any particular integration approach, third-party
+   system, or implementation pattern for use in production.
