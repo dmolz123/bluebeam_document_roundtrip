@@ -1,0 +1,8 @@
+node_modules/
+.env
+
+# Ignore auto-generated demo PDF (regenerated at startup)
+demo-assets/sample-drawing.pdf
+
+# Ignore reviewed output PDFs
+public/*.pdf
