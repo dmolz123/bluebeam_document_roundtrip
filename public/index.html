@@ -20,14 +20,11 @@
     --mono:     'IBM Plex Mono', monospace;
     --sans:     'IBM Plex Sans', sans-serif;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--sans);
-    min-height: 100vh;
+    background: var(--bg); color: var(--text);
+    font-family: var(--sans); min-height: 100vh;
     display: grid;
     grid-template-columns: 300px 1fr;
     grid-template-rows: auto 1fr;
@@ -36,40 +33,21 @@
   /* ── HEADER ── */
   header {
     grid-column: 1 / -1;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 24px;
-    display: flex;
-    align-items: center;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 13px 22px; display: flex; align-items: center;
     justify-content: space-between;
-    gap: 12px;
   }
-
-  .header-left { display: flex; align-items: center; gap: 14px; }
-
-  .logo {
-    width: 34px; height: 34px;
-    background: var(--accent);
-    border-radius: 7px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 17px; flex-shrink: 0;
-  }
-
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 32px; height: 32px; background: var(--accent); border-radius: 7px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; }
   h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; }
   h1 span { color: var(--muted); font-weight: 400; }
-
   .header-right { display: flex; align-items: center; gap: 10px; }
 
   .status-badge {
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 4px 10px;
-    border-radius: 4px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    transition: all 0.3s;
-    white-space: nowrap;
+    font-family: var(--mono); font-size: 11px; padding: 4px 10px;
+    border-radius: 4px; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); transition: all 0.3s; white-space: nowrap;
   }
   .status-badge.active  { color: var(--accent2); border-color: var(--accent2); background: rgba(56,217,169,0.08); }
   .status-badge.error   { color: var(--error);   border-color: var(--error);   background: rgba(247,95,95,0.08); }
@@ -77,40 +55,28 @@
 
   /* ── LEFT PANEL ── */
   .steps-panel {
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
+    background: var(--surface); border-right: 1px solid var(--border);
+    overflow-y: auto; display: flex; flex-direction: column;
   }
-
   .panel-label {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    color: var(--muted);
-    text-transform: uppercase;
-    padding: 18px 18px 10px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+    color: var(--muted); text-transform: uppercase; padding: 16px 18px 8px;
   }
-
   .step-item {
-    padding: 11px 18px 13px;
-    border-left: 3px solid transparent;
+    padding: 10px 18px 12px; border-left: 3px solid transparent;
     transition: background 0.15s;
-    position: relative;
   }
-  .step-item:hover        { background: var(--surface2); }
-  .step-item.done         { border-left-color: var(--accent2); }
-  .step-item.error-step   { border-left-color: var(--error); }
-  .step-item.running-step { border-left-color: var(--warn); }
-  .step-item.manual-step  { border-left-color: var(--muted); opacity: 0.7; }
+  .step-item:hover       { background: var(--surface2); }
+  .step-item.done        { border-left-color: var(--accent2); }
+  .step-item.error-step  { border-left-color: var(--error); }
+  .step-item.running-step{ border-left-color: var(--warn); }
+  .step-item.manual-step { border-left-color: var(--muted); opacity: 0.75; }
+  .step-item.upload-step { border-left-color: var(--accent); background: rgba(79,142,247,0.04); }
 
   .step-header { display: flex; align-items: center; gap: 9px; margin-bottom: 3px; }
-
   .step-num {
     width: 20px; height: 20px; border-radius: 50%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
+    background: var(--surface2); border: 1px solid var(--border);
     display: flex; align-items: center; justify-content: center;
     font-family: var(--mono); font-size: 10px; color: var(--muted);
     flex-shrink: 0; transition: all 0.25s;
@@ -118,297 +84,248 @@
   .step-item.done .step-num         { background: var(--accent2); border-color: var(--accent2); color: #0d0f14; }
   .step-item.error-step .step-num   { background: var(--error);   border-color: var(--error);   color: white; }
   .step-item.running-step .step-num { background: var(--warn);    border-color: var(--warn);    color: #0d0f14; }
+  .step-item.upload-step .step-num  { background: var(--accent);  border-color: var(--accent);  color: white; }
 
   .step-title { font-size: 12px; font-weight: 500; }
   .step-sub   { font-size: 11px; color: var(--muted); margin-left: 29px; line-height: 1.4; }
-
-  .step-connector {
-    width: 1px; height: 8px; background: var(--border);
-    margin-left: 27px;
-  }
+  .step-connector { width: 1px; height: 7px; background: var(--border); margin-left: 27px; }
 
   .run-btn {
-    display: block;
-    margin: 7px 0 0 29px;
-    padding: 5px 12px;
-    background: var(--accent);
-    color: white;
-    border: none; border-radius: 4px;
-    font-family: var(--mono); font-size: 11px;
-    cursor: pointer; transition: all 0.2s;
-    width: calc(100% - 29px);
-    text-align: left;
+    display: block; margin: 7px 0 0 29px;
+    padding: 5px 12px; background: var(--accent); color: white;
+    border: none; border-radius: 4px; font-family: var(--mono); font-size: 11px;
+    cursor: pointer; transition: all 0.2s; width: calc(100% - 29px); text-align: left;
   }
   .run-btn:hover    { background: #6aa3f9; }
   .run-btn:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
   .run-btn.loading  { background: var(--warn); color: #0d0f14; }
+  .run-btn.upload-btn { background: var(--accent); }
 
   /* ── RIGHT PANEL ── */
-  .main-panel {
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
+  .main-panel { overflow-y: auto; display: flex; flex-direction: column; }
+
+  /* ── UPLOAD + CONFIG STRIP ── */
+  .setup-strip {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 16px 22px; display: flex; flex-direction: column; gap: 14px;
   }
 
-  /* Config strip */
-  .config-strip {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 14px 22px;
-    display: flex;
-    gap: 14px;
-    align-items: flex-end;
-    flex-wrap: wrap;
-  }
+  .setup-row { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
 
-  .config-field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
-  .config-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
-  .config-input {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 6px 10px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text);
-    width: 100%;
+  /* File drop zone */
+  .drop-zone {
+    flex: 2; min-width: 220px;
+    border: 2px dashed var(--border); border-radius: 6px;
+    padding: 16px 18px; text-align: center;
+    cursor: pointer; transition: all 0.2s; position: relative;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--accent); background: rgba(79,142,247,0.06);
+  }
+  .drop-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+  .drop-zone-icon  { font-size: 22px; margin-bottom: 6px; }
+  .drop-zone-label { font-size: 12px; color: var(--muted); }
+  .drop-zone-label strong { color: var(--accent); }
+  .drop-zone-hint  { font-size: 10px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+
+  /* Staged files list */
+  .staged-files { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+  .staged-file {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 10px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .staged-file-name { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .staged-file-size { color: var(--muted); margin-left: 10px; flex-shrink: 0; }
+  .staged-file-status { margin-left: 10px; flex-shrink: 0; }
+  .staged-file-status.ok   { color: var(--accent2); }
+  .staged-file-status.err  { color: var(--error); }
+  .staged-file-status.wait { color: var(--muted); }
+  .remove-file-btn {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    padding: 0 4px; font-size: 14px; line-height: 1; margin-left: 8px;
+    transition: color 0.15s;
+  }
+  .remove-file-btn:hover { color: var(--error); }
+
+  /* Config fields */
+  .config-fields { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
+  .config-field  { display: flex; flex-direction: column; gap: 4px; }
+  .config-label  { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .config-input  {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 6px 10px;
+    font-family: var(--mono); font-size: 12px; color: var(--text);
     transition: border-color 0.2s;
   }
   .config-input:focus { outline: none; border-color: var(--accent); }
 
-  .config-checkbox-row { display: flex; align-items: center; gap: 7px; margin-top: 2px; }
-  .config-checkbox-row input { accent-color: var(--accent); }
-  .config-checkbox-row label { font-size: 11px; color: var(--muted); }
-
-  .apply-btn {
-    padding: 7px 16px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    color: var(--accent);
-    font-family: var(--mono);
-    font-size: 11px;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: all 0.2s;
-    align-self: flex-end;
+  /* Reviewer chip input */
+  .reviewer-section { flex: 1.5; min-width: 220px; }
+  .chip-input-wrap {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; padding: 5px 8px; display: flex; flex-wrap: wrap; gap: 5px;
+    min-height: 36px; cursor: text; transition: border-color 0.2s;
   }
-  .apply-btn:hover { border-color: var(--accent); background: rgba(79,142,247,0.08); }
+  .chip-input-wrap:focus-within { border-color: var(--accent); }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3);
+    border-radius: 3px; padding: 2px 7px;
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+  }
+  .chip.primary { background: rgba(56,217,169,0.1); border-color: rgba(56,217,169,0.3); color: var(--accent2); }
+  .chip-remove  {
+    background: none; border: none; color: inherit; cursor: pointer;
+    padding: 0; line-height: 1; font-size: 12px; opacity: 0.6;
+  }
+  .chip-remove:hover { opacity: 1; }
+  .chip-text-input {
+    background: none; border: none; outline: none;
+    font-family: var(--mono); font-size: 12px; color: var(--text);
+    flex: 1; min-width: 150px; padding: 2px 0;
+  }
+  .chip-hint { font-size: 10px; color: var(--muted); margin-top: 4px; }
 
-  /* Content rows */
+  /* CSV upload */
+  .csv-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 3px;
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+    cursor: pointer; transition: all 0.15s; position: relative;
+    margin-top: 5px;
+  }
+  .csv-btn:hover { color: var(--text); border-color: var(--muted); }
+  .csv-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+  .upload-to-project-btn {
+    padding: 8px 18px; background: var(--accent); color: white;
+    border: none; border-radius: 5px; font-family: var(--mono); font-size: 12px;
+    cursor: pointer; transition: all 0.2s; align-self: flex-end; white-space: nowrap;
+  }
+  .upload-to-project-btn:hover    { background: #6aa3f9; }
+  .upload-to-project-btn:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
+
+  .reset-btn {
+    padding: 6px 14px; background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 4px;
+    font-family: var(--mono); font-size: 11px; cursor: pointer; transition: all 0.2s;
+  }
+  .reset-btn:hover { color: var(--error); border-color: var(--error); }
+
+  /* ── STATE + LOG ── */
   .content-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-    flex: 1;
-    min-height: 0;
+    display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0;
   }
-
-  .state-panel {
-    border-right: 1px solid var(--border);
-    padding: 18px 22px;
-    overflow-y: auto;
-  }
-
-  .log-panel {
-    padding: 18px 22px;
-    overflow-y: auto;
-    background: var(--bg);
-  }
+  .state-panel { border-right: 1px solid var(--border); padding: 16px 20px; overflow-y: auto; }
+  .log-panel   { padding: 16px 20px; overflow-y: auto; background: var(--bg); }
 
   .section-title {
-    font-size: 10px; font-weight: 600;
-    letter-spacing: 0.12em; color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 12px;
-    display: flex; align-items: center; gap: 8px;
+    font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
+    color: var(--muted); text-transform: uppercase;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
   }
   .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 
-  .state-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 18px;
-  }
-
-  .state-card {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px 12px;
-  }
+  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .state-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
   .state-card-label { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
   .state-card-val   { font-family: var(--mono); font-size: 11px; color: var(--text); word-break: break-all; }
   .state-card-val.none { color: var(--muted); font-style: italic; }
   .state-card-val.ok   { color: var(--accent2); }
 
-  /* Webhook events */
   .webhook-list { display: flex; flex-direction: column; gap: 6px; }
   .webhook-event {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 4px;
-    padding: 8px 10px;
-    font-family: var(--mono); font-size: 11px;
-    animation: slideIn 0.3s ease;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 4px;
+    padding: 7px 10px; font-family: var(--mono); font-size: 11px;
   }
   .webhook-time { color: var(--muted); margin-bottom: 2px; }
 
-  /* Download */
+  .download-links { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
   .download-link {
     display: inline-flex; align-items: center; gap: 6px;
-    margin-top: 10px; padding: 7px 14px;
-    background: rgba(56,217,169,0.1);
-    border: 1px solid var(--accent2);
-    border-radius: 5px; color: var(--accent2);
-    font-family: var(--mono); font-size: 12px;
-    text-decoration: none; transition: all 0.2s;
+    padding: 7px 14px; background: rgba(56,217,169,0.1);
+    border: 1px solid var(--accent2); border-radius: 5px; color: var(--accent2);
+    font-family: var(--mono); font-size: 12px; text-decoration: none; transition: all 0.2s;
   }
   .download-link:hover { background: rgba(56,217,169,0.2); }
 
-  /* Log */
   .log-entries { display: flex; flex-direction: column; gap: 2px; }
-
   .log-entry {
-    display: grid;
-    grid-template-columns: 70px 1fr;
-    gap: 8px; padding: 4px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.03);
+    display: grid; grid-template-columns: 68px 1fr; gap: 8px;
+    padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
     font-family: var(--mono); font-size: 11px;
-    animation: fadeIn 0.2s ease;
   }
-  .log-time             { color: var(--muted); }
-  .log-msg              { color: var(--text); }
-  .log-msg.success      { color: var(--accent2); }
-  .log-msg.error        { color: var(--error); }
-  .log-msg.warn         { color: var(--warn); }
-  .log-msg.webhook      { color: var(--accent); }
+  .log-time         { color: var(--muted); }
+  .log-msg          { color: var(--text); }
+  .log-msg.success  { color: var(--accent2); }
+  .log-msg.error    { color: var(--error); }
+  .log-msg.warn     { color: var(--warn); }
+  .log-msg.webhook  { color: var(--accent); }
 
-  /* ── MARKUP METADATA PANEL ── */
-  .markup-panel {
-    grid-column: 1 / -1;
-    border-top: 1px solid var(--border);
-    padding: 20px 22px;
-    background: var(--surface);
-  }
+  /* ── MARKUP PANEL ── */
+  .markup-panel { grid-column: 1 / -1; border-top: 1px solid var(--border); padding: 18px 22px; background: var(--surface); }
 
-  .markup-toolbar {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 14px; flex-wrap: wrap;
-  }
-
-  .view-toggle {
-    display: flex; gap: 0;
-    border: 1px solid var(--border);
-    border-radius: 4px; overflow: hidden;
-  }
+  .markup-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
   .view-toggle button {
-    padding: 5px 12px;
-    background: var(--surface2);
-    border: none; color: var(--muted);
-    font-family: var(--mono); font-size: 11px;
-    cursor: pointer; transition: all 0.15s;
+    padding: 5px 12px; background: var(--surface2); border: none;
+    color: var(--muted); font-family: var(--mono); font-size: 11px; cursor: pointer;
   }
   .view-toggle button.active { background: var(--accent); color: white; }
   .view-toggle button:hover:not(.active) { color: var(--text); }
-
-  .markup-count {
-    font-family: var(--mono); font-size: 11px; color: var(--muted);
-    margin-left: auto;
-  }
+  .markup-count { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
   .markup-count span { color: var(--accent2); font-weight: 600; }
 
-  /* Markup table */
-  .markup-table-wrap { overflow-x: auto; }
-
-  .markup-table {
-    width: 100%; border-collapse: collapse;
-    font-family: var(--mono); font-size: 11px;
+  .icon-btn {
+    padding: 5px 10px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--muted); font-family: var(--mono); font-size: 11px;
+    cursor: pointer; transition: all 0.2s;
   }
+  .icon-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  .markup-table-wrap { overflow-x: auto; }
+  .markup-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
   .markup-table th {
-    text-align: left; padding: 8px 10px;
-    background: var(--surface2);
-    border-bottom: 1px solid var(--border);
-    color: var(--muted); font-weight: 600;
-    font-size: 10px; letter-spacing: 0.08em;
-    text-transform: uppercase; white-space: nowrap;
+    text-align: left; padding: 8px 10px; background: var(--surface2);
+    border-bottom: 1px solid var(--border); color: var(--muted); font-size: 10px;
+    letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
     cursor: pointer; user-select: none;
   }
   .markup-table th:hover { color: var(--text); }
   .markup-table th.sort-asc::after  { content: ' ↑'; color: var(--accent); }
   .markup-table th.sort-desc::after { content: ' ↓'; color: var(--accent); }
   .markup-table td {
-    padding: 7px 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    color: var(--text); vertical-align: top;
-    max-width: 200px; overflow: hidden;
-    text-overflow: ellipsis; white-space: nowrap;
+    padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .markup-table tr:hover td { background: var(--surface2); }
-
   .status-pill {
-    display: inline-block; padding: 2px 7px;
-    border-radius: 3px; font-size: 10px;
+    display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px;
     background: var(--surface2); border: 1px solid var(--border);
   }
   .status-pill.accepted  { color: var(--accent2); border-color: var(--accent2); background: rgba(56,217,169,0.1); }
   .status-pill.rejected  { color: var(--error);   border-color: var(--error);   background: rgba(247,95,95,0.1); }
   .status-pill.completed { color: var(--accent);  border-color: var(--accent);  background: rgba(79,142,247,0.1); }
+  .color-swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: middle; margin-right: 4px; border: 1px solid rgba(255,255,255,0.1); }
 
-  .color-swatch {
-    display: inline-block; width: 12px; height: 12px;
-    border-radius: 2px; vertical-align: middle;
-    margin-right: 5px; border: 1px solid rgba(255,255,255,0.1);
-  }
-
-  /* JSON view */
   .json-view {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 14px;
-    overflow-x: auto;
-    max-height: 400px;
-    overflow-y: auto;
-    font-family: var(--mono);
-    font-size: 11px;
-    line-height: 1.6;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+    padding: 14px; overflow: auto; max-height: 400px;
+    font-family: var(--mono); font-size: 11px; line-height: 1.6;
   }
+  .json-key  { color: #a5c8f0; }
+  .json-str  { color: var(--accent2); }
+  .json-num  { color: var(--warn); }
+  .json-bool { color: #f08a5d; }
+  .json-null { color: var(--muted); }
 
-  .json-key    { color: #a5c8f0; }
-  .json-str    { color: var(--accent2); }
-  .json-num    { color: var(--warn); }
-  .json-bool   { color: #f08a5d; }
-  .json-null   { color: var(--muted); }
-
-  .markup-empty {
-    color: var(--muted); font-family: var(--mono); font-size: 12px;
-    padding: 24px 0; text-align: center;
-  }
-
-  /* Buttons */
-  .icon-btn {
-    padding: 5px 10px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 4px; color: var(--muted);
-    font-family: var(--mono); font-size: 11px;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .icon-btn:hover { color: var(--text); border-color: var(--muted); }
-
-  .reset-btn {
-    padding: 6px 14px;
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    font-family: var(--mono); font-size: 11px;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .reset-btn:hover { color: var(--error); border-color: var(--error); }
+  .markup-empty { color: var(--muted); font-family: var(--mono); font-size: 12px; padding: 20px 0; text-align: center; }
 
   @keyframes fadeIn  { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
   @keyframes slideIn { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:translateX(0); } }
@@ -431,147 +348,160 @@
 <!-- LEFT: Steps -->
 <aside class="steps-panel">
 
-  <div class="panel-label">Outbound — Upload &amp; Review</div>
+  <div class="panel-label">Setup</div>
+
+  <div class="step-item upload-step" id="step-upload-to-project">
+    <div class="step-header">
+      <div class="step-num">0</div>
+      <div class="step-title">Upload to Project</div>
+    </div>
+    <div class="step-sub">Select files above → push to project 712-566-288</div>
+    <button class="run-btn upload-btn" id="uploadProjectBtn" onclick="uploadToProject()">▶ Upload to Project</button>
+  </div>
+
+  <div style="height:6px;"></div>
+  <div class="panel-label">Outbound — Session Setup</div>
 
   <div class="step-item" id="step-trigger">
-    <div class="step-header">
-      <div class="step-num">1</div>
-      <div class="step-title">Workflow Trigger</div>
-    </div>
+    <div class="step-header"><div class="step-num">1</div><div class="step-title">Workflow Trigger</div></div>
     <div class="step-sub">Simulate source-system event</div>
     <button class="run-btn" onclick="runStep('trigger')">▶ Trigger Event</button>
   </div>
   <div class="step-connector"></div>
 
   <div class="step-item" id="step-create-session">
-    <div class="step-header">
-      <div class="step-num">2</div>
-      <div class="step-title">Create Session</div>
-    </div>
+    <div class="step-header"><div class="step-num">2</div><div class="step-title">Create Session</div></div>
     <div class="step-sub">POST /v1/sessions</div>
     <button class="run-btn" onclick="runStep('create-session')">▶ Create Session</button>
   </div>
   <div class="step-connector"></div>
 
   <div class="step-item" id="step-register-webhook">
-    <div class="step-header">
-      <div class="step-num">3</div>
-      <div class="step-title">Register Webhook</div>
-    </div>
+    <div class="step-header"><div class="step-num">3</div><div class="step-title">Register Webhook</div></div>
     <div class="step-sub">POST /v2/subscriptions</div>
     <button class="run-btn" onclick="runStep('register-webhook')">▶ Register Webhook</button>
   </div>
   <div class="step-connector"></div>
 
-  <div class="step-item" id="step-upload-file">
-    <div class="step-header">
-      <div class="step-num">4</div>
-      <div class="step-title">Upload PDF</div>
-    </div>
-    <div class="step-sub">Metadata → S3 → Confirm</div>
-    <button class="run-btn" onclick="runStep('upload-file')">▶ Upload File</button>
+  <div class="step-item" id="step-add-to-session">
+    <div class="step-header"><div class="step-num">4</div><div class="step-title">Add to Session</div></div>
+    <div class="step-sub">Lookup ID → check out into session</div>
+    <button class="run-btn" onclick="runStep('add-to-session')">▶ Add to Session</button>
   </div>
   <div class="step-connector"></div>
 
   <div class="step-item" id="step-invite-reviewers">
-    <div class="step-header">
-      <div class="step-num">5</div>
-      <div class="step-title">Invite Reviewers</div>
-    </div>
-    <div class="step-sub">POST /invite or /users</div>
+    <div class="step-header"><div class="step-num">5</div><div class="step-title">Invite Reviewers</div></div>
+    <div class="step-sub">dmolz@bluebeam.com + additional</div>
     <button class="run-btn" onclick="runStep('invite-reviewers')">▶ Invite Reviewers</button>
   </div>
   <div class="step-connector"></div>
 
   <div class="step-item manual-step" id="step-review">
-    <div class="step-header">
-      <div class="step-num">6</div>
-      <div class="step-title">Review in Revu</div>
-    </div>
-    <div class="step-sub">Non-API — reviewers mark up in Bluebeam Revu. Click when review is done.</div>
+    <div class="step-header"><div class="step-num">6</div><div class="step-title">Review in Revu</div></div>
+    <div class="step-sub">Non-API — mark up in Bluebeam Revu, then click when done</div>
     <button class="run-btn" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);" onclick="markReviewDone()">✓ Mark Review Complete</button>
   </div>
 
-  <div style="height:8px;"></div>
+  <div style="height:6px;"></div>
   <div class="panel-label">Inbound — Extract &amp; Close</div>
 
   <div class="step-item" id="step-update-project-copy">
-    <div class="step-header">
-      <div class="step-num">7</div>
-      <div class="step-title">Update Project Copy</div>
-    </div>
-    <div class="step-sub">POST /files/{id}/updateprojectcopy</div>
+    <div class="step-header"><div class="step-num">7</div><div class="step-title">Update Project Copy</div></div>
+    <div class="step-sub">POST updateprojectcopy</div>
     <button class="run-btn" onclick="runStep('update-project-copy')">▶ Update Project Copy</button>
   </div>
   <div class="step-connector"></div>
 
   <div class="step-item" id="step-run-markuplist-job">
-    <div class="step-header">
-      <div class="step-num">8</div>
-      <div class="step-title">Run Markup List Job</div>
-    </div>
+    <div class="step-header"><div class="step-num">8</div><div class="step-title">Run Markup List Job</div></div>
     <div class="step-sub">POST jobs/markuplist → poll → extract</div>
     <button class="run-btn" onclick="runStep('run-markuplist-job')">▶ Extract Markups</button>
   </div>
   <div class="step-connector"></div>
 
   <div class="step-item" id="step-finalize">
-    <div class="step-header">
-      <div class="step-num">9</div>
-      <div class="step-title">Finalize Session</div>
-    </div>
+    <div class="step-header"><div class="step-num">9</div><div class="step-title">Finalize Session</div></div>
     <div class="step-sub">PUT Status: Finalizing</div>
     <button class="run-btn" onclick="runStep('finalize')">▶ Finalize</button>
   </div>
   <div class="step-connector"></div>
 
   <div class="step-item" id="step-snapshot">
-    <div class="step-header">
-      <div class="step-num">10</div>
-      <div class="step-title">Snapshot + Download</div>
-    </div>
+    <div class="step-header"><div class="step-num">10</div><div class="step-title">Snapshot + Download</div></div>
     <div class="step-sub">POST snapshot → poll → PDF</div>
     <button class="run-btn" onclick="runStep('snapshot')">▶ Get Marked-up PDF</button>
   </div>
   <div class="step-connector"></div>
 
   <div class="step-item" id="step-cleanup">
-    <div class="step-header">
-      <div class="step-num">11</div>
-      <div class="step-title">Cleanup</div>
-    </div>
+    <div class="step-header"><div class="step-num">11</div><div class="step-title">Cleanup</div></div>
     <div class="step-sub">Delete webhook + session</div>
     <button class="run-btn" onclick="runStep('cleanup')">▶ Cleanup</button>
   </div>
 
 </aside>
 
-<!-- RIGHT: Config + State + Log + Markups -->
+<!-- RIGHT -->
 <main class="main-panel">
 
-  <!-- Config strip -->
-  <div class="config-strip">
-    <div class="config-field">
-      <div class="config-label">Document ID</div>
-      <input class="config-input" id="cfgDocId" type="text" placeholder="DOC-001">
-    </div>
-    <div class="config-field" style="flex:2;">
-      <div class="config-label">Document Name</div>
-      <input class="config-input" id="cfgDocName" type="text" placeholder="Sample-Drawing.pdf">
-    </div>
-    <div class="config-field" style="flex:2;">
-      <div class="config-label">Description</div>
-      <input class="config-input" id="cfgDesc" type="text" placeholder="Drawing review — coordination update">
-    </div>
-    <div class="config-field" style="flex:2;">
-      <div class="config-label">Reviewer Email</div>
-      <input class="config-input" id="cfgEmail" type="email" placeholder="reviewer@example.com">
-      <div class="config-checkbox-row">
-        <input type="checkbox" id="cfgHasAccount">
-        <label for="cfgHasAccount">Has Studio account</label>
+  <!-- Setup strip: file upload + config + reviewers -->
+  <div class="setup-strip">
+
+    <div class="setup-row">
+
+      <!-- File drop zone -->
+      <div style="flex:2;min-width:220px;">
+        <div class="config-label" style="margin-bottom:6px;">PDF Files</div>
+        <div class="drop-zone" id="dropZone"
+             ondragover="event.preventDefault();this.classList.add('drag-over')"
+             ondragleave="this.classList.remove('drag-over')"
+             ondrop="handleDrop(event)">
+          <input type="file" id="fileInput" multiple accept=".pdf,application/pdf" onchange="handleFileSelect(event)">
+          <div class="drop-zone-icon">📄</div>
+          <div class="drop-zone-label"><strong>Click to browse</strong> or drag &amp; drop</div>
+          <div class="drop-zone-hint">PDF files only · multiple supported</div>
+        </div>
+        <div class="staged-files" id="stagedFiles"></div>
       </div>
+
+      <!-- Config fields -->
+      <div class="config-fields">
+        <div class="config-field">
+          <div class="config-label">Document ID</div>
+          <input class="config-input" id="cfgDocId" type="text" placeholder="DOC-001"
+                 onchange="applyConfig()">
+        </div>
+        <div class="config-field">
+          <div class="config-label">Description</div>
+          <input class="config-input" id="cfgDesc" type="text" placeholder="Design review — coordination update"
+                 onchange="applyConfig()">
+        </div>
+      </div>
+
+      <!-- Reviewer chip input -->
+      <div class="reviewer-section">
+        <div class="config-label" style="margin-bottom:6px;">Reviewers</div>
+        <div class="chip-input-wrap" id="chipWrap" onclick="document.getElementById('reviewerInput').focus()">
+          <!-- Primary reviewer chip — not removable -->
+          <span class="chip primary" id="primaryChip">dmolz@bluebeam.com</span>
+          <input class="chip-text-input" id="reviewerInput" type="email"
+                 placeholder="Add email, press Enter"
+                 onkeydown="handleReviewerKey(event)">
+        </div>
+        <div class="chip-hint">Press Enter or comma to add · or upload a CSV</div>
+        <label class="csv-btn">
+          📎 Import CSV
+          <input type="file" accept=".csv,text/csv" onchange="importCsv(event)">
+        </label>
+      </div>
+
+      <button class="upload-to-project-btn" id="uploadProjectBtnMain" onclick="uploadToProject()">
+        ⬆ Upload to Project
+      </button>
+
     </div>
-    <button class="apply-btn" onclick="applyConfig()">Apply Config</button>
+
   </div>
 
   <!-- State + Log -->
@@ -589,16 +519,16 @@
           <div class="state-card-val none" id="stateSubId">none</div>
         </div>
         <div class="state-card">
-          <div class="state-card-label">Files Uploaded</div>
-          <div class="state-card-val none" id="stateFiles">0</div>
+          <div class="state-card-label">Project Files</div>
+          <div class="state-card-val none" id="stateProjectFiles">0</div>
+        </div>
+        <div class="state-card">
+          <div class="state-card-label">Session Files</div>
+          <div class="state-card-val none" id="stateSessionFiles">0</div>
         </div>
         <div class="state-card">
           <div class="state-card-label">Markups Extracted</div>
           <div class="state-card-val none" id="stateMarkups">0</div>
-        </div>
-        <div class="state-card">
-          <div class="state-card-label">Markup Job ID</div>
-          <div class="state-card-val none" id="stateJobId">none</div>
         </div>
         <div class="state-card">
           <div class="state-card-label">Status</div>
@@ -606,11 +536,9 @@
         </div>
       </div>
 
-      <div id="downloadSection" style="display:none; margin-bottom:18px;">
-        <div class="section-title">Output PDF</div>
-        <a id="downloadLink" class="download-link" href="#" target="_blank">
-          ⬇ Download Reviewed PDF
-        </a>
+      <div id="downloadSection" style="display:none; margin-bottom:16px;">
+        <div class="section-title">Output PDFs</div>
+        <div class="download-links" id="downloadLinks"></div>
       </div>
 
       <div class="section-title">Webhook Events</div>
@@ -622,7 +550,7 @@
     <div class="log-panel">
       <div class="section-title">Activity Log</div>
       <div class="log-entries" id="logEntries">
-        <div style="color:var(--muted);font-family:var(--mono);font-size:12px;">Configure stub and run Step 1 to begin...</div>
+        <div style="color:var(--muted);font-family:var(--mono);font-size:12px;">Upload files and run Step 1 to begin...</div>
       </div>
     </div>
 
@@ -636,16 +564,14 @@
         <button id="btnTable" class="active" onclick="setView('table')">Table</button>
         <button id="btnJson"  onclick="setView('json')">JSON</button>
       </div>
-      <button class="icon-btn" onclick="copyJson()" id="copyBtn" title="Copy JSON">⎘ Copy</button>
+      <button class="icon-btn" onclick="copyJson()" id="copyBtn">⎘ Copy JSON</button>
       <div class="markup-count" id="markupCount">No markups extracted yet</div>
     </div>
 
     <div id="markupTableView">
-      <div class="markup-empty" id="markupEmpty">
-        Run <strong>Step 8 — Extract Markups</strong> to populate this panel.
-      </div>
+      <div class="markup-empty" id="markupEmpty">Run <strong>Step 8 — Extract Markups</strong> to populate this panel.</div>
       <div class="markup-table-wrap" id="markupTableWrap" style="display:none;">
-        <table class="markup-table" id="markupTable">
+        <table class="markup-table">
           <thead>
             <tr>
               <th onclick="sortTable('Page')">Page</th>
@@ -655,6 +581,7 @@
               <th onclick="sortTable('Status')">Status</th>
               <th onclick="sortTable('Comment')">Comment</th>
               <th onclick="sortTable('Layer')">Layer</th>
+              <th onclick="sortTable('_sourceFile')">File</th>
               <th onclick="sortTable('DateCreated')">Created</th>
               <th onclick="sortTable('Color')">Color</th>
             </tr>
@@ -672,132 +599,254 @@
 </main>
 
 <script>
-// ── State ────────────────────────────────────────────────────────────────────
+// ── State ──────────────────────────────────────────────────────────────────
+let stagedFiles     = [];   // File objects staged in UI
 let currentMarkups  = [];
 let currentView     = 'table';
 let sortKey         = 'Page';
 let sortDir         = 'asc';
-let pollTimer       = null;
 
-// ── Config ──────────────────────────────────────────────────────────────────
-async function applyConfig() {
-  const body = {
-    documentId:      document.getElementById('cfgDocId').value.trim()   || undefined,
-    documentName:    document.getElementById('cfgDocName').value.trim() || undefined,
-    description:     document.getElementById('cfgDesc').value.trim()    || undefined,
-    reviewerEmail:   document.getElementById('cfgEmail').value.trim()   || undefined,
-    hasStudioAccount: document.getElementById('cfgHasAccount').checked
-  };
+// ── File handling ───────────────────────────────────────────────────────────
+function handleFileSelect(e) {
+  addFiles(Array.from(e.target.files));
+  e.target.value = '';
+}
 
-  // Strip undefined keys
-  Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
+  addFiles(files);
+}
 
-  const resp = await fetch('/poc/configure', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+function addFiles(files) {
+  files.forEach(f => {
+    if (!stagedFiles.find(s => s.name === f.name)) {
+      stagedFiles.push({ file: f, name: f.name, size: f.size, status: 'staged' });
+    }
   });
-
-  const data = await resp.json();
-  if (data.stub) populateConfigDisplay(data.stub);
+  renderStagedFiles();
 }
 
-function populateConfigDisplay(stub) {
-  if (stub.documentId   && !document.getElementById('cfgDocId').value)   document.getElementById('cfgDocId').placeholder   = stub.documentId;
-  if (stub.documentName && !document.getElementById('cfgDocName').value) document.getElementById('cfgDocName').placeholder = stub.documentName;
-  if (stub.description  && !document.getElementById('cfgDesc').value)    document.getElementById('cfgDesc').placeholder    = stub.description;
-  if (stub.reviewers?.[0]?.email && !document.getElementById('cfgEmail').value)
-    document.getElementById('cfgEmail').placeholder = stub.reviewers[0].email;
+function removeFile(name) {
+  stagedFiles = stagedFiles.filter(f => f.name !== name);
+  renderStagedFiles();
 }
 
-// ── Step Runner ──────────────────────────────────────────────────────────────
-async function runStep(step) {
-  const stepEl = document.getElementById(`step-${step}`);
-  const btn    = stepEl?.querySelector('.run-btn');
+function renderStagedFiles() {
+  const el = document.getElementById('stagedFiles');
+  if (stagedFiles.length === 0) { el.innerHTML = ''; return; }
 
-  if (btn) {
-    btn.disabled  = true;
-    btn.classList.add('loading');
-    btn.textContent = '⟳ Running...';
+  el.innerHTML = stagedFiles.map(f => {
+    const sizeStr = f.size > 1024*1024
+      ? (f.size / 1024 / 1024).toFixed(1) + ' MB'
+      : (f.size / 1024).toFixed(0) + ' KB';
+
+    const statusIcon = f.status === 'ok'  ? '<span class="staged-file-status ok">✓ Uploaded</span>'
+                     : f.status === 'err' ? '<span class="staged-file-status err">✗ Failed</span>'
+                     :                      '<span class="staged-file-status wait">Staged</span>';
+
+    return `<div class="staged-file">
+      <span class="staged-file-name" title="${esc(f.name)}">${esc(f.name)}</span>
+      <span class="staged-file-size">${sizeStr}</span>
+      ${statusIcon}
+      ${f.status !== 'ok' ? `<button class="remove-file-btn" onclick="removeFile('${esc(f.name)}')" title="Remove">×</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ── Upload to Project ───────────────────────────────────────────────────────
+async function uploadToProject() {
+  const pending = stagedFiles.filter(f => f.status === 'staged');
+  if (pending.length === 0) {
+    alert('No files staged. Select one or more PDFs first.');
+    return;
   }
-  if (stepEl) {
-    stepEl.classList.remove('done', 'error-step');
-    stepEl.classList.add('running-step');
-  }
+
+  const btn1 = document.getElementById('uploadProjectBtn');
+  const btn2 = document.getElementById('uploadProjectBtnMain');
+  [btn1, btn2].forEach(b => { if (b) { b.disabled = true; b.textContent = '⟳ Uploading...'; } });
+
+  // Mark step 0 as running
+  const stepEl = document.getElementById('step-upload-to-project');
+  if (stepEl) { stepEl.classList.add('running-step'); stepEl.classList.remove('done','error-step'); }
+
+  const formData = new FormData();
+  pending.forEach(f => formData.append('files', f.file, f.name));
 
   try {
-    const resp = await fetch(`/poc/${step}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
+    const resp = await fetch('/poc/upload-to-project', { method: 'POST', body: formData });
     const data = await resp.json();
 
     if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
 
-    // Mark done
+    // Mark uploaded files as OK
+    (data.uploaded || []).forEach(u => {
+      const sf = stagedFiles.find(f => f.name === u.name);
+      if (sf) sf.status = 'ok';
+    });
+    renderStagedFiles();
+
     if (stepEl) {
-      stepEl.classList.remove('running-step');
+      stepEl.classList.remove('running-step','error-step');
       stepEl.classList.add('done');
-      const numEl = stepEl.querySelector('.step-num');
-      if (numEl) numEl.textContent = '✓';
+      const num = stepEl.querySelector('.step-num');
+      if (num) num.textContent = '✓';
     }
 
-    // Handle step-specific outcomes
-    if (step === 'snapshot' && data.downloadPath) {
+  } catch (err) {
+    pending.forEach(f => { f.status = 'err'; });
+    renderStagedFiles();
+    if (stepEl) { stepEl.classList.remove('running-step'); stepEl.classList.add('error-step'); }
+    console.error('Upload failed:', err.message);
+  }
+
+  [btn1, btn2].forEach(b => { if (b) { b.disabled = false; b.textContent = b.id === 'uploadProjectBtn' ? '▶ Upload to Project' : '⬆ Upload to Project'; } });
+  await refreshState();
+}
+
+// ── Reviewer chip input ─────────────────────────────────────────────────────
+function handleReviewerKey(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    addReviewer(e.target.value.trim().replace(/,$/, ''));
+    e.target.value = '';
+  }
+  if (e.key === 'Backspace' && e.target.value === '') {
+    // Remove last non-primary chip
+    const chips = document.querySelectorAll('#chipWrap .chip:not(.primary)');
+    if (chips.length > 0) {
+      const last = chips[chips.length - 1];
+      const email = last.dataset.email;
+      last.remove();
+      fetch('/poc/remove-reviewer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+    }
+  }
+}
+
+function addReviewer(email) {
+  if (!email || !email.includes('@')) return;
+  if (email === 'dmolz@bluebeam.com') return; // already primary
+
+  // Check for duplicate chip in UI
+  const existing = document.querySelectorAll('#chipWrap .chip:not(.primary)');
+  for (const c of existing) { if (c.dataset.email === email) return; }
+
+  const chip = document.createElement('span');
+  chip.className = 'chip';
+  chip.dataset.email = email;
+  chip.innerHTML = `${esc(email)} <button class="chip-remove" onclick="removeReviewerChip(this,'${esc(email)}')" title="Remove">×</button>`;
+
+  const input = document.getElementById('reviewerInput');
+  document.getElementById('chipWrap').insertBefore(chip, input);
+
+  fetch('/poc/configure', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reviewerEmail: email })
+  });
+}
+
+function removeReviewerChip(btn, email) {
+  btn.closest('.chip').remove();
+  fetch('/poc/remove-reviewer', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email })
+  });
+}
+
+async function importCsv(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const text = await file.text();
+  const emails = text.split(/[\r\n,;]+/).map(s => s.trim()).filter(s => s.includes('@'));
+  emails.forEach(addReviewer);
+  e.target.value = '';
+}
+
+// ── Config ──────────────────────────────────────────────────────────────────
+function applyConfig() {
+  const body = {};
+  const docId = document.getElementById('cfgDocId').value.trim();
+  const desc  = document.getElementById('cfgDesc').value.trim();
+  if (docId) body.documentId  = docId;
+  if (desc)  body.description = desc;
+  if (Object.keys(body).length === 0) return;
+  fetch('/poc/configure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+}
+
+// ── Step runner ─────────────────────────────────────────────────────────────
+const stepLabels = {
+  'trigger':             '▶ Trigger Event',
+  'create-session':      '▶ Create Session',
+  'register-webhook':    '▶ Register Webhook',
+  'add-to-session':      '▶ Add to Session',
+  'invite-reviewers':    '▶ Invite Reviewers',
+  'update-project-copy': '▶ Update Project Copy',
+  'run-markuplist-job':  '▶ Extract Markups',
+  'finalize':            '▶ Finalize',
+  'snapshot':            '▶ Get Marked-up PDF',
+  'cleanup':             '▶ Cleanup'
+};
+
+async function runStep(step) {
+  const stepEl = document.getElementById(`step-${step}`);
+  const btn    = stepEl?.querySelector('.run-btn');
+
+  if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = '⟳ Running...'; }
+  if (stepEl) { stepEl.classList.remove('done','error-step'); stepEl.classList.add('running-step'); }
+
+  try {
+    const resp = await fetch(`/poc/${step}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+
+    if (stepEl) { stepEl.classList.remove('running-step'); stepEl.classList.add('done'); }
+    const numEl = stepEl?.querySelector('.step-num');
+    if (numEl) numEl.textContent = '✓';
+
+    // Handle snapshot downloads
+    if (step === 'snapshot' && data.downloads?.length) {
       document.getElementById('downloadSection').style.display = 'block';
-      document.getElementById('downloadLink').href = data.downloadPath;
+      document.getElementById('downloadLinks').innerHTML = data.downloads.map(d =>
+        `<a class="download-link" href="${esc(d.path)}" target="_blank">⬇ ${esc(d.name)}</a>`
+      ).join('');
     }
 
+    // Handle markups
     if (step === 'run-markuplist-job' && data.markups) {
       currentMarkups = data.markups;
       renderMarkups();
     }
 
   } catch (err) {
-    if (stepEl) {
-      stepEl.classList.remove('running-step');
-      stepEl.classList.add('error-step');
-    }
+    if (stepEl) { stepEl.classList.remove('running-step'); stepEl.classList.add('error-step'); }
     console.error(`Step ${step} failed:`, err.message);
   }
 
-  if (btn) {
-    btn.disabled = false;
-    btn.classList.remove('loading');
-    // Restore button label from step title
-    const labels = {
-      'trigger':              '▶ Trigger Event',
-      'create-session':       '▶ Create Session',
-      'register-webhook':     '▶ Register Webhook',
-      'upload-file':          '▶ Upload File',
-      'invite-reviewers':     '▶ Invite Reviewers',
-      'update-project-copy':  '▶ Update Project Copy',
-      'run-markuplist-job':   '▶ Extract Markups',
-      'finalize':             '▶ Finalize',
-      'snapshot':             '▶ Get Marked-up PDF',
-      'cleanup':              '▶ Cleanup'
-    };
-    btn.textContent = labels[step] || '▶ Run';
-  }
-
+  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = stepLabels[step] || '▶ Run'; }
   await refreshState();
 }
 
-// Step 6 — non-API manual step
 function markReviewDone() {
   const el  = document.getElementById('step-review');
   const btn = el?.querySelector('.run-btn');
   if (el) { el.classList.remove('manual-step'); el.classList.add('done'); }
-  if (el?.querySelector('.step-num')) el.querySelector('.step-num').textContent = '✓';
-  if (btn) { btn.textContent = '✓ Review Complete'; btn.style.background = 'rgba(56,217,169,0.15)'; btn.style.color = 'var(--accent2)'; btn.style.border = '1px solid var(--accent2)'; }
+  const num = el?.querySelector('.step-num');
+  if (num) num.textContent = '✓';
+  if (btn) {
+    btn.textContent = '✓ Review Complete';
+    btn.style.cssText = 'background:rgba(56,217,169,0.15);color:var(--accent2);border:1px solid var(--accent2);';
+  }
 }
 
-// ── Reset ────────────────────────────────────────────────────────────────────
 async function resetPoc() {
   await fetch('/poc/reset', { method: 'POST' });
 
-  const allSteps = ['trigger','create-session','register-webhook','upload-file',
-                    'invite-reviewers','review','update-project-copy',
+  const allSteps = ['upload-to-project','trigger','create-session','register-webhook',
+                    'add-to-session','invite-reviewers','review','update-project-copy',
                     'run-markuplist-job','finalize','snapshot','cleanup'];
 
   allSteps.forEach((s, i) => {
@@ -806,81 +855,78 @@ async function resetPoc() {
     el.classList.remove('done','error-step','running-step');
     if (s === 'review') el.classList.add('manual-step');
     const num = el.querySelector('.step-num');
-    if (num) num.textContent = i + 1;
+    if (num) num.textContent = i; // 0-indexed matches step numbers
   });
 
-  // Reset review button
   const reviewBtn = document.querySelector('#step-review .run-btn');
-  if (reviewBtn) {
-    reviewBtn.textContent = '✓ Mark Review Complete';
-    reviewBtn.style.background = '';
-    reviewBtn.style.color = '';
-    reviewBtn.style.border = '';
-  }
+  if (reviewBtn) { reviewBtn.textContent = '✓ Mark Review Complete'; reviewBtn.style.cssText = ''; }
 
   document.getElementById('downloadSection').style.display = 'none';
+  document.getElementById('downloadLinks').innerHTML = '';
+
+  // Reset reviewers to primary only
+  document.querySelectorAll('#chipWrap .chip:not(.primary)').forEach(c => c.remove());
+
+  stagedFiles    = [];
   currentMarkups = [];
+  renderStagedFiles();
   renderMarkups();
   await refreshState();
 }
 
-// ── State Polling ────────────────────────────────────────────────────────────
+// ── State polling ───────────────────────────────────────────────────────────
 async function refreshState() {
   try {
     const resp = await fetch('/poc/state');
     const data = await resp.json();
 
-    // Status badge
     const badge = document.getElementById('globalStatus');
     badge.textContent = (data.status || 'idle').toUpperCase().replace(/-/g, ' ');
     badge.className = 'status-badge';
-    const workingStatuses = ['triggered','creating','uploading','inviting','updating-project','extracting-markups','finalizing','snapshotting'];
-    if (workingStatuses.includes(data.status)) badge.classList.add('working');
+    const working = ['triggered','creating','uploading','adding-to-session','inviting','updating-project','extracting-markups','finalizing','snapshotting'];
+    if (working.includes(data.status)) badge.classList.add('working');
     else if (['active','complete'].includes(data.status)) badge.classList.add('active');
     else if (data.status === 'error') badge.classList.add('error');
 
-    // Config placeholders from stub
-    if (data.stub) populateConfigDisplay(data.stub);
+    // Populate config placeholders from stub
+    if (data.stub) {
+      const docIdEl = document.getElementById('cfgDocId');
+      const descEl  = document.getElementById('cfgDesc');
+      if (docIdEl && !docIdEl.value) docIdEl.placeholder = data.stub.documentId || 'DOC-001';
+      if (descEl  && !descEl.value)  descEl.placeholder  = data.stub.description || 'Design review';
+    }
 
-    // State cards
-    setCard('stateSessionId', data.sessionId,                      Boolean(data.sessionId));
-    setCard('stateSubId',     data.subscriptionId,                 Boolean(data.subscriptionId));
-    setCard('stateFiles',     data.fileIds?.length || 0,           data.fileIds?.length > 0);
-    setCard('stateMarkups',   data.markups?.length || 0,           data.markups?.length > 0);
-    setCard('stateJobId',     data.markupJobId,                    Boolean(data.markupJobId));
-    setCard('stateStatus',    data.status,                         ['active','complete'].includes(data.status));
+    setCard('stateSessionId',    data.sessionId,                Boolean(data.sessionId));
+    setCard('stateSubId',        data.subscriptionId,           Boolean(data.subscriptionId));
+    setCard('stateProjectFiles', data.projectFiles?.length || 0, data.projectFiles?.length > 0);
+    setCard('stateSessionFiles', data.sessionFileIds?.length || 0, data.sessionFileIds?.length > 0);
+    setCard('stateMarkups',      data.markups?.length || 0,     data.markups?.length > 0);
+    setCard('stateStatus',       data.status,                   ['active','complete'].includes(data.status));
 
-    // Sync markups from state poll (covers page refresh scenarios)
+    // Sync markups from state (handles page refresh)
     if (data.markups?.length > 0 && currentMarkups.length === 0) {
       currentMarkups = data.markups;
       renderMarkups();
     }
 
-    // Log
+    // Log — newest first
     const logEl = document.getElementById('logEntries');
     if (data.log?.length) {
-      logEl.innerHTML = data.log.map(entry => {
+      logEl.innerHTML = [...data.log].reverse().map(entry => {
         const t = new Date(entry.time).toLocaleTimeString('en-US', { hour12: false });
-        return `<div class="log-entry">
-          <span class="log-time">${t}</span>
-          <span class="log-msg ${entry.type || 'info'}">${esc(entry.msg)}</span>
-        </div>`;
-      }).reverse().join(''); // newest first
+        return `<div class="log-entry"><span class="log-time">${t}</span><span class="log-msg ${entry.type || 'info'}">${esc(entry.msg)}</span></div>`;
+      }).join('');
     }
 
     // Webhook events
     const whEl = document.getElementById('webhookList');
     if (data.webhookEvents?.length) {
-      whEl.innerHTML = data.webhookEvents.slice().reverse().map(e => `
-        <div class="webhook-event">
-          <div class="webhook-time">${new Date(e.receivedAt).toLocaleTimeString()}</div>
-          <div>${esc(e.ResourceType || '')} — ${esc(e.EventType || '')}${e.Name ? ' / ' + esc(e.Name) : ''}</div>
-        </div>`).join('');
+      whEl.innerHTML = [...data.webhookEvents].reverse().map(e =>
+        `<div class="webhook-event"><div class="webhook-time">${new Date(e.receivedAt).toLocaleTimeString()}</div><div>${esc(e.ResourceType||'')} — ${esc(e.EventType||'')}${e.Name?' / '+esc(e.Name):''}</div></div>`
+      ).join('');
     }
 
-  } catch (err) {
-    console.error('State refresh error:', err);
-  }
+  } catch (err) { console.error('State refresh error:', err); }
 }
 
 function setCard(id, val, good) {
@@ -890,7 +936,7 @@ function setCard(id, val, good) {
   el.className = 'state-card-val' + (val ? (good ? ' ok' : '') : ' none');
 }
 
-// ── Markup Rendering ─────────────────────────────────────────────────────────
+// ── Markup rendering ────────────────────────────────────────────────────────
 function renderMarkups() {
   const count   = currentMarkups.length;
   const countEl = document.getElementById('markupCount');
@@ -901,94 +947,67 @@ function renderMarkups() {
     ? `<span>${count}</span> markup${count !== 1 ? 's' : ''} extracted`
     : 'No markups extracted yet';
 
-  if (count === 0) {
-    empty.style.display = 'block';
-    wrap.style.display  = 'none';
-    document.getElementById('jsonContent').innerHTML = '';
-    return;
-  }
+  if (count === 0) { empty.style.display = 'block'; wrap.style.display = 'none'; return; }
 
   empty.style.display = 'none';
   wrap.style.display  = 'block';
-
   renderTable();
   renderJson();
 }
 
 function renderTable() {
   const sorted = [...currentMarkups].sort((a, b) => {
-    const av = a[sortKey] ?? '';
-    const bv = b[sortKey] ?? '';
-    const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
-    return sortDir === 'asc' ? cmp : -cmp;
+    const av = a[sortKey] ?? '', bv = b[sortKey] ?? '';
+    return sortDir === 'asc'
+      ? String(av).localeCompare(String(bv), undefined, { numeric: true })
+      : String(bv).localeCompare(String(av), undefined, { numeric: true });
   });
 
   document.getElementById('markupTbody').innerHTML = sorted.map(m => {
-    const statusClass = (m.Status || '').toLowerCase();
-    const colorSwatch = m.Color
-      ? `<span class="color-swatch" style="background:${esc(m.Color)}"></span>`
-      : '';
-    const created = m.DateCreated
-      ? new Date(m.DateCreated).toLocaleDateString()
-      : '—';
-
+    const sc = (m.Status || '').toLowerCase();
+    const cs = m.Color ? `<span class="color-swatch" style="background:${esc(m.Color)}"></span>` : '';
+    const dt = m.DateCreated ? new Date(m.DateCreated).toLocaleDateString() : '—';
     return `<tr>
       <td>${m.Page ?? '—'}</td>
-      <td>${esc(m.Type || '—')}</td>
-      <td title="${esc(m.Subject || '')}">${esc(m.Subject || '—')}</td>
-      <td title="${esc(m.Author || '')}">${esc(m.Author || '—')}</td>
-      <td><span class="status-pill ${statusClass}">${esc(m.Status || 'None')}</span></td>
-      <td title="${esc(m.Comment || '')}">${esc(m.Comment || '—')}</td>
-      <td>${esc(m.Layer || '—')}</td>
-      <td>${created}</td>
-      <td>${colorSwatch}${esc(m.Color || '—')}</td>
+      <td>${esc(m.Type||'—')}</td>
+      <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
+      <td title="${esc(m.Author||'')}">${esc(m.Author||'—')}</td>
+      <td><span class="status-pill ${sc}">${esc(m.Status||'None')}</span></td>
+      <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
+      <td>${esc(m.Layer||'—')}</td>
+      <td title="${esc(m._sourceFile||'')}">${esc(m._sourceFile||'—')}</td>
+      <td>${dt}</td>
+      <td>${cs}${esc(m.Color||'—')}</td>
     </tr>`;
   }).join('');
-
-  // Update sort indicators
-  document.querySelectorAll('.markup-table th').forEach(th => {
-    th.classList.remove('sort-asc', 'sort-desc');
-  });
 }
 
 function sortTable(key) {
-  if (sortKey === key) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-  else { sortKey = key; sortDir = 'asc'; }
+  sortDir = (sortKey === key && sortDir === 'asc') ? 'desc' : 'asc';
+  sortKey = key;
   renderTable();
-
-  // Add indicator to clicked header
-  document.querySelectorAll('.markup-table th').forEach(th => {
-    if (th.textContent.replace(/ [↑↓]$/, '').trim().toLowerCase() === key.toLowerCase()) {
-      th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
-    }
-  });
 }
 
 function renderJson() {
-  const json = JSON.stringify(currentMarkups, null, 2);
-  document.getElementById('jsonContent').innerHTML = syntaxHighlight(json);
+  document.getElementById('jsonContent').innerHTML = syntaxHighlight(JSON.stringify(currentMarkups, null, 2));
 }
 
 function syntaxHighlight(json) {
-  return json
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
-      if (/^"/.test(match)) {
-        if (/:$/.test(match)) return `<span class="json-key">${match}</span>`;
-        return `<span class="json-str">${match}</span>`;
-      }
-      if (/true|false/.test(match)) return `<span class="json-bool">${match}</span>`;
-      if (/null/.test(match))       return `<span class="json-null">${match}</span>`;
-      return `<span class="json-num">${match}</span>`;
+  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      if (/^"/.test(m)) return /:$/.test(m) ? `<span class="json-key">${m}</span>` : `<span class="json-str">${m}</span>`;
+      if (/true|false/.test(m)) return `<span class="json-bool">${m}</span>`;
+      if (/null/.test(m))       return `<span class="json-null">${m}</span>`;
+      return `<span class="json-num">${m}</span>`;
     });
 }
 
-function setView(view) {
-  currentView = view;
-  document.getElementById('btnTable').classList.toggle('active', view === 'table');
-  document.getElementById('btnJson').classList.toggle('active', view === 'json');
-  document.getElementById('markupTableView').style.display = view === 'table' ? 'block' : 'none';
-  document.getElementById('markupJsonView').style.display  = view === 'json'  ? 'block' : 'none';
+function setView(v) {
+  currentView = v;
+  document.getElementById('btnTable').classList.toggle('active', v === 'table');
+  document.getElementById('btnJson').classList.toggle('active', v === 'json');
+  document.getElementById('markupTableView').style.display = v === 'table' ? 'block' : 'none';
+  document.getElementById('markupJsonView').style.display  = v === 'json'  ? 'block' : 'none';
 }
 
 async function copyJson() {
@@ -997,19 +1016,16 @@ async function copyJson() {
     await navigator.clipboard.writeText(JSON.stringify(currentMarkups, null, 2));
     const btn = document.getElementById('copyBtn');
     btn.textContent = '✓ Copied';
-    setTimeout(() => { btn.textContent = '⎘ Copy'; }, 2000);
-  } catch { /* clipboard not available in all contexts */ }
+    setTimeout(() => { btn.textContent = '⎘ Copy JSON'; }, 2000);
+  } catch { /* clipboard may not be available in all contexts */ }
 }
 
-// ── Utilities ────────────────────────────────────────────────────────────────
-function esc(str) {
-  return String(str)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;');
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
-pollTimer = setInterval(refreshState, 3000);
+// ── Init ────────────────────────────────────────────────────────────────────
+setInterval(refreshState, 3000);
 refreshState();
 </script>
 </body>
