@@ -1,0 +1,116 @@
+<!-- 
+  Bluebeam Studio PoC — Custom Columns Definition
+  ================================================
+  Upload this file to the Studio Project's "resources" folder before running
+  the importcustomcolumns job. The job applies these columns to each review
+  document so reviewers can capture structured metadata on every markup.
+
+  IMPORTANT: Custom statuses (the built-in Status field) cannot be set via
+  this XML — they must be baked into the PDF before session upload. These
+  columns are Choice/Text/Date type custom columns that appear as additional
+  fields in the Markups List alongside the built-in Status column.
+
+  Columns defined here:
+    1. Review Stage     — Choice, workflow progression stages
+    2. Discipline       — Choice, engineering/design discipline
+    3. Responsibility   — Choice, who owns resolution of this markup
+    4. Priority         — Choice, urgency level
+    5. Action Required  — Text, free-form description of required action
+    6. Due Date         — Date, resolution target date
+    7. Reference No.    — Text, external reference (RFI, spec section, etc.)
+ -->
+<CustomColumns>
+<!--  ── 1. Review Stage ───────────────────────────────────────────────────  -->
+<CustomColumn>
+<Name>Review Stage</Name>
+<Type>Choice</Type>
+<AllowCustomText>false</AllowCustomText>
+<Choices>
+<Choice>Step 1 – Out for Review</Choice>
+<Choice>Step 2 – Reviewer Comments Received</Choice>
+<Choice>Step 3 – Comments Under Coordination</Choice>
+<Choice>Step 4 – Responses Issued to Reviewer</Choice>
+<Choice>Step 5 – Final Review in Progress</Choice>
+<Choice>Step 6 – Approved for Construction</Choice>
+<Choice>Step 7 – Approved with Comments</Choice>
+<Choice>Step 8 – Revise and Resubmit</Choice>
+<Choice>Void – Superseded by Revision</Choice>
+<Choice>On Hold – Pending Information</Choice>
+</Choices>
+<Default>Step 1 – Out for Review</Default>
+</CustomColumn>
+<!--  ── 2. Discipline ─────────────────────────────────────────────────────  -->
+<CustomColumn>
+<Name>Discipline</Name>
+<Type>Choice</Type>
+<AllowCustomText>true</AllowCustomText>
+<Choices>
+<Choice>Architectural</Choice>
+<Choice>Structural</Choice>
+<Choice>Mechanical</Choice>
+<Choice>Electrical</Choice>
+<Choice>Plumbing</Choice>
+<Choice>Civil</Choice>
+<Choice>Fire Protection</Choice>
+<Choice>Geotechnical</Choice>
+<Choice>Landscape</Choice>
+<Choice>Interior Design</Choice>
+<Choice>Technology / AV / Security</Choice>
+<Choice>General / Multi-Discipline</Choice>
+</Choices>
+<Default/>
+</CustomColumn>
+<!--  ── 3. Responsibility ────────────────────────────────────────────────  -->
+<CustomColumn>
+<Name>Responsibility</Name>
+<Type>Choice</Type>
+<AllowCustomText>true</AllowCustomText>
+<Choices>
+<Choice>Designer / Architect</Choice>
+<Choice>Engineer of Record (EOR)</Choice>
+<Choice>General Contractor</Choice>
+<Choice>Subcontractor</Choice>
+<Choice>Owner / Client</Choice>
+<Choice>Project Manager</Choice>
+<Choice>Coordinator</Choice>
+<Choice>Authority Having Jurisdiction (AHJ)</Choice>
+<Choice>Consultant</Choice>
+</Choices>
+<Default/>
+</CustomColumn>
+<!--  ── 4. Priority ──────────────────────────────────────────────────────  -->
+<CustomColumn>
+<Name>Priority</Name>
+<Type>Choice</Type>
+<AllowCustomText>false</AllowCustomText>
+<Choices>
+<Choice>Critical – Blocks Construction</Choice>
+<Choice>High – Resolve Before Next Submittal</Choice>
+<Choice>Medium – Resolve This Review Cycle</Choice>
+<Choice>Low – Address at Convenience</Choice>
+<Choice>For Information Only</Choice>
+</Choices>
+<Default>Medium – Resolve This Review Cycle</Default>
+</CustomColumn>
+<!--  ── 5. Action Required ───────────────────────────────────────────────  -->
+<CustomColumn>
+<Name>Action Required</Name>
+<Type>Text</Type>
+<Multiline>true</Multiline>
+<Default/>
+</CustomColumn>
+<!--  ── 6. Due Date ──────────────────────────────────────────────────────  -->
+<CustomColumn>
+<Name>Due Date</Name>
+<Type>Date</Type>
+<Format>MM/dd/yyyy</Format>
+<Default>None</Default>
+</CustomColumn>
+<!--  ── 7. Reference No. ────────────────────────────────────────────────  -->
+<CustomColumn>
+<Name>Reference No.</Name>
+<Type>Text</Type>
+<Multiline>false</Multiline>
+<Default/>
+</CustomColumn>
+</CustomColumns>
