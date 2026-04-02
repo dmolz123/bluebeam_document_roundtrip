@@ -1,20 +1,36 @@
 /**
- * Proof-of-concept reference implementation for a Bluebeam Studio roundtrip workflow.
- * Intended for evaluation and development reference only.
+ * Bluebeam Studio API — Document Roundtrip PoC
+ * Proof-of-concept reference implementation. Not for production use.
+ *
+ * KEY FIXES vs. previous version (cross-referenced against developer guide):
+ *   - Auth endpoint: authserver.bluebeam.com (not api.bluebeam.com)
+ *   - Header: "clientid" not "client_id" on all API calls
+ *   - Checkout-to-session: uses correct dedicated endpoint
+ *   - Check-in: uses /checkin endpoint with Comment body
+ *   - Job polling: correct status codes (100/130/150 = in-progress, 200 = success)
+ *   - File upload metadata: includes Size and CRC fields
+ *   - S3 upload: no auth headers on PUT
+ *   - exportmarkups job added after check-in
+ *   - importcustomcolumns job added after project file upload
+ *   - Project setup: creates resources + review folders on first run
+ *   - Webhook: graceful localhost skip
  *
  * Roundtrip flow:
- *   0.  /poc/upload-to-project      — Upload PDF(s) from UI → Studio Project 712-566-288
- *   1.  /poc/trigger               — Simulate source-system workflow event
- *   2.  /poc/create-session        — Create a Studio Session
- *   3.  /poc/register-webhook      — Subscribe to session events (skipped gracefully if localhost)
- *   4.  /poc/add-to-session        — Look up project file ID, add file to session
- *   5.  /poc/invite-reviewers      — Invite dmolz@bluebeam.com + any additional reviewers
- *   6.  (Review happens in Bluebeam Revu — no API step)
- *   7.  /poc/update-project-copy   — Push session markups back to project file
- *   8.  /poc/run-markuplist-job    — Run markuplist job on project file, poll, return markups
- *   9.  /poc/finalize              — Set session status to Finalizing
- *   10. /poc/snapshot              — Create + poll snapshot, download merged PDF
- *   11. /poc/cleanup               — Delete webhook subscription + session
+ *   0a. /poc/setup-project          — Create folders + upload custom-columns.xml (once)
+ *   0b. /poc/upload-to-project      — Upload PDF(s) from UI → project review folder
+ *   0c. /poc/apply-custom-columns   — Apply custom-columns.xml to each uploaded file
+ *   1.  /poc/trigger                — Simulate source-system workflow event
+ *   2.  /poc/create-session         — Create Studio Session
+ *   3.  /poc/register-webhook       — Subscribe to session events
+ *   4.  /poc/checkout-to-session    — Check project file(s) out into session
+ *   5.  /poc/invite-reviewers       — Invite reviewers
+ *   6.  (Review in Bluebeam Revu — no API step)
+ *   7.  /poc/checkin                — Check session file(s) back into project
+ *   8.  /poc/export-markups         — Run exportmarkups job → XML in project
+ *   9.  /poc/run-markuplist-job     — Run markuplist job → structured markup data
+ *   10. /poc/finalize               — Finalize session
+ *   11. /poc/snapshot               — Snapshot + download marked-up PDF
+ *   12. /poc/cleanup                — Delete webhook + session
  */
 
 require('dotenv').config();
@@ -27,26 +43,33 @@ const TokenManager = require('./tokenManager');
 
 const app    = express();
 const PORT   = process.env.PORT || 3000;
-const upload = multer({ storage: multer.memoryStorage() }); // files held in memory, sent straight to BB
+const upload = multer({ storage: multer.memoryStorage() });
 
 // -----------------------------------------------------------------------------
-// API BASE URLs
+// API CONFIGURATION
+// Per developer guide: token endpoint is authserver.bluebeam.com
+// Header is "clientid" (no underscore) on all API calls
 // -----------------------------------------------------------------------------
-const API_V1 = 'https://api.bluebeam.com/publicapi/v1';
-const API_V2 = 'https://api.bluebeam.com/publicapi/v2';
+const API_V1   = 'https://api.bluebeam.com/publicapi/v1';
+const API_V2   = 'https://api.bluebeam.com/publicapi/v2';
+const CLIENT_ID = process.env.BB_CLIENT_ID;
 
-const CLIENT_ID            = process.env.BB_CLIENT_ID;
 const WEBHOOK_CALLBACK_URL =
   process.env.WEBHOOK_CALLBACK_URL ||
   `http://localhost:${PORT}/webhook/studio-events`;
 
-// Hardcoded Studio Project for this PoC
+// Hardcoded project ID for this PoC
 const POC_PROJECT_ID = '712-566-288';
 
-// -----------------------------------------------------------------------------
-// OPTIONAL SAMPLE / REFERENCE CONSTANTS
-// Populate in .env to enable the standalone /powerbi/markups endpoint.
-// -----------------------------------------------------------------------------
+// Project folder names — created by setup-project if they don't exist
+const FOLDER_RESOURCES    = 'resources';
+const FOLDER_REVIEW_DOCS  = 'review-documents';
+const FOLDER_MARKUP_EXPORTS = 'markup-exports';
+
+// Path to the custom columns XML bundled with this repo
+const CUSTOM_COLUMNS_XML_PATH = path.join(__dirname, 'resources', 'custom-columns.xml');
+
+// Standalone markups endpoint config (optional)
 const MARKUP_SESSION_ID = process.env.MARKUP_SESSION_ID || '';
 const MARKUP_FILE_ID    = process.env.MARKUP_FILE_ID    || '';
 const MARKUP_FILE_NAME  = process.env.MARKUP_FILE_NAME  || 'Sample Drawing.pdf';
@@ -55,12 +78,9 @@ const MARKUP_FILE_NAME  = process.env.MARKUP_FILE_NAME  || 'Sample Drawing.pdf';
 // DEMO STUB
 // -----------------------------------------------------------------------------
 let demoStub = {
-  documentId:   process.env.DEMO_DOCUMENT_ID  || 'DOC-001',
-  description:  process.env.DEMO_DESCRIPTION  || 'Design review — coordination update',
-  // Hardcoded primary reviewer; additional reviewers added via UI
-  reviewers: [
-    { email: 'dmolz@bluebeam.com', hasStudioAccount: true }
-  ],
+  documentId:   process.env.DEMO_DOCUMENT_ID || 'DOC-001',
+  description:  process.env.DEMO_DESCRIPTION || 'Design review — coordination update',
+  reviewers:    [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }],
   sessionEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 };
 
@@ -68,16 +88,20 @@ let demoStub = {
 // IN-MEMORY STATE
 // -----------------------------------------------------------------------------
 let pocState = {
-  sessionId:        null,
-  subscriptionId:   null,
-  projectFiles:     [],   // [{ projectFileId, name, size }] — set after upload to project
-  sessionFileIds:   [],   // [{ sessionFileId, projectFileId, name }] — set after add-to-session
-  markups:          [],
-  markupJobId:      null,
-  status:           'idle',
-  log:              [],
-  createdAt:        null,
-  webhookEvents:    []
+  sessionId:           null,
+  subscriptionId:      null,
+  projectSetupDone:    false,
+  folderIds:           {},    // { resources, reviewDocuments, markupExports }
+  customColumnsFileId: null,  // project file ID of uploaded custom-columns.xml
+  projectFiles:        [],    // [{ projectFileId, name, size, folderId }]
+  sessionFileIds:      [],    // [{ sessionFileId, projectFileId, name }]
+  markupExports:       [],    // [{ fileName, projectPath }]
+  markups:             [],
+  markupJobId:         null,
+  status:              'idle',
+  log:                 [],
+  createdAt:           null,
+  webhookEvents:       []
 };
 
 function logStep(msg, type = 'info') {
@@ -101,21 +125,21 @@ const tokenManager = new TokenManager();
 // -----------------------------------------------------------------------------
 function resetPocState() {
   pocState = {
-    sessionId:      null,
-    subscriptionId: null,
-    projectFiles:   [],
-    sessionFileIds: [],
-    markups:        [],
-    markupJobId:    null,
-    status:         'idle',
-    log:            [],
-    createdAt:      null,
-    webhookEvents:  []
+    sessionId:           null,
+    subscriptionId:      null,
+    projectSetupDone:    false,
+    folderIds:           {},
+    customColumnsFileId: null,
+    projectFiles:        [],
+    sessionFileIds:      [],
+    markupExports:       [],
+    markups:             [],
+    markupJobId:         null,
+    status:              'idle',
+    log:                 [],
+    createdAt:           null,
+    webhookEvents:       []
   };
-}
-
-function ensureConfigured(value, name) {
-  if (!value) throw new Error(`Missing required configuration: ${name}`);
 }
 
 function isLocalhost(url) {
@@ -123,108 +147,149 @@ function isLocalhost(url) {
 }
 
 /**
- * Generic async job poller for Bluebeam project file jobs.
- * Polls GET {url} every {intervalMs} ms until JobStatus reaches
- * 2 (Complete) or 3 (Error), or maxAttempts is exhausted.
+ * Build standard auth headers for Bluebeam API calls.
+ * IMPORTANT: header is "clientid" (no underscore) per developer guide.
+ * Do NOT include these on S3 PUT requests.
  */
-async function pollJob(url, headers, maxAttempts = 30, intervalMs = 3000) {
+function authHeaders(accessToken, extra = {}) {
+  return {
+    Authorization:  `Bearer ${accessToken}`,
+    clientid:       CLIENT_ID,
+    'Content-Type': 'application/json',
+    Accept:         'application/json',
+    ...extra
+  };
+}
+
+/**
+ * Generic job poller for Bluebeam project file jobs.
+ * Status codes per developer guide:
+ *   100 = Queued, 130 = Running, 150 = Finishing → continue polling
+ *   200 = Success → done
+ *   anything else = terminal error
+ */
+async function pollJob(url, headers, maxAttempts = 20, intervalMs = 3000) {
+  const inProgress = new Set([100, 130, 150]);
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
+    await new Promise(r => setTimeout(r, intervalMs));
+
     const res  = await fetch(url, { headers });
     const data = await res.json();
-    logStep(`Job poll ${attempt}/${maxAttempts}: ${data.JobStatusMessage} (${data.JobStatus})`, 'info');
-    if (data.JobStatus === 2) return data;
-    if (data.JobStatus === 3) throw new Error(`Job failed: ${data.JobStatusMessage}`);
+
+    const status = data.Status ?? data.JobStatus;
+    const msg    = data.StatusMessage ?? data.JobStatusMessage ?? '';
+    logStep(`Job poll ${attempt}/${maxAttempts}: status=${status} ${msg}`.trim(), 'info');
+
+    if (status === 200) return data;
+    if (!inProgress.has(status))
+      throw new Error(`Job failed (status=${status}): ${msg}`);
   }
   throw new Error(`Job did not complete after ${maxAttempts} attempts`);
 }
 
 /**
- * Upload a single file buffer to the Studio Project (3-step).
+ * List all folders in the project.
+ * Returns array of { Id, Name, ParentFolderId }.
+ */
+async function listProjectFolders(accessToken) {
+  const resp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/folders`, {
+    headers: authHeaders(accessToken)
+  });
+  if (!resp.ok) throw new Error(`Failed to list folders: ${resp.status} - ${await resp.text()}`);
+  const data = await resp.json();
+  return data.ProjectFolders || [];
+}
+
+/**
+ * Create a folder in the project. Returns the new folder ID.
+ */
+async function createFolder(name, accessToken) {
+  const resp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/folders`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ Name: name })
+  });
+  if (!resp.ok) throw new Error(`Failed to create folder "${name}": ${resp.status} - ${await resp.text()}`);
+  const data = await resp.json();
+  return data.Id;
+}
+
+/**
+ * Upload a file buffer to the project (3-step).
+ * Per developer guide: include Size and CRC:0 in metadata.
+ * Do NOT include auth headers on the S3 PUT.
  * Returns { projectFileId, name }.
  */
-async function uploadFileToProject(fileBuffer, fileName, accessToken) {
-  logStep(`Uploading "${fileName}" to project ${POC_PROJECT_ID}...`, 'info');
+async function uploadFileToProject(fileBuffer, fileName, accessToken, folderId = null) {
+  logStep(`Uploading "${fileName}" to project ${POC_PROJECT_ID}${folderId ? ` (folderId=${folderId})` : ''}...`, 'info');
 
-  // Step A — create metadata block in project
+  const metaBody = {
+    Name: fileName,
+    Size: fileBuffer.length,
+    CRC:  0
+  };
+  if (folderId) metaBody.ParentFolderId = folderId;
+
+  // Step 1 — create metadata block
   const metaResp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/files`, {
     method: 'POST',
-    headers: {
-      Authorization:  `Bearer ${accessToken}`,
-      client_id:      CLIENT_ID,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ Name: fileName })
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(metaBody)
   });
 
-  if (!metaResp.ok) {
-    const err = await metaResp.text();
-    throw new Error(`Project metadata block failed for "${fileName}": ${metaResp.status} - ${err}`);
-  }
+  if (!metaResp.ok)
+    throw new Error(`Metadata block failed for "${fileName}": ${metaResp.status} - ${await metaResp.text()}`);
 
   const meta              = await metaResp.json();
   const projectFileId     = meta.Id;
   const uploadUrl         = meta.UploadUrl;
   const uploadContentType = meta.UploadContentType || 'application/pdf';
 
-  logStep(`Project metadata block created: projectFileId=${projectFileId}`, 'success');
+  logStep(`Metadata block created: projectFileId=${projectFileId}`, 'success');
 
-  // Step B — PUT bytes to S3
-  logStep(`Uploading binary (${fileBuffer.length} bytes)...`, 'info');
+  // Step 2 — PUT to S3 (NO auth headers on this request per developer guide)
+  logStep(`Uploading ${fileBuffer.length} bytes to storage...`, 'info');
   const s3Resp = await fetch(uploadUrl, {
     method: 'PUT',
     headers: {
-      'x-amz-server-side-encryption': 'AES256',
-      'Content-Type':                  uploadContentType
+      'Content-Type':                  uploadContentType,
+      'x-amz-server-side-encryption':  'AES256'
+      // ⚠ DO NOT include Authorization or clientid here — causes 403
     },
     body: fileBuffer
   });
 
-  if (!s3Resp.ok) throw new Error(`S3 upload failed for "${fileName}": ${s3Resp.status}`);
-  logStep('Binary upload to S3 complete', 'success');
+  if (!s3Resp.ok)
+    throw new Error(`S3 upload failed for "${fileName}": ${s3Resp.status}`);
 
-  // Step C — confirm with Bluebeam
+  logStep('S3 upload complete', 'success');
+
+  // Step 3 — confirm
   const confirmResp = await fetch(
     `${API_V1}/projects/${POC_PROJECT_ID}/files/${projectFileId}/confirm-upload`,
-    {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${accessToken}`, client_id: CLIENT_ID }
-    }
+    { method: 'POST', headers: authHeaders(accessToken), body: '{}' }
   );
 
-  if (!confirmResp.ok) {
-    const err = await confirmResp.text();
-    throw new Error(`Confirm upload failed for "${fileName}": ${confirmResp.status} - ${err}`);
-  }
+  if (!confirmResp.ok)
+    throw new Error(`Confirm upload failed for "${fileName}": ${confirmResp.status} - ${await confirmResp.text()}`);
 
   logStep(`"${fileName}" confirmed in project (projectFileId=${projectFileId})`, 'success');
-  return { projectFileId, name: fileName, size: fileBuffer.length };
+  return { projectFileId, name: fileName, size: fileBuffer.length, folderId };
 }
 
 /**
- * Look up a file in the project by name.
- * Returns the project file object or null.
+ * List all files in the project.
+ * Returns array of project file objects.
  */
-async function findProjectFileByName(fileName, accessToken) {
-  const resp = await fetch(
-    `${API_V1}/projects/${POC_PROJECT_ID}/files`,
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        client_id:     CLIENT_ID,
-        Accept:        'application/json'
-      }
-    }
-  );
-
-  if (!resp.ok) {
-    const err = await resp.text();
-    throw new Error(`Failed to list project files: ${resp.status} - ${err}`);
-  }
-
-  const data  = await resp.json();
-  const files = data.ProjectFiles || [];
-  return files.find(f => f.Name === fileName) || null;
+async function listProjectFiles(accessToken) {
+  const resp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/files`, {
+    headers: authHeaders(accessToken)
+  });
+  if (!resp.ok)
+    throw new Error(`Failed to list project files: ${resp.status} - ${await resp.text()}`);
+  const data = await resp.json();
+  return data.ProjectFiles || [];
 }
 
 // -----------------------------------------------------------------------------
@@ -237,7 +302,8 @@ app.get('/health', (req, res) => {
     config: {
       hasClientId:        Boolean(CLIENT_ID),
       webhookCallbackUrl: WEBHOOK_CALLBACK_URL,
-      webhookIsLocalhost: isLocalhost(WEBHOOK_CALLBACK_URL)
+      webhookIsLocalhost: isLocalhost(WEBHOOK_CALLBACK_URL),
+      customColumnsXmlExists: fs.existsSync(CUSTOM_COLUMNS_XML_PATH)
     }
   });
 });
@@ -250,83 +316,134 @@ app.get('/poc/state', (req, res) => {
   res.json({ ...pocState, stub: demoStub, projectId: POC_PROJECT_ID });
 });
 
-app.get('/poc/stub', (req, res) => {
-  res.json(demoStub);
-});
+app.get('/poc/stub', (req, res) => res.json(demoStub));
 
-// POST configure — update description, documentId, or add extra reviewers
-// Body: { documentId?, description?, reviewerEmail? }
-// Note: dmolz@bluebeam.com is always present as the primary reviewer
 app.post('/poc/configure', (req, res) => {
   const { documentId, description, reviewerEmail } = req.body || {};
-
   if (documentId)  demoStub.documentId  = documentId;
   if (description) demoStub.description = description;
-
   if (reviewerEmail && reviewerEmail !== 'dmolz@bluebeam.com') {
-    // Add to list if not already present
-    const exists = demoStub.reviewers.some(r => r.email === reviewerEmail);
-    if (!exists) {
+    if (!demoStub.reviewers.some(r => r.email === reviewerEmail)) {
       demoStub.reviewers.push({ email: reviewerEmail, hasStudioAccount: false });
       logStep(`Added reviewer: ${reviewerEmail}`, 'info');
     }
   }
-
   demoStub.sessionEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
   res.json({ success: true, stub: demoStub });
 });
 
-// Remove a reviewer (cannot remove dmolz@bluebeam.com)
 app.post('/poc/remove-reviewer', (req, res) => {
   const { email } = req.body || {};
   if (email === 'dmolz@bluebeam.com')
     return res.status(400).json({ error: 'Cannot remove primary reviewer' });
-
   demoStub.reviewers = demoStub.reviewers.filter(r => r.email !== email);
   res.json({ success: true, stub: demoStub });
 });
 
 app.post('/poc/reset', (req, res) => {
   resetPocState();
-  // Reset reviewers to just the primary
   demoStub.reviewers = [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }];
   logStep('PoC state reset', 'info');
   res.json({ success: true });
 });
 
 // -----------------------------------------------------------------------------
-// STEP 0 — Upload file(s) from UI to Studio Project
+// STEP 0a — Project Setup
 //
-// Accepts multipart/form-data with field name "files".
-// Each file is uploaded to project 712-566-288 via the 3-step flow,
-// then the project file list is queried to confirm the file ID.
-// Supports multiple files in a single request.
+// Creates the three standard folders in the project (resources, review-documents,
+// markup-exports) if they don't already exist, then uploads custom-columns.xml
+// to the resources folder. Idempotent — safe to run multiple times.
+// Per developer guide: add 1500ms delay after any folder creation before
+// making dependent calls.
+// -----------------------------------------------------------------------------
+app.post('/poc/setup-project', async (req, res) => {
+  try {
+    if (!fs.existsSync(CUSTOM_COLUMNS_XML_PATH))
+      throw new Error(`custom-columns.xml not found at ${CUSTOM_COLUMNS_XML_PATH} — ensure resources/ folder is present`);
+
+    logStep('Running project setup...', 'info');
+    const accessToken = await tokenManager.getValidAccessToken();
+
+    // List existing folders
+    const existing = await listProjectFolders(accessToken);
+    const folderMap = {};
+    existing.forEach(f => { folderMap[f.Name] = f.Id; });
+
+    const needed = [FOLDER_RESOURCES, FOLDER_REVIEW_DOCS, FOLDER_MARKUP_EXPORTS];
+
+    for (const name of needed) {
+      if (folderMap[name]) {
+        logStep(`Folder "${name}" already exists (id=${folderMap[name]})`, 'info');
+        pocState.folderIds[name] = folderMap[name];
+      } else {
+        logStep(`Creating folder "${name}"...`, 'info');
+        // Per developer guide: 1500ms delay after folder creation
+        const id = await createFolder(name, accessToken);
+        await new Promise(r => setTimeout(r, 1500));
+        pocState.folderIds[name] = id;
+        logStep(`Folder "${name}" created (id=${id})`, 'success');
+      }
+    }
+
+    // Upload custom-columns.xml to resources folder (check if already there)
+    const allFiles      = await listProjectFiles(accessToken);
+    const existingXml   = allFiles.find(f =>
+      f.Name === 'custom-columns.xml' && f.ParentFolderId === pocState.folderIds[FOLDER_RESOURCES]
+    );
+
+    if (existingXml) {
+      pocState.customColumnsFileId = existingXml.Id;
+      logStep(`custom-columns.xml already in resources folder (fileId=${existingXml.Id})`, 'info');
+    } else {
+      logStep('Uploading custom-columns.xml to resources folder...', 'info');
+      const xmlBuffer = fs.readFileSync(CUSTOM_COLUMNS_XML_PATH);
+      const result    = await uploadFileToProject(
+        xmlBuffer, 'custom-columns.xml', accessToken,
+        pocState.folderIds[FOLDER_RESOURCES]
+      );
+      pocState.customColumnsFileId = result.projectFileId;
+      logStep(`custom-columns.xml uploaded (fileId=${pocState.customColumnsFileId})`, 'success');
+    }
+
+    pocState.projectSetupDone = true;
+    logStep('Project setup complete', 'success');
+    res.json({ success: true, folderIds: pocState.folderIds, customColumnsFileId: pocState.customColumnsFileId, state: pocState });
+
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 0b — Upload PDF(s) from UI to the project review-documents folder
+// Accepts multipart/form-data, field name "files".
 // -----------------------------------------------------------------------------
 app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     if (!req.files || req.files.length === 0)
-      throw new Error('No files received — attach files with field name "files"');
+      throw new Error('No files received');
 
     pocState.status = 'uploading';
-    logStep(`Received ${req.files.length} file(s) for upload to project ${POC_PROJECT_ID}`, 'info');
+    logStep(`Received ${req.files.length} file(s) for upload`, 'info');
 
-    const accessToken = await tokenManager.getValidAccessToken();
-    const uploaded    = [];
+    const accessToken    = await tokenManager.getValidAccessToken();
+    const reviewFolderId = pocState.folderIds[FOLDER_REVIEW_DOCS] || null;
+    const uploaded       = [];
 
     for (const file of req.files) {
-      const result = await uploadFileToProject(file.buffer, file.originalname, accessToken);
+      const result = await uploadFileToProject(
+        file.buffer, file.originalname, accessToken, reviewFolderId
+      );
       uploaded.push(result);
       pocState.projectFiles.push(result);
     }
 
-    // Update document name in stub to match first uploaded file
-    if (uploaded.length > 0) {
-      demoStub.documentId = demoStub.documentId || uploaded[0].name.replace(/\.[^.]+$/, '');
-    }
+    if (uploaded.length > 0 && demoStub.documentId === 'DOC-001')
+      demoStub.documentId = uploaded[0].name.replace(/\.[^.]+$/, '');
 
-    logStep(`${uploaded.length} file(s) uploaded to project successfully`, 'success');
+    logStep(`${uploaded.length} file(s) uploaded to project`, 'success');
     res.json({ success: true, uploaded, state: pocState });
 
   } catch (err) {
@@ -337,15 +454,77 @@ app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 1 — Simulate source-system workflow event
+// STEP 0c — Apply Custom Columns to uploaded project files
+//
+// Runs the importcustomcolumns job on each uploaded file using the
+// custom-columns.xml already in the resources folder.
+// Must run BEFORE the file goes into a session — custom columns cannot
+// be added or modified once a document is in a session.
+// -----------------------------------------------------------------------------
+app.post('/poc/apply-custom-columns', async (req, res) => {
+  try {
+    if (!pocState.customColumnsFileId)
+      throw new Error('custom-columns.xml not uploaded — run setup-project first');
+    if (pocState.projectFiles.length === 0)
+      throw new Error('No project files — run upload-to-project first');
+
+    logStep('Applying custom columns to project files...', 'info');
+    const accessToken = await tokenManager.getValidAccessToken();
+    const results     = [];
+
+    for (const pf of pocState.projectFiles) {
+      logStep(`Submitting importcustomcolumns job for "${pf.name}"...`, 'info');
+
+      const jobResp = await fetch(
+        `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/jobs/importcustomcolumns`,
+        {
+          method: 'POST',
+          headers: authHeaders(accessToken),
+          body: JSON.stringify({
+            CurrentPassword:    '',
+            CustomColumnsFileID: pocState.customColumnsFileId,
+            OutputFileName:     pf.name,
+            OutputPath:         FOLDER_REVIEW_DOCS,
+            Priority:           0
+          })
+        }
+      );
+
+      if (!jobResp.ok) {
+        const err = await jobResp.text();
+        logStep(`importcustomcolumns submission failed for "${pf.name}": ${jobResp.status} - ${err}`, 'warn');
+        results.push({ name: pf.name, success: false, error: err });
+        continue;
+      }
+
+      const { Id: jobId } = await jobResp.json();
+      logStep(`Job submitted: jobId=${jobId} — polling...`, 'success');
+
+      const pollUrl = `${API_V1}/jobs/${jobId}`;
+      await pollJob(pollUrl, authHeaders(accessToken));
+
+      logStep(`Custom columns applied to "${pf.name}"`, 'success');
+      results.push({ name: pf.name, success: true, jobId });
+    }
+
+    res.json({ success: true, results, state: pocState });
+
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 1 — Trigger
 // -----------------------------------------------------------------------------
 app.post('/poc/trigger', (req, res) => {
   pocState.status = 'triggered';
   pocState.log    = [];
 
-  const fileNames = pocState.projectFiles.map(f => f.name).join(', ') || '(none uploaded yet)';
   logStep(`Workflow event received — document: ${demoStub.documentId}`, 'info');
-  logStep(`Files staged for review: ${fileNames}`, 'info');
+  logStep(`Files: ${pocState.projectFiles.map(f => f.name).join(', ') || '(none)'}`, 'info');
   logStep(`Description: ${demoStub.description}`, 'info');
   logStep(`Reviewers: ${demoStub.reviewers.map(r => r.email).join(', ')}`, 'info');
   logStep(`Session end date: ${new Date(demoStub.sessionEndDate).toLocaleDateString()}`, 'info');
@@ -354,48 +533,39 @@ app.post('/poc/trigger', (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 2 — Create Studio Session
+// STEP 2 — Create Session
+// Per developer guide: DefaultPermissions array in POST body (not separate PUTs)
 // -----------------------------------------------------------------------------
 app.post('/poc/create-session', async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     pocState.status = 'creating';
     logStep('Creating Bluebeam Studio Session...', 'info');
 
     const accessToken = await tokenManager.getValidAccessToken();
-    const sessionName = `${demoStub.documentId}_Review_${new Date().toISOString().slice(0,10)}`;
+    const sessionName = `${demoStub.documentId}_Review_${new Date().toISOString().slice(0, 10)}`;
 
-    const body = {
-      Name:           sessionName,
-      Notification:   true,
-      Restricted:     true,
-      SessionEndDate: demoStub.sessionEndDate,
-      DefaultPermissions: [
-        { Type: 'Markup',       Allow: 'Allow' },
-        { Type: 'SaveCopy',     Allow: 'Allow' },
-        { Type: 'PrintCopy',    Allow: 'Allow' },
-        { Type: 'MarkupAlert',  Allow: 'Allow' },
-        { Type: 'AddDocuments', Allow: 'Deny'  }
-      ]
-    };
-
-    const response = await fetch(`${API_V1}/sessions`, {
+    const resp = await fetch(`${API_V1}/sessions`, {
       method: 'POST',
-      headers: {
-        Authorization:  `Bearer ${accessToken}`,
-        client_id:      CLIENT_ID,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({
+        Name:           sessionName,
+        Notification:   true,
+        Restricted:     true,
+        SessionEndDate: demoStub.sessionEndDate,
+        DefaultPermissions: [
+          { Type: 'Markup',       Allow: 'Allow' },
+          { Type: 'SaveCopy',     Allow: 'Allow' },
+          { Type: 'PrintCopy',    Allow: 'Allow' },
+          { Type: 'MarkupAlert',  Allow: 'Allow' },
+          { Type: 'AddDocuments', Allow: 'Deny'  }
+        ]
+      })
     });
 
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Session creation failed: ${response.status} - ${err}`);
-    }
+    if (!resp.ok)
+      throw new Error(`Session creation failed: ${resp.status} - ${await resp.text()}`);
 
-    const data         = await response.json();
+    const data         = await resp.json();
     pocState.sessionId = data.Id;
     pocState.createdAt = new Date().toISOString();
 
@@ -411,36 +581,25 @@ app.post('/poc/create-session', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 3 — Register Webhook Subscription
-//
-// Skipped gracefully if WEBHOOK_CALLBACK_URL is localhost — Bluebeam requires
-// a publicly accessible HTTPS URL. Use ngrok or similar for local testing.
+// STEP 3 — Register Webhook (graceful skip if localhost)
 // -----------------------------------------------------------------------------
 app.post('/poc/register-webhook', async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     if (!pocState.sessionId)
       throw new Error('No active session — run create-session first');
 
-    // Graceful skip for localhost
     if (isLocalhost(WEBHOOK_CALLBACK_URL)) {
-      logStep('Webhook skipped — WEBHOOK_CALLBACK_URL is localhost (not reachable by Bluebeam)', 'warn');
+      logStep('Webhook skipped — WEBHOOK_CALLBACK_URL is localhost (Bluebeam requires public HTTPS)', 'warn');
       logStep('Set WEBHOOK_CALLBACK_URL to a public HTTPS URL (e.g. ngrok) to enable webhooks', 'warn');
-      return res.json({ success: true, skipped: true, reason: 'localhost', state: pocState });
+      return res.json({ success: true, skipped: true, state: pocState });
     }
 
     logStep(`Registering webhook for session ${pocState.sessionId}...`, 'info');
-
     const accessToken = await tokenManager.getValidAccessToken();
 
-    const response = await fetch(`${API_V2}/subscriptions`, {
+    const resp = await fetch(`${API_V2}/subscriptions`, {
       method: 'POST',
-      headers: {
-        Authorization:  `Bearer ${accessToken}`,
-        client_id:      CLIENT_ID,
-        'Content-Type': 'application/json'
-      },
+      headers: authHeaders(accessToken),
       body: JSON.stringify({
         sourceType:  'session',
         resourceId:  pocState.sessionId,
@@ -448,12 +607,10 @@ app.post('/poc/register-webhook', async (req, res) => {
       })
     });
 
-    if (!response.ok) {
-      const err = await response.text();
-      throw new Error(`Webhook registration failed: ${response.status} - ${err}`);
-    }
+    if (!resp.ok)
+      throw new Error(`Webhook registration failed: ${resp.status} - ${await resp.text()}`);
 
-    const data              = await response.json();
+    const data              = await resp.json();
     pocState.subscriptionId = data.subscriptionId;
 
     logStep(`Webhook registered: subscriptionId=${pocState.subscriptionId}`, 'success');
@@ -468,141 +625,102 @@ app.post('/poc/register-webhook', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 4 — Add Project File(s) to Session
+// STEP 4 — Check Out Project File(s) into Session
 //
-// For each file uploaded to the project:
-//   a. Query GET /projects/{projectId}/files to find the file by name and get its Id
-//   b. Get the project file download URL via GET /projects/{projectId}/files/{fileId}
-//   c. Create a session file metadata block using that URL as Source
-//   d. Confirm the session file upload
-//
-// This is the "check out into session" operation — no bytes are re-uploaded.
+// Per developer guide: use the dedicated checkout-to-session endpoint.
+// POST /projects/{projectId}/files/{fileId}/checkout-to-session
+// Body: { "SessionId": "..." }
+// This is the correct pattern — not re-uploading bytes.
 // -----------------------------------------------------------------------------
-app.post('/poc/add-to-session', async (req, res) => {
+app.post('/poc/checkout-to-session', async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     if (!pocState.sessionId)
       throw new Error('No active session — run create-session first');
     if (pocState.projectFiles.length === 0)
-      throw new Error('No project files found — run upload-to-project first');
+      throw new Error('No project files — run upload-to-project first');
 
-    pocState.status = 'adding-to-session';
-    logStep(`Adding ${pocState.projectFiles.length} project file(s) to session ${pocState.sessionId}...`, 'info');
+    pocState.status = 'checking-out';
+    logStep(`Checking ${pocState.projectFiles.length} file(s) out to session ${pocState.sessionId}...`, 'info');
 
     const accessToken = await tokenManager.getValidAccessToken();
-    const added       = [];
+    const checked     = [];
 
-    for (const projectFile of pocState.projectFiles) {
+    for (const pf of pocState.projectFiles) {
+      logStep(`Checking out "${pf.name}" (projectFileId=${pf.projectFileId})...`, 'info');
 
-      // 4a — look up file in project by name to get confirmed Id
-      logStep(`Looking up "${projectFile.name}" in project ${POC_PROJECT_ID}...`, 'info');
-      const found = await findProjectFileByName(projectFile.name, accessToken);
+      const resp = await fetch(
+        `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/checkout-to-session`,
+        {
+          method: 'POST',
+          headers: authHeaders(accessToken),
+          body: JSON.stringify({ SessionId: pocState.sessionId })
+        }
+      );
 
-      if (!found) {
-        logStep(`File "${projectFile.name}" not found in project — skipping`, 'warn');
+      if (!resp.ok) {
+        const err = await resp.text();
+        // 409 = already checked out to another session
+        if (resp.status === 409) {
+          logStep(`"${pf.name}" already checked out (409) — attempting to release and retry...`, 'warn');
+          const releaseResp = await fetch(
+            `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/checkout`,
+            { method: 'DELETE', headers: authHeaders(accessToken) }
+          );
+          if (releaseResp.ok) {
+            logStep(`Checkout released for "${pf.name}" — retrying...`, 'info');
+            const retry = await fetch(
+              `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/checkout-to-session`,
+              { method: 'POST', headers: authHeaders(accessToken), body: JSON.stringify({ SessionId: pocState.sessionId }) }
+            );
+            if (!retry.ok) {
+              logStep(`Retry failed for "${pf.name}": ${retry.status}`, 'warn');
+              continue;
+            }
+          } else {
+            logStep(`Could not release checkout for "${pf.name}"`, 'warn');
+            continue;
+          }
+        } else {
+          logStep(`Checkout failed for "${pf.name}": ${resp.status} - ${err}`, 'warn');
+          continue;
+        }
+      }
+
+      // After checkout-to-session, query session files to get the session file ID
+      await new Promise(r => setTimeout(r, 1000)); // brief pause for server to register
+
+      const sessionFilesResp = await fetch(
+        `${API_V1}/sessions/${pocState.sessionId}/files?includeDeleted=false`,
+        { headers: authHeaders(accessToken) }
+      );
+
+      if (!sessionFilesResp.ok) {
+        logStep(`Could not list session files after checkout: ${sessionFilesResp.status}`, 'warn');
         continue;
       }
 
-      const projectFileId = found.Id;
-      logStep(`Found in project: "${projectFile.name}" (projectFileId=${projectFileId})`, 'success');
+      const sessionFilesData = await sessionFilesResp.json();
+      const sessionFiles     = sessionFilesData.SessionFiles || sessionFilesData.Files || [];
 
-      // 4b — get file download URL from project
-      const fileDetailResp = await fetch(
-        `${API_V1}/projects/${POC_PROJECT_ID}/files/${projectFileId}/download`,
-        {
-          headers: { Authorization: `Bearer ${accessToken}`, client_id: CLIENT_ID }
-        }
+      // Match by project file ID (ProjectFileId field) or by name
+      const match = sessionFiles.find(f =>
+        f.ProjectFileId === pf.projectFileId || f.Name === pf.name
       );
 
-      if (!fileDetailResp.ok) {
-        const err = await fileDetailResp.text();
-        throw new Error(`Failed to get download URL for "${projectFile.name}": ${fileDetailResp.status} - ${err}`);
+      if (!match) {
+        logStep(`Could not find session file entry for "${pf.name}" after checkout`, 'warn');
+        continue;
       }
 
-      const fileDetail = await fileDetailResp.json();
-      const downloadUrl = fileDetail.Url || fileDetail.DownloadUrl || fileDetail.url;
-
-      if (!downloadUrl)
-        throw new Error(`No download URL returned for "${projectFile.name}"`);
-
-      logStep(`Download URL obtained for "${projectFile.name}"`, 'success');
-
-      // 4c — create session file metadata block using project download URL as Source
-      logStep(`Creating session file metadata block for "${projectFile.name}"...`, 'info');
-
-      const sessionMetaResp = await fetch(`${API_V1}/sessions/${pocState.sessionId}/files`, {
-        method: 'POST',
-        headers: {
-          Authorization:  `Bearer ${accessToken}`,
-          client_id:      CLIENT_ID,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          Name:   projectFile.name,
-          Source: downloadUrl
-        })
-      });
-
-      if (!sessionMetaResp.ok) {
-        const err = await sessionMetaResp.text();
-        throw new Error(`Session file metadata failed for "${projectFile.name}": ${sessionMetaResp.status} - ${err}`);
-      }
-
-      const sessionMeta   = await sessionMetaResp.json();
-      const sessionFileId = sessionMeta.Id;
-      const uploadUrl     = sessionMeta.UploadUrl;
-
-      logStep(`Session file metadata created: sessionFileId=${sessionFileId}`, 'success');
-
-      // 4d — If UploadUrl is returned, the file bytes must still be transferred
-      //      (Bluebeam may return an UploadUrl even for source-referenced files)
-      if (uploadUrl) {
-        logStep('UploadUrl returned — fetching source bytes and transferring to session storage...', 'info');
-
-        const srcResp = await fetch(downloadUrl);
-        if (!srcResp.ok) throw new Error(`Failed to fetch source file: ${srcResp.status}`);
-
-        const srcBuffer = await srcResp.buffer();
-
-        const s3Resp = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'x-amz-server-side-encryption': 'AES256',
-            'Content-Type':                  'application/pdf'
-          },
-          body: srcBuffer
-        });
-
-        if (!s3Resp.ok) throw new Error(`Session S3 upload failed: ${s3Resp.status}`);
-        logStep(`Bytes transferred to session storage (${srcBuffer.length} bytes)`, 'success');
-      }
-
-      // 4e — confirm session file upload
-      logStep('Confirming session file upload...', 'info');
-
-      const confirmResp = await fetch(
-        `${API_V1}/sessions/${pocState.sessionId}/files/${sessionFileId}/confirm-upload`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}`, client_id: CLIENT_ID }
-        }
-      );
-
-      if (!confirmResp.ok) {
-        const err = await confirmResp.text();
-        throw new Error(`Session confirm upload failed for "${projectFile.name}": ${confirmResp.status} - ${err}`);
-      }
-
-      const entry = { sessionFileId, projectFileId, name: projectFile.name };
+      const entry = { sessionFileId: match.Id, projectFileId: pf.projectFileId, name: pf.name };
       pocState.sessionFileIds.push(entry);
-      added.push(entry);
+      checked.push(entry);
 
-      logStep(`"${projectFile.name}" active in session (sessionFileId=${sessionFileId})`, 'success');
+      logStep(`"${pf.name}" checked out to session (sessionFileId=${match.Id})`, 'success');
     }
 
-    logStep(`${added.length} file(s) added to session`, 'success');
-    res.json({ success: true, added, state: pocState });
+    logStep(`${checked.length} file(s) checked out to session`, 'success');
+    res.json({ success: true, checked, state: pocState });
 
   } catch (err) {
     pocState.status = 'error';
@@ -613,14 +731,11 @@ app.post('/poc/add-to-session', async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // STEP 5 — Invite Reviewers
-//
-// dmolz@bluebeam.com is always the primary reviewer (hasStudioAccount: true → /users).
-// Additional reviewers added via the UI use /invite (email flow).
+// Per developer guide: /invite combines add + invite in one call for sessions.
+// dmolz@bluebeam.com uses /users (direct-add, has Studio account).
 // -----------------------------------------------------------------------------
 app.post('/poc/invite-reviewers', async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     if (!pocState.sessionId) throw new Error('No active session');
 
     pocState.status = 'inviting';
@@ -630,27 +745,17 @@ app.post('/poc/invite-reviewers', async (req, res) => {
     const results     = [];
 
     for (const reviewer of demoStub.reviewers) {
-      // hasStudioAccount → direct add via /users (no email sent, appears in their Revu immediately)
-      // otherwise       → /invite sends an email with a join link
       const endpoint = reviewer.hasStudioAccount
         ? `${API_V1}/sessions/${pocState.sessionId}/users`
         : `${API_V1}/sessions/${pocState.sessionId}/invite`;
 
-      logStep(
-        `Inviting ${reviewer.email} via ${reviewer.hasStudioAccount ? 'direct-add (/users)' : 'email-invite (/invite)'}`,
-        'info'
-      );
+      logStep(`Inviting ${reviewer.email} via ${reviewer.hasStudioAccount ? 'direct-add' : 'email-invite'}`, 'info');
 
       const resp = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          Authorization:  `Bearer ${accessToken}`,
-          client_id:      CLIENT_ID,
-          'Content-Type': 'application/json'
-        },
+        headers: authHeaders(accessToken),
         body: JSON.stringify({
           Email:     reviewer.email,
-          SendEmail: true,
           Message:   `You have been invited to review ${demoStub.documentId}: ${demoStub.description}`
         })
       });
@@ -667,7 +772,7 @@ app.post('/poc/invite-reviewers', async (req, res) => {
 
     pocState.status = 'active';
     logStep('Session active — reviewers notified', 'success');
-    logStep(`Join via Bluebeam Revu — session ID: ${pocState.sessionId}`, 'info');
+    logStep(`Join in Bluebeam Revu with session ID: ${pocState.sessionId}`, 'info');
     res.json({ success: true, results, state: pocState });
 
   } catch (err) {
@@ -682,46 +787,44 @@ app.post('/poc/invite-reviewers', async (req, res) => {
 // -----------------------------------------------------------------------------
 
 // -----------------------------------------------------------------------------
-// STEP 7 — Update the Project File Copy
+// STEP 7 — Check Session File(s) Back In to Project
 //
-// Pushes session markups back to each linked project file.
-// Uses the SESSION file ID (from pocState.sessionFileIds), not the project file ID.
-// Non-destructive — session remains active after this call.
+// Per developer guide: POST /sessions/{sessionId}/files/{sessionFileId}/checkin
+// Body: { "Comment": "..." }
+// This is the correct endpoint (not updateprojectcopy).
 // -----------------------------------------------------------------------------
-app.post('/poc/update-project-copy', async (req, res) => {
+app.post('/poc/checkin', async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     if (!pocState.sessionId)              throw new Error('No active session');
-    if (pocState.sessionFileIds.length === 0) throw new Error('No files in session — run add-to-session first');
+    if (pocState.sessionFileIds.length === 0) throw new Error('No session files — run checkout-to-session first');
 
-    pocState.status = 'updating-project';
-
+    pocState.status = 'checking-in';
     const accessToken = await tokenManager.getValidAccessToken();
     const results     = [];
 
     for (const sf of pocState.sessionFileIds) {
-      logStep(`Updating project copy for "${sf.name}" (sessionFileId=${sf.sessionFileId})...`, 'info');
+      logStep(`Checking in "${sf.name}" (sessionFileId=${sf.sessionFileId})...`, 'info');
 
       const resp = await fetch(
-        `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/updateprojectcopy`,
+        `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/checkin`,
         {
           method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}`, client_id: CLIENT_ID }
+          headers: authHeaders(accessToken),
+          body: JSON.stringify({ Comment: 'Session markup review complete' })
         }
       );
 
-      if (resp.status === 204) {
-        logStep(`"${sf.name}" — project copy updated (204)`, 'success');
-        results.push({ name: sf.name, success: true });
-      } else {
+      if (!resp.ok) {
         const err = await resp.text();
-        logStep(`"${sf.name}" — update failed: ${resp.status} - ${err}`, 'warn');
+        logStep(`Check-in failed for "${sf.name}": ${resp.status} - ${err}`, 'warn');
         results.push({ name: sf.name, success: false, error: err });
+      } else {
+        logStep(`"${sf.name}" checked in to project`, 'success');
+        results.push({ name: sf.name, success: true });
       }
     }
 
-    logStep('Project file copy update complete — session remains active', 'info');
+    logStep('Check-in complete — project files updated with session markups', 'success');
     res.json({ success: true, results, state: pocState });
 
   } catch (err) {
@@ -732,67 +835,71 @@ app.post('/poc/update-project-copy', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 8 — Run Markup List Job on the Project File
+// STEP 8 — Export Markups to XML
 //
-// Runs against the first project file. If multiple files were uploaded,
-// runs against each in sequence and merges the markup arrays.
+// Per developer guide:
+//   POST .../jobs/exportmarkups
+//   OutputPath must be an existing folder (markup-exports)
+//   Use 15-second polling intervals — this job takes longer
+//   Use collision-safe filename (append projectFileId)
 // -----------------------------------------------------------------------------
-app.post('/poc/run-markuplist-job', async (req, res) => {
+app.post('/poc/export-markups', async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     if (pocState.sessionFileIds.length === 0)
-      throw new Error('No session files — run add-to-session first');
+      throw new Error('No session files — run checkout-to-session first');
 
-    pocState.status  = 'extracting-markups';
-    pocState.markups = [];
-
+    logStep('Exporting markups to XML...', 'info');
     const accessToken = await tokenManager.getValidAccessToken();
+    const results     = [];
 
-    const authHeaders = {
-      Authorization:  `Bearer ${accessToken}`,
-      client_id:      CLIENT_ID,
-      'Content-Type': 'application/json',
-      Accept:         'application/json'
-    };
+    // Ensure markup-exports folder exists
+    if (!pocState.folderIds[FOLDER_MARKUP_EXPORTS]) {
+      logStep('markup-exports folder ID not set — re-querying folders...', 'info');
+      const folders = await listProjectFolders(accessToken);
+      const found   = folders.find(f => f.Name === FOLDER_MARKUP_EXPORTS);
+      if (found) pocState.folderIds[FOLDER_MARKUP_EXPORTS] = found.Id;
+      else throw new Error(`Folder "${FOLDER_MARKUP_EXPORTS}" not found — run setup-project first`);
+    }
 
     for (const sf of pocState.sessionFileIds) {
-      logStep(`Submitting markuplist job for "${sf.name}" (projectFileId=${sf.projectFileId})...`, 'info');
+      // Collision-safe filename: append project file ID
+      const exportFileName = `Markups-${sf.projectFileId}.xml`;
 
-      const submitResp = await fetch(
-        `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist`,
-        { method: 'POST', headers: authHeaders, body: JSON.stringify({}) }
+      logStep(`Submitting exportmarkups job for "${sf.name}" → ${exportFileName}...`, 'info');
+
+      const jobResp = await fetch(
+        `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/exportmarkups`,
+        {
+          method: 'POST',
+          headers: authHeaders(accessToken),
+          body: JSON.stringify({
+            OutputFileName: exportFileName,
+            OutputPath:     FOLDER_MARKUP_EXPORTS,
+            Priority:       0
+          })
+        }
       );
 
-      if (!submitResp.ok) {
-        const err = await submitResp.text();
-        logStep(`Markuplist job submission failed for "${sf.name}": ${submitResp.status} - ${err}`, 'warn');
+      if (!jobResp.ok) {
+        const err = await jobResp.text();
+        logStep(`exportmarkups submission failed for "${sf.name}": ${jobResp.status} - ${err}`, 'warn');
+        results.push({ name: sf.name, success: false, error: err });
         continue;
       }
 
-      const { JobId }      = await submitResp.json();
-      pocState.markupJobId = JobId;
+      const { Id: jobId } = await jobResp.json();
+      logStep(`exportmarkups job submitted: jobId=${jobId} — polling (15s interval)...`, 'success');
 
-      logStep(`Job submitted: JobId=${JobId} — polling...`, 'success');
+      // Per developer guide: use 15-second interval for exportmarkups
+      const pollUrl = `${API_V1}/jobs/${jobId}`;
+      await pollJob(pollUrl, authHeaders(accessToken), 15, 15000);
 
-      const pollUrl = `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist/${JobId}`;
-      const result  = await pollJob(pollUrl, authHeaders);
-
-      const fileMarkups = (result.Markups || []).map(m => ({ ...m, _sourceFile: sf.name }));
-      pocState.markups.push(...fileMarkups);
-
-      logStep(`"${sf.name}" — ${fileMarkups.length} markup(s) extracted`, 'success');
+      logStep(`Markup XML exported: ${exportFileName}`, 'success');
+      pocState.markupExports.push({ name: sf.name, exportFileName, projectPath: FOLDER_MARKUP_EXPORTS });
+      results.push({ name: sf.name, success: true, exportFileName });
     }
 
-    pocState.status = 'active';
-    logStep(`Markuplist complete — ${pocState.markups.length} total markup(s) extracted`, 'success');
-
-    res.json({
-      success: true,
-      count:   pocState.markups.length,
-      markups: pocState.markups,
-      state:   pocState
-    });
+    res.json({ success: true, results, markupExports: pocState.markupExports, state: pocState });
 
   } catch (err) {
     pocState.status = 'error';
@@ -802,35 +909,86 @@ app.post('/poc/run-markuplist-job', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 9 — Finalize Session
+// STEP 9 — Run Markup List Job (structured markup metadata)
+//
+// Per developer guide: poll GET /jobs/{jobId} (global endpoint, not per-file).
+// Status 200 = success.
+// -----------------------------------------------------------------------------
+app.post('/poc/run-markuplist-job', async (req, res) => {
+  try {
+    if (pocState.sessionFileIds.length === 0)
+      throw new Error('No session files — run checkout-to-session first');
+
+    pocState.status  = 'extracting-markups';
+    pocState.markups = [];
+
+    const accessToken = await tokenManager.getValidAccessToken();
+    const hdrs        = authHeaders(accessToken);
+
+    for (const sf of pocState.sessionFileIds) {
+      logStep(`Submitting markuplist job for "${sf.name}" (projectFileId=${sf.projectFileId})...`, 'info');
+
+      const submitResp = await fetch(
+        `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist`,
+        { method: 'POST', headers: hdrs, body: '{}' }
+      );
+
+      if (!submitResp.ok) {
+        const err = await submitResp.text();
+        logStep(`markuplist submission failed for "${sf.name}": ${submitResp.status} - ${err}`, 'warn');
+        continue;
+      }
+
+      const { Id: jobId } = await submitResp.json();
+      pocState.markupJobId = jobId;
+      logStep(`markuplist job submitted: jobId=${jobId} — polling...`, 'success');
+
+      // Poll the per-file markuplist result endpoint
+      const pollUrl = `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist/${jobId}`;
+      const result  = await pollJob(pollUrl, hdrs);
+
+      const fileMarkups = (result.Markups || []).map(m => ({ ...m, _sourceFile: sf.name }));
+      pocState.markups.push(...fileMarkups);
+      logStep(`"${sf.name}" — ${fileMarkups.length} markup(s) extracted`, 'success');
+    }
+
+    pocState.status = 'active';
+    logStep(`Markuplist complete — ${pocState.markups.length} total markup(s)`, 'success');
+
+    res.json({ success: true, count: pocState.markups.length, markups: pocState.markups, state: pocState });
+
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 10 — Finalize Session
 // -----------------------------------------------------------------------------
 app.post('/poc/finalize', async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     if (!pocState.sessionId) throw new Error('No active session');
 
     pocState.status = 'finalizing';
     logStep(`Setting session ${pocState.sessionId} to Finalizing...`, 'info');
 
     const accessToken = await tokenManager.getValidAccessToken();
-
     const resp = await fetch(`${API_V1}/sessions/${pocState.sessionId}`, {
       method: 'PUT',
-      headers: {
-        Authorization:  `Bearer ${accessToken}`,
-        client_id:      CLIENT_ID,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ Status: 'Finalizing' })
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({
+        Name:           `${demoStub.documentId}_Review_${new Date().toISOString().slice(0, 10)}`,
+        Restricted:     true,
+        SessionEndDate: demoStub.sessionEndDate
+      })
     });
 
-    if (!resp.ok) {
-      const err = await resp.text();
-      throw new Error(`Finalize failed: ${resp.status} - ${err}`);
-    }
+    if (!resp.ok)
+      throw new Error(`Finalize failed: ${resp.status} - ${await resp.text()}`);
 
-    logStep('Session set to Finalizing', 'success');
+    logStep('Session finalized', 'success');
     res.json({ success: true, state: pocState });
 
   } catch (err) {
@@ -841,95 +999,62 @@ app.post('/poc/finalize', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 10 — Create + Poll Snapshot, Download merged PDF
+// STEP 11 — Snapshot + Download marked-up PDF
 // -----------------------------------------------------------------------------
 app.post('/poc/snapshot', async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     if (!pocState.sessionId || pocState.sessionFileIds.length === 0)
-      throw new Error('No active session or no files in session');
+      throw new Error('No active session or no files');
 
     pocState.status = 'snapshotting';
-
     const accessToken = await tokenManager.getValidAccessToken();
     const downloads   = [];
 
     for (const sf of pocState.sessionFileIds) {
-      logStep(`Requesting snapshot for "${sf.name}" (sessionFileId=${sf.sessionFileId})...`, 'info');
+      logStep(`Requesting snapshot for "${sf.name}"...`, 'info');
 
       const snapResp = await fetch(
         `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/snapshot`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}`, client_id: CLIENT_ID }
-        }
+        { method: 'POST', headers: authHeaders(accessToken) }
       );
 
       if (!snapResp.ok) {
-        const err = await snapResp.text();
-        logStep(`Snapshot request failed for "${sf.name}": ${snapResp.status} - ${err}`, 'warn');
+        logStep(`Snapshot request failed for "${sf.name}": ${snapResp.status}`, 'warn');
         continue;
       }
 
-      logStep(`Polling snapshot for "${sf.name}"...`, 'info');
-
-      const maxAttempts  = 20;
-      const pollInterval = 5000;
-      let attempts    = 0;
       let downloadUrl = null;
-
-      while (attempts < maxAttempts) {
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-        attempts++;
-
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 5000));
         const pollToken = await tokenManager.getValidAccessToken();
         const pollResp  = await fetch(
           `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/snapshot`,
-          { headers: { Authorization: `Bearer ${pollToken}`, client_id: CLIENT_ID } }
+          { headers: authHeaders(pollToken) }
         );
-
-        if (!pollResp.ok) {
-          logStep(`Snapshot poll ${attempts} returned ${pollResp.status}`, 'warn');
-          continue;
-        }
-
-        const pollData = await pollResp.json();
-        logStep(`Snapshot poll ${attempts}/${maxAttempts}: ${pollData.Status}`, 'info');
-
-        if (pollData.Status === 'Complete') {
-          downloadUrl = pollData.DownloadUrl;
-          logStep(`Snapshot ready for "${sf.name}"`, 'success');
-          break;
-        }
-
-        if (pollData.Status === 'Error')
-          throw new Error(`Snapshot error for "${sf.name}": ${pollData.Message || 'unknown'}`);
+        if (!pollResp.ok) continue;
+        const d = await pollResp.json();
+        logStep(`Snapshot poll ${i + 1}: ${d.Status}`, 'info');
+        if (d.Status === 'Complete') { downloadUrl = d.DownloadUrl; break; }
+        if (d.Status === 'Error')    throw new Error(`Snapshot error: ${d.Message}`);
       }
 
-      if (!downloadUrl) {
-        logStep(`Snapshot timed out for "${sf.name}"`, 'warn');
-        continue;
-      }
+      if (!downloadUrl) { logStep(`Snapshot timed out for "${sf.name}"`, 'warn'); continue; }
 
-      const dlResp = await fetch(downloadUrl);
-      if (!dlResp.ok) throw new Error(`Download failed for "${sf.name}": ${dlResp.status}`);
-
+      const dlResp   = await fetch(downloadUrl);
+      if (!dlResp.ok) throw new Error(`Download failed: ${dlResp.status}`);
       const pdfBuffer = await dlResp.buffer();
 
       const publicDir = path.join(__dirname, 'public');
       if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
 
-      const outputFileName = `${demoStub.documentId}_${sf.name.replace(/\.[^.]+$/, '')}_Reviewed.pdf`;
-      fs.writeFileSync(path.join(publicDir, outputFileName), pdfBuffer);
-
-      logStep(`PDF saved: ${outputFileName} (${pdfBuffer.length} bytes)`, 'success');
-      downloads.push({ name: outputFileName, path: `/${outputFileName}`, size: pdfBuffer.length });
+      const outFile = `${demoStub.documentId}_${sf.name.replace(/\.[^.]+$/, '')}_Reviewed.pdf`;
+      fs.writeFileSync(path.join(publicDir, outFile), pdfBuffer);
+      logStep(`PDF saved: ${outFile} (${pdfBuffer.length} bytes)`, 'success');
+      downloads.push({ name: outFile, path: `/${outFile}`, size: pdfBuffer.length });
     }
 
     pocState.status = 'complete';
-    logStep('All snapshots complete — reviewed documents ready', 'success');
-
+    logStep('Snapshots complete', 'success');
     res.json({ success: true, downloads, state: pocState });
 
   } catch (err) {
@@ -940,42 +1065,30 @@ app.post('/poc/snapshot', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 11 — Cleanup
+// STEP 12 — Cleanup
 // -----------------------------------------------------------------------------
 app.post('/poc/cleanup', async (req, res) => {
   try {
-    ensureConfigured(CLIENT_ID, 'BB_CLIENT_ID');
-
     if (!pocState.sessionId) throw new Error('No active session to clean up');
-
     const accessToken = await tokenManager.getValidAccessToken();
 
     if (pocState.subscriptionId) {
-      logStep(`Deleting webhook subscription ${pocState.subscriptionId}...`, 'info');
       const subResp = await fetch(`${API_V2}/subscriptions/${pocState.subscriptionId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}`, client_id: CLIENT_ID }
+        method: 'DELETE', headers: authHeaders(accessToken)
       });
-      logStep(
-        subResp.ok ? 'Webhook subscription deleted' : `Subscription delete returned ${subResp.status}`,
-        subResp.ok ? 'success' : 'warn'
-      );
+      logStep(subResp.ok ? 'Webhook subscription deleted' : `Sub delete: ${subResp.status}`,
+              subResp.ok ? 'success' : 'warn');
     }
 
-    logStep(`Deleting session ${pocState.sessionId}...`, 'info');
     const sessResp = await fetch(`${API_V1}/sessions/${pocState.sessionId}`, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken}`, client_id: CLIENT_ID }
+      method: 'DELETE', headers: authHeaders(accessToken)
     });
-    logStep(
-      sessResp.ok ? 'Session deleted' : `Session delete returned ${sessResp.status}`,
-      sessResp.ok ? 'success' : 'warn'
-    );
+    logStep(sessResp.ok ? 'Session deleted' : `Session delete: ${sessResp.status}`,
+            sessResp.ok ? 'success' : 'warn');
 
     logStep('Cleanup complete', 'success');
     pocState.sessionId      = null;
     pocState.subscriptionId = null;
-
     res.json({ success: true, state: pocState });
 
   } catch (err) {
@@ -988,82 +1101,50 @@ app.post('/poc/cleanup', async (req, res) => {
 // WEBHOOK LISTENER
 // -----------------------------------------------------------------------------
 app.post('/webhook/studio-events', (req, res) => {
-  const payload = req.body || {};
-  logStep(
-    `Webhook: ResourceType=${payload.ResourceType || 'unknown'}, EventType=${payload.EventType || 'unknown'}`,
-    'webhook'
-  );
-  pocState.webhookEvents.push({ ...payload, receivedAt: new Date().toISOString() });
-  if (payload.ResourceType === 'Sessions' && payload.EventType === 'Update')
-    logStep('Session update event — middleware could trigger next workflow step', 'webhook');
+  const p = req.body || {};
+  logStep(`Webhook: ${p.ResourceType || 'unknown'} / ${p.EventType || 'unknown'}`, 'webhook');
+  pocState.webhookEvents.push({ ...p, receivedAt: new Date().toISOString() });
   res.sendStatus(200);
 });
 
-// =============================================================================
+// -----------------------------------------------------------------------------
 // STANDALONE ENDPOINTS
-// =============================================================================
-
-app.get('/powerbi/markups', async (req, res) => {
-  try {
-    ensureConfigured(CLIENT_ID,         'BB_CLIENT_ID');
-    ensureConfigured(MARKUP_SESSION_ID, 'MARKUP_SESSION_ID');
-    ensureConfigured(MARKUP_FILE_ID,    'MARKUP_FILE_ID');
-
-    const accessToken = await tokenManager.getValidAccessToken();
-    const response    = await fetch(
-      `${API_V2}/sessions/${MARKUP_SESSION_ID}/files/${MARKUP_FILE_ID}/markups`,
-      { headers: { Authorization: `Bearer ${accessToken}`, client_id: CLIENT_ID, Accept: 'application/json' } }
-    );
-
-    if (!response.ok) throw new Error(`Failed to get markups: ${response.status}`);
-
-    const data    = await response.json();
-    const markups = data.Markups || data || [];
-
-    res.json(markups.map(m => ({
-      MarkupId: m.Id, FileName: MARKUP_FILE_NAME, FileId: MARKUP_FILE_ID, SessionId: MARKUP_SESSION_ID,
-      Type: m.Type, Subject: m.Subject, Comment: m.Comment, Author: m.Author,
-      DateCreated: m.DateCreated, DateModified: m.DateModified, Page: m.Page,
-      Status: m.Status, Color: m.Color, Layer: m.Layer
-    })));
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
+// -----------------------------------------------------------------------------
 app.get('/api/project-markups', (req, res) => {
-  if (pocState.markups.length === 0)
+  if (!pocState.markups.length)
     return res.status(404).json({ error: 'No markup data. Run /poc/run-markuplist-job first.' });
-
   res.json(pocState.markups.map(m => ({
     MarkupId: m.Id, Author: m.Author, Type: m.Type, Subject: m.Subject,
     Comment: m.Comment, Status: m.Status, Layer: m.Layer, Page: m.Page,
     DateCreated: m.DateCreated, DateModified: m.DateModified, Color: m.Color,
-    Checked: m.Checked, Locked: m.Locked, ExtendedProperties: m.ExtendedProperties || {},
+    Checked: m.Checked, Locked: m.Locked,
+    ExtendedProperties: m.ExtendedProperties || {},
     SourceFile: m._sourceFile
   })));
 });
 
 // -----------------------------------------------------------------------------
-// START SERVER
+// START
 // -----------------------------------------------------------------------------
 app.listen(PORT, () => {
-  console.log(`\nBluebeam Integration PoC  →  http://localhost:${PORT}`);
-  console.log(`Studio Project: ${POC_PROJECT_ID}`);
-  console.log(`Primary reviewer: dmolz@bluebeam.com`);
+  console.log(`\nBluebeam Studio PoC  →  http://localhost:${PORT}`);
+  console.log(`Project: ${POC_PROJECT_ID}`);
   if (isLocalhost(WEBHOOK_CALLBACK_URL))
-    console.log(`\n⚠  WEBHOOK_CALLBACK_URL is localhost — webhook step will be skipped`);
-  console.log(`\nROUNDTRIP FLOW:`);
-  console.log(`   POST /poc/upload-to-project     — Step 0:  Upload PDF(s) from UI → project`);
-  console.log(`   POST /poc/trigger               — Step 1:  Workflow event`);
-  console.log(`   POST /poc/create-session        — Step 2:  Create Studio Session`);
-  console.log(`   POST /poc/register-webhook      — Step 3:  Subscribe to session events`);
-  console.log(`   POST /poc/add-to-session        — Step 4:  Check project file(s) into session`);
-  console.log(`   POST /poc/invite-reviewers      — Step 5:  Invite reviewers`);
-  console.log(`        (Step 6: Review in Bluebeam Revu — no API call)`);
-  console.log(`   POST /poc/update-project-copy   — Step 7:  Push session markups → project`);
-  console.log(`   POST /poc/run-markuplist-job    — Step 8:  Extract markup metadata`);
-  console.log(`   POST /poc/finalize              — Step 9:  Finalize session`);
-  console.log(`   POST /poc/snapshot              — Step 10: Snapshot + download PDF`);
-  console.log(`   POST /poc/cleanup               — Step 11: Delete webhook + session\n`);
+    console.log('⚠  Webhook will be skipped (localhost URL)');
+  console.log(`\nFLOW:`);
+  console.log(`  POST /poc/setup-project         — 0a: Create folders + upload custom-columns.xml`);
+  console.log(`  POST /poc/upload-to-project     — 0b: Upload PDFs from UI → project`);
+  console.log(`  POST /poc/apply-custom-columns  — 0c: Apply custom columns to project files`);
+  console.log(`  POST /poc/trigger               — 1:  Workflow event`);
+  console.log(`  POST /poc/create-session        — 2:  Create session`);
+  console.log(`  POST /poc/register-webhook      — 3:  Register webhook`);
+  console.log(`  POST /poc/checkout-to-session   — 4:  Check out files into session`);
+  console.log(`  POST /poc/invite-reviewers      — 5:  Invite reviewers`);
+  console.log(`       (6: Review in Revu)`);
+  console.log(`  POST /poc/checkin               — 7:  Check in session files`);
+  console.log(`  POST /poc/export-markups        — 8:  Export markups to XML`);
+  console.log(`  POST /poc/run-markuplist-job    — 9:  Extract markup metadata`);
+  console.log(`  POST /poc/finalize              — 10: Finalize session`);
+  console.log(`  POST /poc/snapshot              — 11: Snapshot + download PDF`);
+  console.log(`  POST /poc/cleanup               — 12: Delete webhook + session\n`);
 });
