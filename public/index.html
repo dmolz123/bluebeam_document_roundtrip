@@ -6,1027 +6,1242 @@
 <title>Bluebeam Studio — Document Roundtrip PoC</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:       #0d0f14;
-    --surface:  #13161e;
-    --surface2: #1a1e29;
-    --border:   #252a38;
-    --accent:   #4f8ef7;
-    --accent2:  #38d9a9;
-    --warn:     #f7c94f;
-    --error:    #f75f5f;
-    --text:     #e2e8f0;
-    --muted:    #64748b;
-    --mono:     'IBM Plex Mono', monospace;
-    --sans:     'IBM Plex Sans', sans-serif;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:      #0d0f14;
+  --surface: #13161e;
+  --surf2:   #1a1e29;
+  --border:  #252a38;
+  --accent:  #4f8ef7;
+  --green:   #38d9a9;
+  --warn:    #f7c94f;
+  --error:   #f75f5f;
+  --text:    #e2e8f0;
+  --muted:   #64748b;
+  --mono:    'IBM Plex Mono', monospace;
+  --sans:    'IBM Plex Sans', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
 
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: var(--sans); min-height: 100vh;
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    grid-template-rows: auto 1fr;
-  }
+/* ── HEADER ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.header-left{display:flex;align-items:center;gap:12px;}
+.logo{width:32px;height:32px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+h1{font-size:14px;font-weight:600;letter-spacing:0.02em;}
+h1 span{color:var(--muted);font-weight:400;}
 
-  /* ── HEADER ── */
-  header {
-    grid-column: 1 / -1;
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 13px 22px; display: flex; align-items: center;
-    justify-content: space-between;
-  }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .logo { width: 32px; height: 32px; background: var(--accent); border-radius: 7px;
-    display: flex; align-items: center; justify-content: center; font-size: 16px; }
-  h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.02em; }
-  h1 span { color: var(--muted); font-weight: 400; }
-  .header-right { display: flex; align-items: center; gap: 10px; }
+/* ── TABS ── */
+.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:4px;flex-shrink:0;}
+.tab-btn{padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;margin-bottom:-1px;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-content{display:none;flex:1;overflow:hidden;}
+.tab-content.active{display:flex;flex-direction:column;}
 
-  .status-badge {
-    font-family: var(--mono); font-size: 11px; padding: 4px 10px;
-    border-radius: 4px; background: var(--surface2); border: 1px solid var(--border);
-    color: var(--muted); transition: all 0.3s; white-space: nowrap;
-  }
-  .status-badge.active  { color: var(--accent2); border-color: var(--accent2); background: rgba(56,217,169,0.08); }
-  .status-badge.error   { color: var(--error);   border-color: var(--error);   background: rgba(247,95,95,0.08); }
-  .status-badge.working { color: var(--warn);    border-color: var(--warn);    background: rgba(247,201,79,0.08); }
+/* ── SHARED UTILS ── */
+.section-title{font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.config-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;}
+.config-input{background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:8px 12px;font-family:var(--sans);font-size:13px;color:var(--text);width:100%;transition:border-color 0.2s;}
+.config-input:focus{outline:none;border-color:var(--accent);}
+select.config-input{cursor:pointer;}
+.chip{display:inline-flex;align-items:center;gap:5px;background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.3);border-radius:3px;padding:2px 8px;font-family:var(--mono);font-size:11px;color:var(--accent);}
+.chip.primary{background:rgba(56,217,169,0.1);border-color:rgba(56,217,169,0.3);color:var(--green);}
+.chip-remove{background:none;border:none;color:inherit;cursor:pointer;padding:0;line-height:1;font-size:12px;opacity:0.6;}
+.chip-remove:hover{opacity:1;}
+.chip-input-wrap{background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;display:flex;flex-wrap:wrap;gap:5px;min-height:40px;cursor:text;transition:border-color 0.2s;}
+.chip-input-wrap:focus-within{border-color:var(--accent);}
+.chip-text-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);flex:1;min-width:180px;padding:1px 0;}
+.drop-zone{border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(79,142,247,0.05);}
+.drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-zone-icon{font-size:24px;margin-bottom:6px;}
+.drop-zone-label{font-size:13px;color:var(--muted);}
+.drop-zone-label strong{color:var(--accent);}
+.drop-zone-hint{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono);}
+.staged-files{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
+.staged-file{display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-family:var(--mono);font-size:11px;}
+.staged-file-name{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.staged-file-size{color:var(--muted);margin-left:8px;flex-shrink:0;}
+.sf-status{margin-left:8px;flex-shrink:0;}
+.sf-status.ok{color:var(--green);}
+.sf-status.err{color:var(--error);}
+.sf-status.wait{color:var(--muted);}
+.remove-file-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:0 4px;font-size:14px;margin-left:6px;transition:color 0.15s;}
+.remove-file-btn:hover{color:var(--error);}
 
-  /* ── LEFT PANEL ── */
-  .steps-panel {
-    background: var(--surface); border-right: 1px solid var(--border);
-    overflow-y: auto; display: flex; flex-direction: column;
-  }
-  .panel-label {
-    font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
-    color: var(--muted); text-transform: uppercase; padding: 16px 18px 8px;
-  }
-  .step-item {
-    padding: 10px 18px 12px; border-left: 3px solid transparent;
-    transition: background 0.15s;
-  }
-  .step-item:hover       { background: var(--surface2); }
-  .step-item.done        { border-left-color: var(--accent2); }
-  .step-item.error-step  { border-left-color: var(--error); }
-  .step-item.running-step{ border-left-color: var(--warn); }
-  .step-item.manual-step { border-left-color: var(--muted); opacity: 0.75; }
-  .step-item.upload-step { border-left-color: var(--accent); background: rgba(79,142,247,0.04); }
+/* ═══════════════════════════════════════════════════════
+   END USER TAB
+═══════════════════════════════════════════════════════ */
+.eu-layout{display:grid;grid-template-columns:420px 1fr;height:100%;overflow:hidden;}
 
-  .step-header { display: flex; align-items: center; gap: 9px; margin-bottom: 3px; }
-  .step-num {
-    width: 20px; height: 20px; border-radius: 50%;
-    background: var(--surface2); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-family: var(--mono); font-size: 10px; color: var(--muted);
-    flex-shrink: 0; transition: all 0.25s;
-  }
-  .step-item.done .step-num         { background: var(--accent2); border-color: var(--accent2); color: #0d0f14; }
-  .step-item.error-step .step-num   { background: var(--error);   border-color: var(--error);   color: white; }
-  .step-item.running-step .step-num { background: var(--warn);    border-color: var(--warn);    color: #0d0f14; }
-  .step-item.upload-step .step-num  { background: var(--accent);  border-color: var(--accent);  color: white; }
+/* Form panel */
+.eu-form-panel{background:var(--surface);border-right:1px solid var(--border);padding:28px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+.eu-form-panel h2{font-size:16px;font-weight:600;margin-bottom:4px;}
+.eu-form-panel p{font-size:13px;color:var(--muted);line-height:1.5;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
 
-  .step-title { font-size: 12px; font-weight: 500; }
-  .step-sub   { font-size: 11px; color: var(--muted); margin-left: 29px; line-height: 1.4; }
-  .step-connector { width: 1px; height: 7px; background: var(--border); margin-left: 27px; }
+.csv-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surf2);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:10px;color:var(--muted);cursor:pointer;transition:all 0.15s;position:relative;margin-top:5px;}
+.csv-btn:hover{color:var(--text);border-color:var(--muted);}
+.csv-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;}
 
-  .run-btn {
-    display: block; margin: 7px 0 0 29px;
-    padding: 5px 12px; background: var(--accent); color: white;
-    border: none; border-radius: 4px; font-family: var(--mono); font-size: 11px;
-    cursor: pointer; transition: all 0.2s; width: calc(100% - 29px); text-align: left;
-  }
-  .run-btn:hover    { background: #6aa3f9; }
-  .run-btn:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
-  .run-btn.loading  { background: var(--warn); color: #0d0f14; }
-  .run-btn.upload-btn { background: var(--accent); }
+.start-btn{width:100%;padding:14px;background:var(--accent);color:white;border:none;border-radius:8px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;}
+.start-btn:hover:not(:disabled){background:#6aa3f9;transform:translateY(-1px);}
+.start-btn:disabled{background:var(--surf2);color:var(--muted);cursor:not-allowed;transform:none;}
+.start-btn.running{background:var(--warn);color:#0d0f14;}
 
-  /* ── RIGHT PANEL ── */
-  .main-panel { overflow-y: auto; display: flex; flex-direction: column; }
+.complete-btn{width:100%;padding:14px;background:rgba(56,217,169,0.15);color:var(--green);border:1px solid var(--green);border-radius:8px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.complete-btn:hover:not(:disabled){background:rgba(56,217,169,0.25);}
+.complete-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.complete-btn.running{background:var(--warn);color:#0d0f14;border-color:var(--warn);}
 
-  /* ── UPLOAD + CONFIG STRIP ── */
-  .setup-strip {
-    background: var(--surface); border-bottom: 1px solid var(--border);
-    padding: 16px 22px; display: flex; flex-direction: column; gap: 14px;
-  }
+.reset-sm{padding:8px 16px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;font-family:var(--sans);font-size:12px;cursor:pointer;transition:all 0.2s;width:100%;}
+.reset-sm:hover{color:var(--error);border-color:var(--error);}
 
-  .setup-row { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+/* Progress tracker */
+.eu-progress-panel{padding:28px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:24px;}
 
-  /* File drop zone */
-  .drop-zone {
-    flex: 2; min-width: 220px;
-    border: 2px dashed var(--border); border-radius: 6px;
-    padding: 16px 18px; text-align: center;
-    cursor: pointer; transition: all 0.2s; position: relative;
-  }
-  .drop-zone:hover, .drop-zone.drag-over {
-    border-color: var(--accent); background: rgba(79,142,247,0.06);
-  }
-  .drop-zone input[type="file"] {
-    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
-  .drop-zone-icon  { font-size: 22px; margin-bottom: 6px; }
-  .drop-zone-label { font-size: 12px; color: var(--muted); }
-  .drop-zone-label strong { color: var(--accent); }
-  .drop-zone-hint  { font-size: 10px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+.progress-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.progress-card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.progress-card-title{font-size:14px;font-weight:600;}
+.progress-steps{padding:16px 20px;display:flex;flex-direction:column;gap:8px;}
 
-  /* Staged files list */
-  .staged-files { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
-  .staged-file {
-    display: flex; align-items: center; justify-content: space-between;
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 4px; padding: 6px 10px;
-    font-family: var(--mono); font-size: 11px;
-  }
-  .staged-file-name { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .staged-file-size { color: var(--muted); margin-left: 10px; flex-shrink: 0; }
-  .staged-file-status { margin-left: 10px; flex-shrink: 0; }
-  .staged-file-status.ok   { color: var(--accent2); }
-  .staged-file-status.err  { color: var(--error); }
-  .staged-file-status.wait { color: var(--muted); }
-  .remove-file-btn {
-    background: none; border: none; color: var(--muted); cursor: pointer;
-    padding: 0 4px; font-size: 14px; line-height: 1; margin-left: 8px;
-    transition: color 0.15s;
-  }
-  .remove-file-btn:hover { color: var(--error); }
+.prog-step{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.prog-step:last-child{border-bottom:none;}
+.prog-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;background:var(--surf2);border:1px solid var(--border);color:var(--muted);transition:all 0.3s;}
+.prog-icon.done{background:var(--green);border-color:var(--green);color:#0d0f14;}
+.prog-icon.running{background:var(--warn);border-color:var(--warn);color:#0d0f14;animation:pulse 1s ease infinite;}
+.prog-icon.error{background:var(--error);border-color:var(--error);color:white;}
+.prog-label{font-size:13px;color:var(--text);flex:1;}
+.prog-label.muted{color:var(--muted);}
+.prog-sub{font-size:11px;color:var(--muted);font-family:var(--mono);}
 
-  /* Config fields */
-  .config-fields { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 200px; }
-  .config-field  { display: flex; flex-direction: column; gap: 4px; }
-  .config-label  { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
-  .config-input  {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 4px; padding: 6px 10px;
-    font-family: var(--mono); font-size: 12px; color: var(--text);
-    transition: border-color 0.2s;
-  }
-  .config-input:focus { outline: none; border-color: var(--accent); }
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
 
-  /* Reviewer chip input */
-  .reviewer-section { flex: 1.5; min-width: 220px; }
-  .chip-input-wrap {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 4px; padding: 5px 8px; display: flex; flex-wrap: wrap; gap: 5px;
-    min-height: 36px; cursor: text; transition: border-color 0.2s;
-  }
-  .chip-input-wrap:focus-within { border-color: var(--accent); }
-  .chip {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3);
-    border-radius: 3px; padding: 2px 7px;
-    font-family: var(--mono); font-size: 11px; color: var(--accent);
-  }
-  .chip.primary { background: rgba(56,217,169,0.1); border-color: rgba(56,217,169,0.3); color: var(--accent2); }
-  .chip-remove  {
-    background: none; border: none; color: inherit; cursor: pointer;
-    padding: 0; line-height: 1; font-size: 12px; opacity: 0.6;
-  }
-  .chip-remove:hover { opacity: 1; }
-  .chip-text-input {
-    background: none; border: none; outline: none;
-    font-family: var(--mono); font-size: 12px; color: var(--text);
-    flex: 1; min-width: 150px; padding: 2px 0;
-  }
-  .chip-hint { font-size: 10px; color: var(--muted); margin-top: 4px; }
+/* Session active banner */
+.session-banner{background:rgba(56,217,169,0.08);border:1px solid var(--green);border-radius:8px;padding:16px 20px;}
+.session-banner-title{font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px;}
+.session-id-display{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--text);letter-spacing:0.08em;margin-bottom:6px;}
+.session-hint{font-size:12px;color:var(--muted);}
 
-  /* CSV upload */
-  .csv-btn {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 4px 10px; background: var(--surface2);
-    border: 1px solid var(--border); border-radius: 3px;
-    font-family: var(--mono); font-size: 10px; color: var(--muted);
-    cursor: pointer; transition: all 0.15s; position: relative;
-    margin-top: 5px;
-  }
-  .csv-btn:hover { color: var(--text); border-color: var(--muted); }
-  .csv-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+/* Summary cards */
+.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
+.summary-card{background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
+.summary-card-val{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--accent);margin-bottom:2px;}
+.summary-card-val.green{color:var(--green);}
+.summary-card-val.warn{color:var(--warn);}
+.summary-card-val.error{color:var(--error);}
+.summary-card-label{font-size:11px;color:var(--muted);}
 
-  .upload-to-project-btn {
-    padding: 8px 18px; background: var(--accent); color: white;
-    border: none; border-radius: 5px; font-family: var(--mono); font-size: 12px;
-    cursor: pointer; transition: all 0.2s; align-self: flex-end; white-space: nowrap;
-  }
-  .upload-to-project-btn:hover    { background: #6aa3f9; }
-  .upload-to-project-btn:disabled { background: var(--surface2); color: var(--muted); cursor: not-allowed; }
+/* Breakdown bars */
+.breakdown-section{display:flex;flex-direction:column;gap:8px;}
+.breakdown-item{display:flex;align-items:center;gap:10px;}
+.breakdown-label{font-size:12px;color:var(--text);width:220px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.breakdown-bar-wrap{flex:1;background:var(--surf2);border-radius:3px;height:8px;overflow:hidden;}
+.breakdown-bar{height:100%;border-radius:3px;background:var(--accent);transition:width 0.5s ease;}
+.breakdown-count{font-family:var(--mono);font-size:11px;color:var(--muted);width:24px;text-align:right;flex-shrink:0;}
 
-  .reset-btn {
-    padding: 6px 14px; background: transparent; color: var(--muted);
-    border: 1px solid var(--border); border-radius: 4px;
-    font-family: var(--mono); font-size: 11px; cursor: pointer; transition: all 0.2s;
-  }
-  .reset-btn:hover { color: var(--error); border-color: var(--error); }
+/* Results table */
+.results-table-wrap{overflow-x:auto;}
+.results-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;}
+.results-table th{text-align:left;padding:8px 12px;background:var(--surf2);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;cursor:pointer;user-select:none;}
+.results-table th:hover{color:var(--text);}
+.results-table th.sort-asc::after{content:' ↑';color:var(--accent);}
+.results-table th.sort-desc::after{content:' ↓';color:var(--accent);}
+.results-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.results-table tr:hover td{background:var(--surf2);}
+.stage-pill{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.3);color:var(--accent);white-space:nowrap;}
+.prio-pill{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;white-space:nowrap;}
+.prio-pill.critical{background:rgba(247,95,95,0.12);border:1px solid rgba(247,95,95,0.4);color:var(--error);}
+.prio-pill.high{background:rgba(247,201,79,0.12);border:1px solid rgba(247,201,79,0.4);color:var(--warn);}
+.prio-pill.medium{background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.3);color:var(--accent);}
+.prio-pill.low{background:rgba(56,217,169,0.08);border:1px solid rgba(56,217,169,0.3);color:var(--green);}
+.prio-pill.info{background:var(--surf2);border:1px solid var(--border);color:var(--muted);}
 
-  /* ── STATE + LOG ── */
-  .content-grid {
-    display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 0;
-  }
-  .state-panel { border-right: 1px solid var(--border); padding: 16px 20px; overflow-y: auto; }
-  .log-panel   { padding: 16px 20px; overflow-y: auto; background: var(--bg); }
-
-  .section-title {
-    font-size: 10px; font-weight: 600; letter-spacing: 0.12em;
-    color: var(--muted); text-transform: uppercase;
-    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
-  }
-  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
-
-  .state-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
-  .state-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; }
-  .state-card-label { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
-  .state-card-val   { font-family: var(--mono); font-size: 11px; color: var(--text); word-break: break-all; }
-  .state-card-val.none { color: var(--muted); font-style: italic; }
-  .state-card-val.ok   { color: var(--accent2); }
-
-  .webhook-list { display: flex; flex-direction: column; gap: 6px; }
-  .webhook-event {
-    background: var(--surface2); border: 1px solid var(--border);
-    border-left: 3px solid var(--accent); border-radius: 4px;
-    padding: 7px 10px; font-family: var(--mono); font-size: 11px;
-  }
-  .webhook-time { color: var(--muted); margin-bottom: 2px; }
-
-  .download-links { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
-  .download-link {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 14px; background: rgba(56,217,169,0.1);
-    border: 1px solid var(--accent2); border-radius: 5px; color: var(--accent2);
-    font-family: var(--mono); font-size: 12px; text-decoration: none; transition: all 0.2s;
-  }
-  .download-link:hover { background: rgba(56,217,169,0.2); }
-
-  .log-entries { display: flex; flex-direction: column; gap: 2px; }
-  .log-entry {
-    display: grid; grid-template-columns: 68px 1fr; gap: 8px;
-    padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
-    font-family: var(--mono); font-size: 11px;
-  }
-  .log-time         { color: var(--muted); }
-  .log-msg          { color: var(--text); }
-  .log-msg.success  { color: var(--accent2); }
-  .log-msg.error    { color: var(--error); }
-  .log-msg.warn     { color: var(--warn); }
-  .log-msg.webhook  { color: var(--accent); }
-
-  /* ── MARKUP PANEL ── */
-  .markup-panel { grid-column: 1 / -1; border-top: 1px solid var(--border); padding: 18px 22px; background: var(--surface); }
-
-  .markup-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-  .view-toggle { display: flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-  .view-toggle button {
-    padding: 5px 12px; background: var(--surface2); border: none;
-    color: var(--muted); font-family: var(--mono); font-size: 11px; cursor: pointer;
-  }
-  .view-toggle button.active { background: var(--accent); color: white; }
-  .view-toggle button:hover:not(.active) { color: var(--text); }
-  .markup-count { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
-  .markup-count span { color: var(--accent2); font-weight: 600; }
-
-  .icon-btn {
-    padding: 5px 10px; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 4px; color: var(--muted); font-family: var(--mono); font-size: 11px;
-    cursor: pointer; transition: all 0.2s;
-  }
-  .icon-btn:hover { color: var(--text); border-color: var(--muted); }
-
-  .markup-table-wrap { overflow-x: auto; }
-  .markup-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
-  .markup-table th {
-    text-align: left; padding: 8px 10px; background: var(--surface2);
-    border-bottom: 1px solid var(--border); color: var(--muted); font-size: 10px;
-    letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
-    cursor: pointer; user-select: none;
-  }
-  .markup-table th:hover { color: var(--text); }
-  .markup-table th.sort-asc::after  { content: ' ↑'; color: var(--accent); }
-  .markup-table th.sort-desc::after { content: ' ↓'; color: var(--accent); }
-  .markup-table td {
-    padding: 6px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
-    color: var(--text); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .markup-table tr:hover td { background: var(--surface2); }
-  .status-pill {
-    display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px;
-    background: var(--surface2); border: 1px solid var(--border);
-  }
-  .status-pill.accepted  { color: var(--accent2); border-color: var(--accent2); background: rgba(56,217,169,0.1); }
-  .status-pill.rejected  { color: var(--error);   border-color: var(--error);   background: rgba(247,95,95,0.1); }
-  .status-pill.completed { color: var(--accent);  border-color: var(--accent);  background: rgba(79,142,247,0.1); }
-  .color-swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; vertical-align: middle; margin-right: 4px; border: 1px solid rgba(255,255,255,0.1); }
-
-  .json-view {
-    background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
-    padding: 14px; overflow: auto; max-height: 400px;
-    font-family: var(--mono); font-size: 11px; line-height: 1.6;
-  }
-  .json-key  { color: #a5c8f0; }
-  .json-str  { color: var(--accent2); }
-  .json-num  { color: var(--warn); }
-  .json-bool { color: #f08a5d; }
-  .json-null { color: var(--muted); }
-
-  .markup-empty { color: var(--muted); font-family: var(--mono); font-size: 12px; padding: 20px 0; text-align: center; }
-
-  @keyframes fadeIn  { from { opacity:0; transform:translateY(3px); } to { opacity:1; transform:translateY(0); } }
-  @keyframes slideIn { from { opacity:0; transform:translateX(-6px); } to { opacity:1; transform:translateX(0); } }
+/* ═══════════════════════════════════════════════════════
+   DEVELOPER TAB (unchanged layout)
+═══════════════════════════════════════════════════════ */
+.dev-layout{display:grid;grid-template-columns:300px 1fr;height:100%;overflow:hidden;}
+.steps-panel{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
+.panel-label{font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;padding:16px 18px 8px;}
+.step-item{padding:10px 18px 12px;border-left:3px solid transparent;transition:background 0.15s;}
+.step-item:hover{background:var(--surf2);}
+.step-item.done{border-left-color:var(--green);}
+.step-item.error-step{border-left-color:var(--error);}
+.step-item.running-step{border-left-color:var(--warn);}
+.step-item.manual-step{border-left-color:var(--muted);opacity:0.75;}
+.step-item.upload-step{border-left-color:var(--accent);background:rgba(79,142,247,0.04);}
+.step-header{display:flex;align-items:center;gap:9px;margin-bottom:3px;}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--surf2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--muted);flex-shrink:0;transition:all 0.25s;}
+.step-item.done .step-num{background:var(--green);border-color:var(--green);color:#0d0f14;}
+.step-item.error-step .step-num{background:var(--error);border-color:var(--error);color:white;}
+.step-item.running-step .step-num{background:var(--warn);border-color:var(--warn);color:#0d0f14;}
+.step-item.upload-step .step-num{background:var(--accent);border-color:var(--accent);color:white;}
+.step-title{font-size:12px;font-weight:500;}
+.step-sub{font-size:11px;color:var(--muted);margin-left:29px;line-height:1.4;}
+.step-connector{width:1px;height:7px;background:var(--border);margin-left:27px;}
+.run-btn{display:block;margin:7px 0 0 29px;padding:5px 12px;background:var(--accent);color:white;border:none;border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;width:calc(100% - 29px);text-align:left;}
+.run-btn:hover{background:#6aa3f9;}
+.run-btn:disabled{background:var(--surf2);color:var(--muted);cursor:not-allowed;}
+.run-btn.loading{background:var(--warn);color:#0d0f14;}
+.dev-main{overflow-y:auto;display:flex;flex-direction:column;}
+.setup-strip{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;flex-direction:column;gap:12px;}
+.setup-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
+.dev-drop-zone{flex:2;min-width:200px;border:2px dashed var(--border);border-radius:6px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
+.dev-drop-zone:hover,.dev-drop-zone.drag-over{border-color:var(--accent);background:rgba(79,142,247,0.05);}
+.dev-drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.dev-config-fields{flex:1;display:flex;flex-direction:column;gap:8px;min-width:180px;}
+.dev-config-input{background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-family:var(--mono);font-size:12px;color:var(--text);width:100%;transition:border-color 0.2s;}
+.dev-config-input:focus{outline:none;border-color:var(--accent);}
+.dev-reviewer-section{flex:1.5;min-width:200px;}
+.dev-chip-wrap{background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:5px 8px;display:flex;flex-wrap:wrap;gap:5px;min-height:34px;cursor:text;transition:border-color 0.2s;}
+.dev-chip-wrap:focus-within{border-color:var(--accent);}
+.dev-chip-text{background:none;border:none;outline:none;font-family:var(--mono);font-size:12px;color:var(--text);flex:1;min-width:140px;padding:2px 0;}
+.upload-project-btn-dev{padding:7px 16px;background:var(--accent);color:white;border:none;border-radius:5px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;align-self:flex-end;white-space:nowrap;}
+.upload-project-btn-dev:hover{background:#6aa3f9;}
+.upload-project-btn-dev:disabled{background:var(--surf2);color:var(--muted);cursor:not-allowed;}
+.dev-reset-btn{padding:6px 14px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;}
+.dev-reset-btn:hover{color:var(--error);border-color:var(--error);}
+.content-grid{display:grid;grid-template-columns:1fr 1fr;flex:1;min-height:300px;}
+.state-panel{border-right:1px solid var(--border);padding:16px 20px;overflow-y:auto;}
+.log-panel{padding:16px 20px;overflow-y:auto;background:var(--bg);}
+.state-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+.state-card{background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;}
+.state-card-label{font-size:10px;color:var(--muted);margin-bottom:3px;}
+.state-card-val{font-family:var(--mono);font-size:11px;color:var(--text);word-break:break-all;}
+.state-card-val.none{color:var(--muted);font-style:italic;}
+.state-card-val.ok{color:var(--green);}
+.status-badge{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:4px;background:var(--surf2);border:1px solid var(--border);color:var(--muted);transition:all 0.3s;white-space:nowrap;}
+.status-badge.active{color:var(--green);border-color:var(--green);background:rgba(56,217,169,0.08);}
+.status-badge.error{color:var(--error);border-color:var(--error);background:rgba(247,95,95,0.08);}
+.status-badge.working{color:var(--warn);border-color:var(--warn);background:rgba(247,201,79,0.08);}
+.webhook-list{display:flex;flex-direction:column;gap:6px;}
+.webhook-event{background:var(--surf2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:4px;padding:7px 10px;font-family:var(--mono);font-size:11px;}
+.webhook-time{color:var(--muted);margin-bottom:2px;}
+.download-links{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.download-link{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(56,217,169,0.1);border:1px solid var(--green);border-radius:5px;color:var(--green);font-family:var(--mono);font-size:12px;text-decoration:none;transition:all 0.2s;}
+.download-link:hover{background:rgba(56,217,169,0.2);}
+.log-entries{display:flex;flex-direction:column;gap:2px;}
+.log-entry{display:grid;grid-template-columns:68px 1fr;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-family:var(--mono);font-size:11px;}
+.log-time{color:var(--muted);}
+.log-msg{color:var(--text);}
+.log-msg.success{color:var(--green);}
+.log-msg.error{color:var(--error);}
+.log-msg.warn{color:var(--warn);}
+.log-msg.webhook{color:var(--accent);}
+.markup-panel-dev{border-top:1px solid var(--border);padding:16px 20px;background:var(--surface);}
+.markup-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.view-toggle{display:flex;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
+.view-toggle button{padding:4px 12px;background:var(--surf2);border:none;color:var(--muted);font-family:var(--mono);font-size:11px;cursor:pointer;}
+.view-toggle button.active{background:var(--accent);color:white;}
+.markup-count{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;}
+.markup-count span{color:var(--green);font-weight:600;}
+.icon-btn{padding:4px 10px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;}
+.icon-btn:hover{color:var(--text);border-color:var(--muted);}
+.markup-table-wrap{overflow-x:auto;}
+.markup-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;}
+.markup-table th{text-align:left;padding:7px 10px;background:var(--surf2);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;cursor:pointer;user-select:none;}
+.markup-table th:hover{color:var(--text);}
+.markup-table th.sort-asc::after{content:' ↑';color:var(--accent);}
+.markup-table th.sort-desc::after{content:' ↓';color:var(--accent);}
+.markup-table td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.markup-table tr:hover td{background:var(--surf2);}
+.status-pill{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;background:var(--surf2);border:1px solid var(--border);}
+.color-swatch{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:middle;margin-right:4px;border:1px solid rgba(255,255,255,0.1);}
+.json-view{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;overflow:auto;max-height:400px;font-family:var(--mono);font-size:11px;line-height:1.6;}
+.json-key{color:#a5c8f0;}.json-str{color:var(--green);}.json-num{color:var(--warn);}.json-bool{color:#f08a5d;}.json-null{color:var(--muted);}
+.markup-empty{color:var(--muted);font-family:var(--mono);font-size:12px;padding:20px 0;text-align:center;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <div class="header-left">
     <div class="logo">⚡</div>
     <h1>Bluebeam Studio <span>/ Document Roundtrip PoC</span></h1>
   </div>
-  <div class="header-right">
-    <span id="globalStatus" class="status-badge">IDLE</span>
-    <button class="reset-btn" onclick="resetPoc()">↺ Reset</button>
-  </div>
+  <span id="devStatus" class="status-badge" style="display:none;">IDLE</span>
 </header>
 
-<!-- LEFT: Steps -->
-<aside class="steps-panel">
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('eu')">Review Workflow</button>
+  <button class="tab-btn" onclick="switchTab('dev')">Developer Console</button>
+</div>
 
-  <div class="panel-label">Setup</div>
+<!-- ═══════════════════════════════════════════════════════
+     END USER TAB
+═══════════════════════════════════════════════════════ -->
+<div class="tab-content active" id="tab-eu">
+<div class="eu-layout">
 
-  <div class="step-item upload-step" id="step-upload-to-project">
-    <div class="step-header">
-      <div class="step-num">0</div>
-      <div class="step-title">Upload to Project</div>
+  <!-- LEFT: Form -->
+  <div class="eu-form-panel">
+    <div>
+      <h2>Start a Document Review</h2>
+      <p>Upload your drawing, fill in the details, and click Start Review. Bluebeam handles the rest.</p>
     </div>
-    <div class="step-sub">Select files above → push to project 712-566-288</div>
-    <button class="run-btn upload-btn" id="uploadProjectBtn" onclick="uploadToProject()">▶ Upload to Project</button>
-  </div>
 
-  <div style="height:6px;"></div>
-  <div class="panel-label">Outbound — Session Setup</div>
-
-  <div class="step-item" id="step-trigger">
-    <div class="step-header"><div class="step-num">1</div><div class="step-title">Workflow Trigger</div></div>
-    <div class="step-sub">Simulate source-system event</div>
-    <button class="run-btn" onclick="runStep('trigger')">▶ Trigger Event</button>
-  </div>
-  <div class="step-connector"></div>
-
-  <div class="step-item" id="step-create-session">
-    <div class="step-header"><div class="step-num">2</div><div class="step-title">Create Session</div></div>
-    <div class="step-sub">POST /v1/sessions</div>
-    <button class="run-btn" onclick="runStep('create-session')">▶ Create Session</button>
-  </div>
-  <div class="step-connector"></div>
-
-  <div class="step-item" id="step-register-webhook">
-    <div class="step-header"><div class="step-num">3</div><div class="step-title">Register Webhook</div></div>
-    <div class="step-sub">POST /v2/subscriptions</div>
-    <button class="run-btn" onclick="runStep('register-webhook')">▶ Register Webhook</button>
-  </div>
-  <div class="step-connector"></div>
-
-  <div class="step-item" id="step-add-to-session">
-    <div class="step-header"><div class="step-num">4</div><div class="step-title">Add to Session</div></div>
-    <div class="step-sub">Lookup ID → check out into session</div>
-    <button class="run-btn" onclick="runStep('add-to-session')">▶ Add to Session</button>
-  </div>
-  <div class="step-connector"></div>
-
-  <div class="step-item" id="step-invite-reviewers">
-    <div class="step-header"><div class="step-num">5</div><div class="step-title">Invite Reviewers</div></div>
-    <div class="step-sub">dmolz@bluebeam.com + additional</div>
-    <button class="run-btn" onclick="runStep('invite-reviewers')">▶ Invite Reviewers</button>
-  </div>
-  <div class="step-connector"></div>
-
-  <div class="step-item manual-step" id="step-review">
-    <div class="step-header"><div class="step-num">6</div><div class="step-title">Review in Revu</div></div>
-    <div class="step-sub">Non-API — mark up in Bluebeam Revu, then click when done</div>
-    <button class="run-btn" style="background:var(--surface2);border:1px solid var(--border);color:var(--muted);" onclick="markReviewDone()">✓ Mark Review Complete</button>
-  </div>
-
-  <div style="height:6px;"></div>
-  <div class="panel-label">Inbound — Extract &amp; Close</div>
-
-  <div class="step-item" id="step-update-project-copy">
-    <div class="step-header"><div class="step-num">7</div><div class="step-title">Update Project Copy</div></div>
-    <div class="step-sub">POST updateprojectcopy</div>
-    <button class="run-btn" onclick="runStep('update-project-copy')">▶ Update Project Copy</button>
-  </div>
-  <div class="step-connector"></div>
-
-  <div class="step-item" id="step-run-markuplist-job">
-    <div class="step-header"><div class="step-num">8</div><div class="step-title">Run Markup List Job</div></div>
-    <div class="step-sub">POST jobs/markuplist → poll → extract</div>
-    <button class="run-btn" onclick="runStep('run-markuplist-job')">▶ Extract Markups</button>
-  </div>
-  <div class="step-connector"></div>
-
-  <div class="step-item" id="step-finalize">
-    <div class="step-header"><div class="step-num">9</div><div class="step-title">Finalize Session</div></div>
-    <div class="step-sub">PUT Status: Finalizing</div>
-    <button class="run-btn" onclick="runStep('finalize')">▶ Finalize</button>
-  </div>
-  <div class="step-connector"></div>
-
-  <div class="step-item" id="step-snapshot">
-    <div class="step-header"><div class="step-num">10</div><div class="step-title">Snapshot + Download</div></div>
-    <div class="step-sub">POST snapshot → poll → PDF</div>
-    <button class="run-btn" onclick="runStep('snapshot')">▶ Get Marked-up PDF</button>
-  </div>
-  <div class="step-connector"></div>
-
-  <div class="step-item" id="step-cleanup">
-    <div class="step-header"><div class="step-num">11</div><div class="step-title">Cleanup</div></div>
-    <div class="step-sub">Delete webhook + session</div>
-    <button class="run-btn" onclick="runStep('cleanup')">▶ Cleanup</button>
-  </div>
-
-</aside>
-
-<!-- RIGHT -->
-<main class="main-panel">
-
-  <!-- Setup strip: file upload + config + reviewers -->
-  <div class="setup-strip">
-
-    <div class="setup-row">
-
-      <!-- File drop zone -->
-      <div style="flex:2;min-width:220px;">
-        <div class="config-label" style="margin-bottom:6px;">PDF Files</div>
-        <div class="drop-zone" id="dropZone"
-             ondragover="event.preventDefault();this.classList.add('drag-over')"
-             ondragleave="this.classList.remove('drag-over')"
-             ondrop="handleDrop(event)">
-          <input type="file" id="fileInput" multiple accept=".pdf,application/pdf" onchange="handleFileSelect(event)">
-          <div class="drop-zone-icon">📄</div>
-          <div class="drop-zone-label"><strong>Click to browse</strong> or drag &amp; drop</div>
-          <div class="drop-zone-hint">PDF files only · multiple supported</div>
-        </div>
-        <div class="staged-files" id="stagedFiles"></div>
+    <!-- File upload -->
+    <div class="form-group">
+      <div class="config-label" style="margin-bottom:6px;">Documents</div>
+      <div class="drop-zone" id="euDropZone"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="euHandleDrop(event)">
+        <input type="file" id="euFileInput" multiple accept=".pdf,application/pdf" onchange="euHandleFileSelect(event)">
+        <div class="drop-zone-icon">📄</div>
+        <div class="drop-zone-label"><strong>Click to browse</strong> or drag &amp; drop</div>
+        <div class="drop-zone-hint">PDF files only · multiple supported</div>
       </div>
+      <div class="staged-files" id="euStagedFiles"></div>
+    </div>
 
-      <!-- Config fields -->
-      <div class="config-fields">
-        <div class="config-field">
-          <div class="config-label">Document ID</div>
-          <input class="config-input" id="cfgDocId" type="text" placeholder="DOC-001"
-                 onchange="applyConfig()">
-        </div>
-        <div class="config-field">
-          <div class="config-label">Description</div>
-          <input class="config-input" id="cfgDesc" type="text" placeholder="Design review — coordination update"
-                 onchange="applyConfig()">
-        </div>
+    <!-- Review name -->
+    <div class="form-group">
+      <label class="config-label">Review Name</label>
+      <input class="config-input" id="euReviewName" type="text" placeholder="e.g. Phase 2 Coordination Review">
+    </div>
+
+    <!-- Description -->
+    <div class="form-group">
+      <label class="config-label">Description / Purpose</label>
+      <input class="config-input" id="euDescription" type="text" placeholder="e.g. Structural drawings for coordination review">
+    </div>
+
+    <!-- Discipline -->
+    <div class="form-group">
+      <label class="config-label">Discipline</label>
+      <select class="config-input" id="euDiscipline">
+        <option value="">— Select discipline —</option>
+        <option>Architectural</option>
+        <option>Structural</option>
+        <option>Mechanical</option>
+        <option>Electrical</option>
+        <option>Plumbing</option>
+        <option>Civil</option>
+        <option>Fire Protection</option>
+        <option>Geotechnical</option>
+        <option>Landscape</option>
+        <option>Interior Design</option>
+        <option>Technology / AV / Security</option>
+        <option>General / Multi-Discipline</option>
+      </select>
+    </div>
+
+    <!-- Review deadline -->
+    <div class="form-group">
+      <label class="config-label">Review Deadline</label>
+      <input class="config-input" id="euDeadline" type="date">
+    </div>
+
+    <!-- Reviewers -->
+    <div class="form-group">
+      <div class="config-label" style="margin-bottom:6px;">Reviewers</div>
+      <div class="chip-input-wrap" id="euChipWrap" onclick="document.getElementById('euReviewerInput').focus()">
+        <span class="chip primary">dmolz@bluebeam.com</span>
+        <input class="chip-text-input" id="euReviewerInput" type="email"
+               placeholder="Add reviewer email, press Enter"
+               onkeydown="euHandleReviewerKey(event)">
       </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;">Press Enter or comma to add · or import CSV</div>
+      <label class="csv-btn">
+        📎 Import CSV
+        <input type="file" accept=".csv,text/csv" onchange="euImportCsv(event)">
+      </label>
+    </div>
 
-      <!-- Reviewer chip input -->
-      <div class="reviewer-section">
-        <div class="config-label" style="margin-bottom:6px;">Reviewers</div>
-        <div class="chip-input-wrap" id="chipWrap" onclick="document.getElementById('reviewerInput').focus()">
-          <!-- Primary reviewer chip — not removable -->
-          <span class="chip primary" id="primaryChip">dmolz@bluebeam.com</span>
-          <input class="chip-text-input" id="reviewerInput" type="email"
-                 placeholder="Add email, press Enter"
-                 onkeydown="handleReviewerKey(event)">
-        </div>
-        <div class="chip-hint">Press Enter or comma to add · or upload a CSV</div>
-        <label class="csv-btn">
-          📎 Import CSV
-          <input type="file" accept=".csv,text/csv" onchange="importCsv(event)">
-        </label>
-      </div>
-
-      <button class="upload-to-project-btn" id="uploadProjectBtnMain" onclick="uploadToProject()">
-        ⬆ Upload to Project
+    <!-- Buttons -->
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
+      <button class="start-btn" id="euStartBtn" onclick="euStartReview()">▶ Start Review</button>
+      <button class="complete-btn" id="euCompleteBtn" onclick="euCompleteReview()" disabled>
+        ✓ Complete Review &amp; Extract Data
       </button>
-
-    </div>
-
-  </div>
-
-  <!-- State + Log -->
-  <div class="content-grid">
-
-    <div class="state-panel">
-      <div class="section-title">Session State</div>
-      <div class="state-grid">
-        <div class="state-card">
-          <div class="state-card-label">Session ID</div>
-          <div class="state-card-val none" id="stateSessionId">none</div>
-        </div>
-        <div class="state-card">
-          <div class="state-card-label">Subscription ID</div>
-          <div class="state-card-val none" id="stateSubId">none</div>
-        </div>
-        <div class="state-card">
-          <div class="state-card-label">Project Files</div>
-          <div class="state-card-val none" id="stateProjectFiles">0</div>
-        </div>
-        <div class="state-card">
-          <div class="state-card-label">Session Files</div>
-          <div class="state-card-val none" id="stateSessionFiles">0</div>
-        </div>
-        <div class="state-card">
-          <div class="state-card-label">Markups Extracted</div>
-          <div class="state-card-val none" id="stateMarkups">0</div>
-        </div>
-        <div class="state-card">
-          <div class="state-card-label">Status</div>
-          <div class="state-card-val none" id="stateStatus">idle</div>
-        </div>
-      </div>
-
-      <div id="downloadSection" style="display:none; margin-bottom:16px;">
-        <div class="section-title">Output PDFs</div>
-        <div class="download-links" id="downloadLinks"></div>
-      </div>
-
-      <div class="section-title">Webhook Events</div>
-      <div class="webhook-list" id="webhookList">
-        <div style="color:var(--muted);font-family:var(--mono);font-size:11px;">Waiting for events...</div>
-      </div>
-    </div>
-
-    <div class="log-panel">
-      <div class="section-title">Activity Log</div>
-      <div class="log-entries" id="logEntries">
-        <div style="color:var(--muted);font-family:var(--mono);font-size:12px;">Upload files and run Step 1 to begin...</div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- Markup Metadata Panel -->
-  <div class="markup-panel" id="markupPanel">
-    <div class="markup-toolbar">
-      <div class="section-title" style="margin-bottom:0;">Markup Metadata</div>
-      <div class="view-toggle">
-        <button id="btnTable" class="active" onclick="setView('table')">Table</button>
-        <button id="btnJson"  onclick="setView('json')">JSON</button>
-      </div>
-      <button class="icon-btn" onclick="copyJson()" id="copyBtn">⎘ Copy JSON</button>
-      <div class="markup-count" id="markupCount">No markups extracted yet</div>
-    </div>
-
-    <div id="markupTableView">
-      <div class="markup-empty" id="markupEmpty">Run <strong>Step 8 — Extract Markups</strong> to populate this panel.</div>
-      <div class="markup-table-wrap" id="markupTableWrap" style="display:none;">
-        <table class="markup-table">
-          <thead>
-            <tr>
-              <th onclick="sortTable('Page')">Page</th>
-              <th onclick="sortTable('Type')">Type</th>
-              <th onclick="sortTable('Subject')">Subject</th>
-              <th onclick="sortTable('Author')">Author</th>
-              <th onclick="sortTable('Status')">Status</th>
-              <th onclick="sortTable('Comment')">Comment</th>
-              <th onclick="sortTable('Layer')">Layer</th>
-              <th onclick="sortTable('_sourceFile')">File</th>
-              <th onclick="sortTable('DateCreated')">Created</th>
-              <th onclick="sortTable('Color')">Color</th>
-            </tr>
-          </thead>
-          <tbody id="markupTbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <div id="markupJsonView" style="display:none;">
-      <div class="json-view" id="jsonContent"></div>
+      <button class="reset-sm" onclick="euReset()">↺ Reset</button>
     </div>
   </div>
 
-</main>
+  <!-- RIGHT: Progress + Results -->
+  <div class="eu-progress-panel" id="euProgressPanel">
+
+    <!-- Idle state -->
+    <div id="euIdleState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;gap:12px;padding:40px;">
+      <div style="font-size:48px;">📋</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text);">Ready to start</div>
+      <div style="font-size:13px;color:var(--muted);max-width:340px;line-height:1.6;">Upload your documents, fill in the review details, and click <strong style="color:var(--accent);">Start Review</strong> to begin.</div>
+    </div>
+
+    <!-- Progress tracker (hidden until start) -->
+    <div id="euProgressTracker" style="display:none;">
+
+      <div class="progress-card">
+        <div class="progress-card-header">
+          <div class="progress-card-title">Setting Up Review</div>
+          <div id="euSetupStatus" style="font-size:12px;color:var(--muted);">Waiting...</div>
+        </div>
+        <div class="progress-steps" id="euSetupSteps">
+          <div class="prog-step" id="prog-setup"><div class="prog-icon" id="pi-setup">●</div><div><div class="prog-label muted">Project setup</div><div class="prog-sub">Folders &amp; custom columns</div></div></div>
+          <div class="prog-step" id="prog-upload"><div class="prog-icon" id="pi-upload">●</div><div><div class="prog-label muted">Upload documents</div><div class="prog-sub">3-step upload to project</div></div></div>
+          <div class="prog-step" id="prog-columns"><div class="prog-icon" id="pi-columns">●</div><div><div class="prog-label muted">Apply custom columns</div><div class="prog-sub">Review Stage, Priority, Discipline</div></div></div>
+          <div class="prog-step" id="prog-session"><div class="prog-icon" id="pi-session">●</div><div><div class="prog-label muted">Create session</div><div class="prog-sub">Restricted Studio Session</div></div></div>
+          <div class="prog-step" id="prog-checkout"><div class="prog-icon" id="pi-checkout">●</div><div><div class="prog-label muted">Check out documents</div><div class="prog-sub">Link project files to session</div></div></div>
+          <div class="prog-step" id="prog-invite"><div class="prog-icon" id="pi-invite">●</div><div><div class="prog-label muted">Invite reviewers</div><div class="prog-sub" id="pi-invite-sub">—</div></div></div>
+        </div>
+      </div>
+
+      <!-- Session active banner -->
+      <div class="session-banner" id="euSessionBanner" style="display:none;">
+        <div class="session-banner-title">✓ Review Session Active</div>
+        <div class="session-id-display" id="euSessionIdDisplay">—</div>
+        <div class="session-hint">Open Bluebeam Revu → Studio → Sessions → enter this ID to join and begin marking up.</div>
+      </div>
+
+      <!-- Extraction progress -->
+      <div class="progress-card" id="euExtractCard" style="display:none;">
+        <div class="progress-card-header">
+          <div class="progress-card-title">Extracting Review Data</div>
+          <div id="euExtractStatus" style="font-size:12px;color:var(--muted);">Waiting...</div>
+        </div>
+        <div class="progress-steps">
+          <div class="prog-step"><div class="prog-icon" id="pi-checkin">●</div><div><div class="prog-label muted">Check in documents</div><div class="prog-sub">Return markups to project</div></div></div>
+          <div class="prog-step"><div class="prog-icon" id="pi-export">●</div><div><div class="prog-label muted">Export markup XML</div><div class="prog-sub">Archive to project folder</div></div></div>
+          <div class="prog-step"><div class="prog-icon" id="pi-markuplist">●</div><div><div class="prog-label muted">Extract markup metadata</div><div class="prog-sub">Structured data via markuplist job</div></div></div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="euResultsSection" style="display:none;">
+
+        <div class="section-title">Review Summary</div>
+        <div class="summary-grid" id="euSummaryCards"></div>
+
+        <div class="section-title" style="margin-top:20px;">Breakdown by Review Stage</div>
+        <div class="breakdown-section" id="euStageBreakdown"></div>
+
+        <div class="section-title" style="margin-top:20px;">Breakdown by Priority</div>
+        <div class="breakdown-section" id="euPriorityBreakdown"></div>
+
+        <div class="section-title" style="margin-top:20px;">Markup Details</div>
+        <div class="results-table-wrap">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th onclick="euSortTable('Page')">Pg</th>
+                <th onclick="euSortTable('Subject')">Subject</th>
+                <th onclick="euSortTable('Author')">Author</th>
+                <th onclick="euSortTable('euReviewStage')">Review Stage</th>
+                <th onclick="euSortTable('euDiscipline')">Discipline</th>
+                <th onclick="euSortTable('euResponsibility')">Responsibility</th>
+                <th onclick="euSortTable('euPriority')">Priority</th>
+                <th onclick="euSortTable('euActionRequired')">Action Required</th>
+                <th onclick="euSortTable('Comment')">Comment</th>
+                <th onclick="euSortTable('euDueDate')">Due Date</th>
+              </tr>
+            </thead>
+            <tbody id="euResultsTbody"></tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     DEVELOPER CONSOLE TAB
+═══════════════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-dev">
+<div class="dev-layout">
+
+  <!-- LEFT: Steps -->
+  <aside class="steps-panel">
+    <div class="panel-label">Setup</div>
+
+    <div class="step-item upload-step" id="step-setup-project">
+      <div class="step-header"><div class="step-num">0a</div><div class="step-title">Setup Project</div></div>
+      <div class="step-sub">Create folders + upload custom-columns.xml</div>
+      <button class="run-btn" onclick="devRunStep('setup-project')">▶ Setup Project</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item upload-step" id="step-upload-to-project">
+      <div class="step-header"><div class="step-num">0b</div><div class="step-title">Upload to Project</div></div>
+      <div class="step-sub">Push PDF(s) to project 712-566-288</div>
+      <button class="run-btn" id="devUploadBtn" onclick="devUploadToProject()">▶ Upload to Project</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-apply-custom-columns">
+      <div class="step-header"><div class="step-num">0c</div><div class="step-title">Apply Custom Columns</div></div>
+      <div class="step-sub">importcustomcolumns job</div>
+      <button class="run-btn" onclick="devRunStep('apply-custom-columns')">▶ Apply Columns</button>
+    </div>
+
+    <div style="height:6px;"></div>
+    <div class="panel-label">Outbound</div>
+
+    <div class="step-item" id="step-trigger">
+      <div class="step-header"><div class="step-num">1</div><div class="step-title">Workflow Trigger</div></div>
+      <div class="step-sub">Simulate source-system event</div>
+      <button class="run-btn" onclick="devRunStep('trigger')">▶ Trigger Event</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-create-session">
+      <div class="step-header"><div class="step-num">2</div><div class="step-title">Create Session</div></div>
+      <div class="step-sub">POST /v1/sessions</div>
+      <button class="run-btn" onclick="devRunStep('create-session')">▶ Create Session</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-register-webhook">
+      <div class="step-header"><div class="step-num">3</div><div class="step-title">Register Webhook</div></div>
+      <div class="step-sub">POST /v2/subscriptions</div>
+      <button class="run-btn" onclick="devRunStep('register-webhook')">▶ Register Webhook</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-checkout-to-session">
+      <div class="step-header"><div class="step-num">4</div><div class="step-title">Checkout to Session</div></div>
+      <div class="step-sub">POST /files/{id}/checkout-to-session</div>
+      <button class="run-btn" onclick="devRunStep('checkout-to-session')">▶ Checkout to Session</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-invite-reviewers">
+      <div class="step-header"><div class="step-num">5</div><div class="step-title">Invite Reviewers</div></div>
+      <div class="step-sub">dmolz@bluebeam.com + additional</div>
+      <button class="run-btn" onclick="devRunStep('invite-reviewers')">▶ Invite Reviewers</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item manual-step" id="step-review">
+      <div class="step-header"><div class="step-num">6</div><div class="step-title">Review in Revu</div></div>
+      <div class="step-sub">Non-API — mark up then click when done</div>
+      <button class="run-btn" style="background:var(--surf2);border:1px solid var(--border);color:var(--muted);" onclick="devMarkReviewDone()">✓ Mark Review Complete</button>
+    </div>
+
+    <div style="height:6px;"></div>
+    <div class="panel-label">Inbound</div>
+
+    <div class="step-item" id="step-checkin">
+      <div class="step-header"><div class="step-num">7</div><div class="step-title">Check In</div></div>
+      <div class="step-sub">POST /files/{id}/checkin</div>
+      <button class="run-btn" onclick="devRunStep('checkin')">▶ Check In</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-export-markups">
+      <div class="step-header"><div class="step-num">8</div><div class="step-title">Export Markups</div></div>
+      <div class="step-sub">POST jobs/exportmarkups → XML</div>
+      <button class="run-btn" onclick="devRunStep('export-markups')">▶ Export Markups</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-run-markuplist-job">
+      <div class="step-header"><div class="step-num">9</div><div class="step-title">Markup List Job</div></div>
+      <div class="step-sub">POST jobs/markuplist → poll → extract</div>
+      <button class="run-btn" onclick="devRunStep('run-markuplist-job')">▶ Extract Markups</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-finalize">
+      <div class="step-header"><div class="step-num">10</div><div class="step-title">Finalize Session</div></div>
+      <div class="step-sub">PUT session status</div>
+      <button class="run-btn" onclick="devRunStep('finalize')">▶ Finalize</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-snapshot">
+      <div class="step-header"><div class="step-num">11</div><div class="step-title">Snapshot + Download</div></div>
+      <div class="step-sub">POST snapshot → poll → PDF</div>
+      <button class="run-btn" onclick="devRunStep('snapshot')">▶ Get Marked-up PDF</button>
+    </div>
+    <div class="step-connector"></div>
+
+    <div class="step-item" id="step-cleanup">
+      <div class="step-header"><div class="step-num">12</div><div class="step-title">Cleanup</div></div>
+      <div class="step-sub">Delete webhook + session</div>
+      <button class="run-btn" onclick="devRunStep('cleanup')">▶ Cleanup</button>
+    </div>
+  </aside>
+
+  <!-- RIGHT: Config + State + Log -->
+  <div class="dev-main">
+
+    <div class="setup-strip">
+      <div class="setup-row">
+        <div style="flex:2;min-width:200px;">
+          <div class="config-label" style="margin-bottom:5px;">PDF Files</div>
+          <div class="dev-drop-zone" id="devDropZone"
+               ondragover="event.preventDefault();this.classList.add('drag-over')"
+               ondragleave="this.classList.remove('drag-over')"
+               ondrop="devHandleDrop(event)">
+            <input type="file" id="devFileInput" multiple accept=".pdf,application/pdf" onchange="devHandleFileSelect(event)">
+            <div style="font-size:18px;margin-bottom:4px;">📄</div>
+            <div style="font-size:11px;color:var(--muted);"><strong style="color:var(--accent);">Click</strong> or drag &amp; drop PDFs</div>
+          </div>
+          <div class="staged-files" id="devStagedFiles"></div>
+        </div>
+        <div class="dev-config-fields">
+          <div>
+            <div class="config-label" style="margin-bottom:3px;">Document ID</div>
+            <input class="dev-config-input" id="devDocId" type="text" placeholder="DOC-001" onchange="devApplyConfig()">
+          </div>
+          <div>
+            <div class="config-label" style="margin-bottom:3px;">Description</div>
+            <input class="dev-config-input" id="devDesc" type="text" placeholder="Design review" onchange="devApplyConfig()">
+          </div>
+        </div>
+        <div class="dev-reviewer-section">
+          <div class="config-label" style="margin-bottom:5px;">Reviewers</div>
+          <div class="dev-chip-wrap" id="devChipWrap" onclick="document.getElementById('devReviewerInput').focus()">
+            <span class="chip primary">dmolz@bluebeam.com</span>
+            <input class="dev-chip-text" id="devReviewerInput" type="email" placeholder="Add email, Enter" onkeydown="devHandleReviewerKey(event)">
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;align-self:flex-end;">
+          <button class="upload-project-btn-dev" id="devUploadBtnMain" onclick="devUploadToProject()">⬆ Upload</button>
+          <button class="dev-reset-btn" onclick="devReset()">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="content-grid">
+      <div class="state-panel">
+        <div class="section-title">Session State</div>
+        <div class="state-grid">
+          <div class="state-card"><div class="state-card-label">Session ID</div><div class="state-card-val none" id="devStateSessionId">none</div></div>
+          <div class="state-card"><div class="state-card-label">Subscription ID</div><div class="state-card-val none" id="devStateSubId">none</div></div>
+          <div class="state-card"><div class="state-card-label">Project Files</div><div class="state-card-val none" id="devStateProjectFiles">0</div></div>
+          <div class="state-card"><div class="state-card-label">Session Files</div><div class="state-card-val none" id="devStateSessionFiles">0</div></div>
+          <div class="state-card"><div class="state-card-label">Markups</div><div class="state-card-val none" id="devStateMarkups">0</div></div>
+          <div class="state-card"><div class="state-card-label">Status</div><div class="state-card-val none" id="devStateStatus">idle</div></div>
+        </div>
+        <div id="devDownloadSection" style="display:none;margin-bottom:16px;">
+          <div class="section-title">Output PDFs</div>
+          <div class="download-links" id="devDownloadLinks"></div>
+        </div>
+        <div class="section-title">Webhook Events</div>
+        <div class="webhook-list" id="devWebhookList">
+          <div style="color:var(--muted);font-family:var(--mono);font-size:11px;">Waiting...</div>
+        </div>
+      </div>
+      <div class="log-panel">
+        <div class="section-title">Activity Log</div>
+        <div class="log-entries" id="devLogEntries">
+          <div style="color:var(--muted);font-family:var(--mono);font-size:12px;">Run a step to see output...</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="markup-panel-dev">
+      <div class="markup-toolbar">
+        <div class="section-title" style="margin-bottom:0;">Markup Metadata</div>
+        <div class="view-toggle">
+          <button id="devBtnTable" class="active" onclick="devSetView('table')">Table</button>
+          <button id="devBtnJson" onclick="devSetView('json')">JSON</button>
+        </div>
+        <button class="icon-btn" onclick="devCopyJson()" id="devCopyBtn">⎘ Copy JSON</button>
+        <div class="markup-count" id="devMarkupCount">No markups extracted yet</div>
+      </div>
+      <div id="devMarkupTableView">
+        <div class="markup-empty" id="devMarkupEmpty">Run Step 9 — Markup List Job to populate.</div>
+        <div class="markup-table-wrap" id="devMarkupTableWrap" style="display:none;">
+          <table class="markup-table">
+            <thead><tr>
+              <th onclick="devSortTable('Page')">Page</th>
+              <th onclick="devSortTable('Type')">Type</th>
+              <th onclick="devSortTable('Subject')">Subject</th>
+              <th onclick="devSortTable('Author')">Author</th>
+              <th onclick="devSortTable('Status')">Status</th>
+              <th onclick="devSortTable('Comment')">Comment</th>
+              <th onclick="devSortTable('Layer')">Layer</th>
+              <th onclick="devSortTable('_sourceFile')">File</th>
+              <th onclick="devSortTable('DateCreated')">Created</th>
+              <th onclick="devSortTable('Color')">Color</th>
+            </tr></thead>
+            <tbody id="devMarkupTbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="devMarkupJsonView" style="display:none;">
+        <div class="json-view" id="devJsonContent"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
 
 <script>
-// ── State ──────────────────────────────────────────────────────────────────
-let stagedFiles     = [];   // File objects staged in UI
-let currentMarkups  = [];
-let currentView     = 'table';
-let sortKey         = 'Page';
-let sortDir         = 'asc';
-
-// ── File handling ───────────────────────────────────────────────────────────
-function handleFileSelect(e) {
-  addFiles(Array.from(e.target.files));
-  e.target.value = '';
+// ═══════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='eu')||(i===1&&tab==='dev')));
+  document.getElementById('tab-eu').classList.toggle('active', tab==='eu');
+  document.getElementById('tab-dev').classList.toggle('active', tab==='dev');
+  document.getElementById('devStatus').style.display = tab==='dev' ? 'inline-flex' : 'none';
 }
 
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('dropZone').classList.remove('drag-over');
-  const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf' || f.name.endsWith('.pdf'));
-  addFiles(files);
+// ═══════════════════════════════════════════════════════
+// SHARED STATE
+// ═══════════════════════════════════════════════════════
+let sharedState = {}; // last /poc/state response
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+async function postStep(endpoint) {
+  const r = await fetch(`/poc/${endpoint}`,{method:'POST',headers:{'Content-Type':'application/json'}});
+  const d = await r.json();
+  if(!r.ok) throw new Error(d.error||`HTTP ${r.status}`);
+  return d;
 }
 
-function addFiles(files) {
-  files.forEach(f => {
-    if (!stagedFiles.find(s => s.name === f.name)) {
-      stagedFiles.push({ file: f, name: f.name, size: f.size, status: 'staged' });
-    }
-  });
-  renderStagedFiles();
+async function fetchState() {
+  const r = await fetch('/poc/state');
+  sharedState = await r.json();
+  return sharedState;
 }
 
-function removeFile(name) {
-  stagedFiles = stagedFiles.filter(f => f.name !== name);
-  renderStagedFiles();
+setInterval(async()=>{
+  await fetchState();
+  devRefreshStateCards();
+}, 4000);
+
+// ═══════════════════════════════════════════════════════
+// END USER TAB
+// ═══════════════════════════════════════════════════════
+let euStagedFiles = [];
+let euMarkups     = [];
+let euSortKey     = 'Page';
+let euSortDir     = 'asc';
+
+// Default deadline to 7 days from now
+(function(){
+  const d = new Date(); d.setDate(d.getDate()+7);
+  document.getElementById('euDeadline').value = d.toISOString().slice(0,10);
+})();
+
+function euHandleFileSelect(e){euAddFiles(Array.from(e.target.files));e.target.value='';}
+function euHandleDrop(e){
+  e.preventDefault();document.getElementById('euDropZone').classList.remove('drag-over');
+  euAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));
 }
-
-function renderStagedFiles() {
-  const el = document.getElementById('stagedFiles');
-  if (stagedFiles.length === 0) { el.innerHTML = ''; return; }
-
-  el.innerHTML = stagedFiles.map(f => {
-    const sizeStr = f.size > 1024*1024
-      ? (f.size / 1024 / 1024).toFixed(1) + ' MB'
-      : (f.size / 1024).toFixed(0) + ' KB';
-
-    const statusIcon = f.status === 'ok'  ? '<span class="staged-file-status ok">✓ Uploaded</span>'
-                     : f.status === 'err' ? '<span class="staged-file-status err">✗ Failed</span>'
-                     :                      '<span class="staged-file-status wait">Staged</span>';
-
-    return `<div class="staged-file">
-      <span class="staged-file-name" title="${esc(f.name)}">${esc(f.name)}</span>
-      <span class="staged-file-size">${sizeStr}</span>
-      ${statusIcon}
-      ${f.status !== 'ok' ? `<button class="remove-file-btn" onclick="removeFile('${esc(f.name)}')" title="Remove">×</button>` : ''}
-    </div>`;
+function euAddFiles(files){
+  files.forEach(f=>{if(!euStagedFiles.find(s=>s.name===f.name))euStagedFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});
+  euRenderFiles();
+}
+function euRemoveFile(name){euStagedFiles=euStagedFiles.filter(f=>f.name!==name);euRenderFiles();}
+function euRenderFiles(){
+  const el=document.getElementById('euStagedFiles');
+  if(!euStagedFiles.length){el.innerHTML='';return;}
+  el.innerHTML=euStagedFiles.map(f=>{
+    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
+    const st=f.status==='ok'?'<span class="sf-status ok">✓ Uploaded</span>':f.status==='err'?'<span class="sf-status err">✗ Failed</span>':'<span class="sf-status wait">Staged</span>';
+    return `<div class="staged-file"><span class="staged-file-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="staged-file-size">${sz}</span>${st}${f.status!=='ok'?`<button class="remove-file-btn" onclick="euRemoveFile('${esc(f.name)}')">×</button>`:''}</div>`;
   }).join('');
 }
 
-// ── Upload to Project ───────────────────────────────────────────────────────
-async function uploadToProject() {
-  const pending = stagedFiles.filter(f => f.status === 'staged');
-  if (pending.length === 0) {
-    alert('No files staged. Select one or more PDFs first.');
-    return;
+function euHandleReviewerKey(e){
+  if(e.key==='Enter'||e.key===','){e.preventDefault();euAddReviewer(e.target.value.trim().replace(/,$/,''));e.target.value='';}
+  if(e.key==='Backspace'&&!e.target.value){
+    const chips=document.querySelectorAll('#euChipWrap .chip:not(.primary)');
+    if(chips.length){const last=chips[chips.length-1];fetch('/poc/remove-reviewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:last.dataset.email})});last.remove();}
+  }
+}
+function euAddReviewer(email){
+  if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
+  if([...document.querySelectorAll('#euChipWrap .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
+  const chip=document.createElement('span');chip.className='chip';chip.dataset.email=email;
+  chip.innerHTML=`${esc(email)} <button class="chip-remove" onclick="euRemoveChip(this,'${esc(email)}')">×</button>`;
+  document.getElementById('euChipWrap').insertBefore(chip,document.getElementById('euReviewerInput'));
+  fetch('/poc/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reviewerEmail:email})});
+}
+function euRemoveChip(btn,email){btn.closest('.chip').remove();fetch('/poc/remove-reviewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});}
+async function euImportCsv(e){
+  const file=e.target.files[0];if(!file)return;
+  const text=await file.text();
+  text.split(/[\r\n,;]+/).map(s=>s.trim()).filter(s=>s.includes('@')).forEach(euAddReviewer);
+  e.target.value='';
+}
+
+// Progress icon helpers
+function setProg(id,state,label=''){
+  const icon=document.getElementById('pi-'+id);
+  const step=document.getElementById('prog-'+id);
+  if(!icon)return;
+  icon.className='prog-icon '+state;
+  icon.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'●';
+  if(step){const lbl=step.querySelector('.prog-label');if(lbl){lbl.className='prog-label'+(state==='done'?' ':'  muted');}}
+}
+function setExtProg(id,state){
+  const icon=document.getElementById('pi-'+id);
+  if(!icon)return;
+  icon.className='prog-icon '+state;
+  icon.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'●';
+}
+
+async function euStartReview(){
+  // Validate
+  if(!euStagedFiles.length){alert('Please add at least one PDF document.');return;}
+  const reviewName=document.getElementById('euReviewName').value.trim();
+  const description=document.getElementById('euDescription').value.trim();
+  const discipline=document.getElementById('euDiscipline').value;
+  const deadline=document.getElementById('euDeadline').value;
+
+  if(!reviewName){alert('Please enter a review name.');return;}
+
+  // Push config to server
+  await fetch('/poc/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    documentId: reviewName.replace(/\s+/g,'-'),
+    description: `${discipline?discipline+' — ':''}${description||reviewName}`
+  })});
+
+  // Set session end date from deadline
+  if(deadline){
+    demoStubEndDate=new Date(deadline+'T23:59:00').toISOString();
   }
 
-  const btn1 = document.getElementById('uploadProjectBtn');
-  const btn2 = document.getElementById('uploadProjectBtnMain');
-  [btn1, btn2].forEach(b => { if (b) { b.disabled = true; b.textContent = '⟳ Uploading...'; } });
+  // Show progress tracker
+  document.getElementById('euIdleState').style.display='none';
+  document.getElementById('euProgressTracker').style.display='flex';
+  document.getElementById('euProgressTracker').style.flexDirection='column';
+  document.getElementById('euProgressTracker').style.gap='20px';
 
-  // Mark step 0 as running
-  const stepEl = document.getElementById('step-upload-to-project');
-  if (stepEl) { stepEl.classList.add('running-step'); stepEl.classList.remove('done','error-step'); }
-
-  const formData = new FormData();
-  pending.forEach(f => formData.append('files', f.file, f.name));
+  const startBtn=document.getElementById('euStartBtn');
+  startBtn.disabled=true;startBtn.classList.add('running');startBtn.textContent='⟳ Setting up review...';
+  document.getElementById('euSetupStatus').textContent='Running...';
 
   try {
-    const resp = await fetch('/poc/upload-to-project', { method: 'POST', body: formData });
-    const data = await resp.json();
+    // Step 0a: setup project (check state first — idempotent but skip if already done)
+    setProg('setup','running');
+    const state=await fetchState();
+    if(!state.projectSetupDone){
+      await postStep('setup-project');
+    }
+    setProg('setup','done');
 
-    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
+    // Step 0b: upload files to project
+    setProg('upload','running');
+    const formData=new FormData();
+    const pending=euStagedFiles.filter(f=>f.status==='staged');
+    pending.forEach(f=>formData.append('files',f.file,f.name));
+    const upResp=await fetch('/poc/upload-to-project',{method:'POST',body:formData});
+    const upData=await upResp.json();
+    if(!upResp.ok)throw new Error(upData.error||'Upload failed');
+    (upData.uploaded||[]).forEach(u=>{const sf=euStagedFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
+    euRenderFiles();
+    setProg('upload','done');
 
-    // Mark uploaded files as OK
-    (data.uploaded || []).forEach(u => {
-      const sf = stagedFiles.find(f => f.name === u.name);
-      if (sf) sf.status = 'ok';
+    // Step 0c: apply custom columns
+    setProg('columns','running');
+    await postStep('apply-custom-columns');
+    setProg('columns','done');
+
+    // Step 2: create session
+    setProg('session','running');
+    await postStep('trigger');
+    const sessData=await postStep('create-session');
+    await postStep('register-webhook');
+    setProg('session','done');
+
+    // Step 4: checkout to session
+    setProg('checkout','running');
+    await postStep('checkout-to-session');
+    setProg('checkout','done');
+
+    // Step 5: invite reviewers
+    const reviewers=[...document.querySelectorAll('#euChipWrap .chip')].map(c=>c.textContent.replace('×','').trim()).filter(Boolean);
+    document.getElementById('pi-invite-sub').textContent=reviewers.join(', ');
+    setProg('invite','running');
+    await postStep('invite-reviewers');
+    setProg('invite','done');
+
+    // Show session banner
+    const finalState=await fetchState();
+    document.getElementById('euSessionBanner').style.display='block';
+    document.getElementById('euSessionIdDisplay').textContent=finalState.sessionId||'—';
+    document.getElementById('euSetupStatus').textContent='Complete ✓';
+
+    document.getElementById('euCompleteBtn').disabled=false;
+    startBtn.textContent='▶ Start Review';
+    startBtn.classList.remove('running');
+    // Keep disabled so they don't double-start
+    startBtn.disabled=true;
+    startBtn.style.opacity='0.5';
+
+  } catch(err){
+    document.getElementById('euSetupStatus').textContent='Error: '+err.message;
+    // Mark last running step as error
+    ['setup','upload','columns','session','checkout','invite'].forEach(id=>{
+      if(document.getElementById('pi-'+id)?.className.includes('running'))setProg(id,'error');
     });
-    renderStagedFiles();
-
-    if (stepEl) {
-      stepEl.classList.remove('running-step','error-step');
-      stepEl.classList.add('done');
-      const num = stepEl.querySelector('.step-num');
-      if (num) num.textContent = '✓';
-    }
-
-  } catch (err) {
-    pending.forEach(f => { f.status = 'err'; });
-    renderStagedFiles();
-    if (stepEl) { stepEl.classList.remove('running-step'); stepEl.classList.add('error-step'); }
-    console.error('Upload failed:', err.message);
-  }
-
-  [btn1, btn2].forEach(b => { if (b) { b.disabled = false; b.textContent = b.id === 'uploadProjectBtn' ? '▶ Upload to Project' : '⬆ Upload to Project'; } });
-  await refreshState();
-}
-
-// ── Reviewer chip input ─────────────────────────────────────────────────────
-function handleReviewerKey(e) {
-  if (e.key === 'Enter' || e.key === ',') {
-    e.preventDefault();
-    addReviewer(e.target.value.trim().replace(/,$/, ''));
-    e.target.value = '';
-  }
-  if (e.key === 'Backspace' && e.target.value === '') {
-    // Remove last non-primary chip
-    const chips = document.querySelectorAll('#chipWrap .chip:not(.primary)');
-    if (chips.length > 0) {
-      const last = chips[chips.length - 1];
-      const email = last.dataset.email;
-      last.remove();
-      fetch('/poc/remove-reviewer', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-    }
+    startBtn.disabled=false;startBtn.classList.remove('running');startBtn.textContent='▶ Start Review';
   }
 }
 
-function addReviewer(email) {
-  if (!email || !email.includes('@')) return;
-  if (email === 'dmolz@bluebeam.com') return; // already primary
+async function euCompleteReview(){
+  const completeBtn=document.getElementById('euCompleteBtn');
+  completeBtn.disabled=true;completeBtn.classList.add('running');completeBtn.textContent='⟳ Extracting data...';
 
-  // Check for duplicate chip in UI
-  const existing = document.querySelectorAll('#chipWrap .chip:not(.primary)');
-  for (const c of existing) { if (c.dataset.email === email) return; }
+  document.getElementById('euExtractCard').style.display='block';
+  document.getElementById('euExtractStatus').textContent='Running...';
 
-  const chip = document.createElement('span');
-  chip.className = 'chip';
-  chip.dataset.email = email;
-  chip.innerHTML = `${esc(email)} <button class="chip-remove" onclick="removeReviewerChip(this,'${esc(email)}')" title="Remove">×</button>`;
+  try{
+    setExtProg('checkin','running');
+    await postStep('checkin');
+    setExtProg('checkin','done');
 
-  const input = document.getElementById('reviewerInput');
-  document.getElementById('chipWrap').insertBefore(chip, input);
+    setExtProg('export','running');
+    await postStep('export-markups');
+    setExtProg('export','done');
 
-  fetch('/poc/configure', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ reviewerEmail: email })
-  });
-}
+    setExtProg('markuplist','running');
+    const result=await postStep('run-markuplist-job');
+    setExtProg('markuplist','done');
 
-function removeReviewerChip(btn, email) {
-  btn.closest('.chip').remove();
-  fetch('/poc/remove-reviewer', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email })
-  });
-}
+    euMarkups=result.markups||[];
+    document.getElementById('euExtractStatus').textContent='Complete ✓';
 
-async function importCsv(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const text = await file.text();
-  const emails = text.split(/[\r\n,;]+/).map(s => s.trim()).filter(s => s.includes('@'));
-  emails.forEach(addReviewer);
-  e.target.value = '';
-}
+    euRenderResults();
 
-// ── Config ──────────────────────────────────────────────────────────────────
-function applyConfig() {
-  const body = {};
-  const docId = document.getElementById('cfgDocId').value.trim();
-  const desc  = document.getElementById('cfgDesc').value.trim();
-  if (docId) body.documentId  = docId;
-  if (desc)  body.description = desc;
-  if (Object.keys(body).length === 0) return;
-  fetch('/poc/configure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-}
+    completeBtn.textContent='✓ Data Extracted';
+    completeBtn.classList.remove('running');
 
-// ── Step runner ─────────────────────────────────────────────────────────────
-const stepLabels = {
-  'trigger':             '▶ Trigger Event',
-  'create-session':      '▶ Create Session',
-  'register-webhook':    '▶ Register Webhook',
-  'add-to-session':      '▶ Add to Session',
-  'invite-reviewers':    '▶ Invite Reviewers',
-  'update-project-copy': '▶ Update Project Copy',
-  'run-markuplist-job':  '▶ Extract Markups',
-  'finalize':            '▶ Finalize',
-  'snapshot':            '▶ Get Marked-up PDF',
-  'cleanup':             '▶ Cleanup'
-};
-
-async function runStep(step) {
-  const stepEl = document.getElementById(`step-${step}`);
-  const btn    = stepEl?.querySelector('.run-btn');
-
-  if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = '⟳ Running...'; }
-  if (stepEl) { stepEl.classList.remove('done','error-step'); stepEl.classList.add('running-step'); }
-
-  try {
-    const resp = await fetch(`/poc/${step}`, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-    const data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || `HTTP ${resp.status}`);
-
-    if (stepEl) { stepEl.classList.remove('running-step'); stepEl.classList.add('done'); }
-    const numEl = stepEl?.querySelector('.step-num');
-    if (numEl) numEl.textContent = '✓';
-
-    // Handle snapshot downloads
-    if (step === 'snapshot' && data.downloads?.length) {
-      document.getElementById('downloadSection').style.display = 'block';
-      document.getElementById('downloadLinks').innerHTML = data.downloads.map(d =>
-        `<a class="download-link" href="${esc(d.path)}" target="_blank">⬇ ${esc(d.name)}</a>`
-      ).join('');
-    }
-
-    // Handle markups
-    if (step === 'run-markuplist-job' && data.markups) {
-      currentMarkups = data.markups;
-      renderMarkups();
-    }
-
-  } catch (err) {
-    if (stepEl) { stepEl.classList.remove('running-step'); stepEl.classList.add('error-step'); }
-    console.error(`Step ${step} failed:`, err.message);
-  }
-
-  if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = stepLabels[step] || '▶ Run'; }
-  await refreshState();
-}
-
-function markReviewDone() {
-  const el  = document.getElementById('step-review');
-  const btn = el?.querySelector('.run-btn');
-  if (el) { el.classList.remove('manual-step'); el.classList.add('done'); }
-  const num = el?.querySelector('.step-num');
-  if (num) num.textContent = '✓';
-  if (btn) {
-    btn.textContent = '✓ Review Complete';
-    btn.style.cssText = 'background:rgba(56,217,169,0.15);color:var(--accent2);border:1px solid var(--accent2);';
+  }catch(err){
+    document.getElementById('euExtractStatus').textContent='Error: '+err.message;
+    ['checkin','export','markuplist'].forEach(id=>{
+      if(document.getElementById('pi-'+id)?.className.includes('running'))setExtProg(id,'error');
+    });
+    completeBtn.disabled=false;completeBtn.classList.remove('running');completeBtn.textContent='✓ Complete Review & Extract Data';
   }
 }
 
-async function resetPoc() {
-  await fetch('/poc/reset', { method: 'POST' });
+function euRenderResults(){
+  const markups=euMarkups;
+  document.getElementById('euResultsSection').style.display='block';
 
-  const allSteps = ['upload-to-project','trigger','create-session','register-webhook',
-                    'add-to-session','invite-reviewers','review','update-project-copy',
-                    'run-markuplist-job','finalize','snapshot','cleanup'];
+  // ── Summary cards ──────────────────────────────────────────────────────
+  const ext=m=>m.ExtendedProperties||{};
+  const getField=(m,key)=>ext(m)[key]||ext(m)[key.replace(/ /g,'')]||'';
 
-  allSteps.forEach((s, i) => {
-    const el = document.getElementById(`step-${s}`);
-    if (!el) return;
-    el.classList.remove('done','error-step','running-step');
-    if (s === 'review') el.classList.add('manual-step');
-    const num = el.querySelector('.step-num');
-    if (num) num.textContent = i; // 0-indexed matches step numbers
+  const stages=markups.map(m=>getField(m,'Review Stage')).filter(Boolean);
+  const priorities=markups.map(m=>getField(m,'Priority')).filter(Boolean);
+  const needsAction=markups.filter(m=>getField(m,'Action Required')).length;
+  const critical=priorities.filter(p=>p.includes('Critical')).length;
+
+  document.getElementById('euSummaryCards').innerHTML=`
+    <div class="summary-card"><div class="summary-card-val">${markups.length}</div><div class="summary-card-label">Total Markups</div></div>
+    <div class="summary-card"><div class="summary-card-val green">${needsAction}</div><div class="summary-card-label">Action Required</div></div>
+    <div class="summary-card"><div class="summary-card-val error">${critical}</div><div class="summary-card-label">Critical Items</div></div>
+    <div class="summary-card"><div class="summary-card-val warn">${[...new Set(markups.map(m=>m.Author).filter(Boolean))].length}</div><div class="summary-card-label">Reviewers Active</div></div>
+  `;
+
+  // ── Stage breakdown ────────────────────────────────────────────────────
+  const stageCounts={};
+  stages.forEach(s=>{stageCounts[s]=(stageCounts[s]||0)+1;});
+  const maxStage=Math.max(...Object.values(stageCounts),1);
+  document.getElementById('euStageBreakdown').innerHTML=Object.entries(stageCounts)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([label,count])=>`
+      <div class="breakdown-item">
+        <div class="breakdown-label" title="${esc(label)}">${esc(label)}</div>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${Math.round(count/maxStage*100)}%"></div></div>
+        <div class="breakdown-count">${count}</div>
+      </div>`).join('') || '<div style="color:var(--muted);font-size:12px;">No Review Stage data — ensure custom columns were applied before upload</div>';
+
+  // ── Priority breakdown ─────────────────────────────────────────────────
+  const prioCounts={};
+  priorities.forEach(p=>{prioCounts[p]=(prioCounts[p]||0)+1;});
+  const maxPrio=Math.max(...Object.values(prioCounts),1);
+  const prioColors={'Critical':'#f75f5f','High':'#f7c94f','Medium':'#4f8ef7','Low':'#38d9a9'};
+  document.getElementById('euPriorityBreakdown').innerHTML=Object.entries(prioCounts)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([label,count])=>{
+      const color=Object.entries(prioColors).find(([k])=>label.includes(k))?.[1]||'#4f8ef7';
+      return `<div class="breakdown-item">
+        <div class="breakdown-label" title="${esc(label)}">${esc(label)}</div>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${Math.round(count/maxPrio*100)}%;background:${color}"></div></div>
+        <div class="breakdown-count">${count}</div>
+      </div>`;
+    }).join('') || '<div style="color:var(--muted);font-size:12px;">No Priority data</div>';
+
+  // ── Results table ──────────────────────────────────────────────────────
+  euRenderTable();
+}
+
+function euGetSortVal(m,key){
+  if(['euReviewStage','euDiscipline','euResponsibility','euPriority','euActionRequired','euDueDate'].includes(key)){
+    const fieldMap={euReviewStage:'Review Stage',euDiscipline:'Discipline',euResponsibility:'Responsibility',euPriority:'Priority',euActionRequired:'Action Required',euDueDate:'Due Date'};
+    const ext=m.ExtendedProperties||{};
+    return ext[fieldMap[key]]||ext[fieldMap[key]?.replace(/ /g,'')]||'';
+  }
+  return m[key]??'';
+}
+
+function euRenderTable(){
+  const sorted=[...euMarkups].sort((a,b)=>{
+    const av=String(euGetSortVal(a,euSortKey)),bv=String(euGetSortVal(b,euSortKey));
+    return euSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
   });
 
-  const reviewBtn = document.querySelector('#step-review .run-btn');
-  if (reviewBtn) { reviewBtn.textContent = '✓ Mark Review Complete'; reviewBtn.style.cssText = ''; }
+  const prioClass=p=>{if(!p)return'';if(p.includes('Critical'))return'critical';if(p.includes('High'))return'high';if(p.includes('Medium'))return'medium';if(p.includes('Low'))return'low';return'info';};
 
-  document.getElementById('downloadSection').style.display = 'none';
-  document.getElementById('downloadLinks').innerHTML = '';
-
-  // Reset reviewers to primary only
-  document.querySelectorAll('#chipWrap .chip:not(.primary)').forEach(c => c.remove());
-
-  stagedFiles    = [];
-  currentMarkups = [];
-  renderStagedFiles();
-  renderMarkups();
-  await refreshState();
-}
-
-// ── State polling ───────────────────────────────────────────────────────────
-async function refreshState() {
-  try {
-    const resp = await fetch('/poc/state');
-    const data = await resp.json();
-
-    const badge = document.getElementById('globalStatus');
-    badge.textContent = (data.status || 'idle').toUpperCase().replace(/-/g, ' ');
-    badge.className = 'status-badge';
-    const working = ['triggered','creating','uploading','adding-to-session','inviting','updating-project','extracting-markups','finalizing','snapshotting'];
-    if (working.includes(data.status)) badge.classList.add('working');
-    else if (['active','complete'].includes(data.status)) badge.classList.add('active');
-    else if (data.status === 'error') badge.classList.add('error');
-
-    // Populate config placeholders from stub
-    if (data.stub) {
-      const docIdEl = document.getElementById('cfgDocId');
-      const descEl  = document.getElementById('cfgDesc');
-      if (docIdEl && !docIdEl.value) docIdEl.placeholder = data.stub.documentId || 'DOC-001';
-      if (descEl  && !descEl.value)  descEl.placeholder  = data.stub.description || 'Design review';
-    }
-
-    setCard('stateSessionId',    data.sessionId,                Boolean(data.sessionId));
-    setCard('stateSubId',        data.subscriptionId,           Boolean(data.subscriptionId));
-    setCard('stateProjectFiles', data.projectFiles?.length || 0, data.projectFiles?.length > 0);
-    setCard('stateSessionFiles', data.sessionFileIds?.length || 0, data.sessionFileIds?.length > 0);
-    setCard('stateMarkups',      data.markups?.length || 0,     data.markups?.length > 0);
-    setCard('stateStatus',       data.status,                   ['active','complete'].includes(data.status));
-
-    // Sync markups from state (handles page refresh)
-    if (data.markups?.length > 0 && currentMarkups.length === 0) {
-      currentMarkups = data.markups;
-      renderMarkups();
-    }
-
-    // Log — newest first
-    const logEl = document.getElementById('logEntries');
-    if (data.log?.length) {
-      logEl.innerHTML = [...data.log].reverse().map(entry => {
-        const t = new Date(entry.time).toLocaleTimeString('en-US', { hour12: false });
-        return `<div class="log-entry"><span class="log-time">${t}</span><span class="log-msg ${entry.type || 'info'}">${esc(entry.msg)}</span></div>`;
-      }).join('');
-    }
-
-    // Webhook events
-    const whEl = document.getElementById('webhookList');
-    if (data.webhookEvents?.length) {
-      whEl.innerHTML = [...data.webhookEvents].reverse().map(e =>
-        `<div class="webhook-event"><div class="webhook-time">${new Date(e.receivedAt).toLocaleTimeString()}</div><div>${esc(e.ResourceType||'')} — ${esc(e.EventType||'')}${e.Name?' / '+esc(e.Name):''}</div></div>`
-      ).join('');
-    }
-
-  } catch (err) { console.error('State refresh error:', err); }
-}
-
-function setCard(id, val, good) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.textContent = val !== null && val !== undefined && val !== '' ? val : 'none';
-  el.className = 'state-card-val' + (val ? (good ? ' ok' : '') : ' none');
-}
-
-// ── Markup rendering ────────────────────────────────────────────────────────
-function renderMarkups() {
-  const count   = currentMarkups.length;
-  const countEl = document.getElementById('markupCount');
-  const empty   = document.getElementById('markupEmpty');
-  const wrap    = document.getElementById('markupTableWrap');
-
-  countEl.innerHTML = count > 0
-    ? `<span>${count}</span> markup${count !== 1 ? 's' : ''} extracted`
-    : 'No markups extracted yet';
-
-  if (count === 0) { empty.style.display = 'block'; wrap.style.display = 'none'; return; }
-
-  empty.style.display = 'none';
-  wrap.style.display  = 'block';
-  renderTable();
-  renderJson();
-}
-
-function renderTable() {
-  const sorted = [...currentMarkups].sort((a, b) => {
-    const av = a[sortKey] ?? '', bv = b[sortKey] ?? '';
-    return sortDir === 'asc'
-      ? String(av).localeCompare(String(bv), undefined, { numeric: true })
-      : String(bv).localeCompare(String(av), undefined, { numeric: true });
-  });
-
-  document.getElementById('markupTbody').innerHTML = sorted.map(m => {
-    const sc = (m.Status || '').toLowerCase();
-    const cs = m.Color ? `<span class="color-swatch" style="background:${esc(m.Color)}"></span>` : '';
-    const dt = m.DateCreated ? new Date(m.DateCreated).toLocaleDateString() : '—';
+  document.getElementById('euResultsTbody').innerHTML=sorted.map(m=>{
+    const ep=m.ExtendedProperties||{};
+    const stage=ep['Review Stage']||ep['ReviewStage']||'—';
+    const disc=ep['Discipline']||'—';
+    const resp=ep['Responsibility']||'—';
+    const prio=ep['Priority']||'—';
+    const action=ep['Action Required']||ep['ActionRequired']||'—';
+    const due=ep['Due Date']||ep['DueDate']||'—';
     return `<tr>
-      <td>${m.Page ?? '—'}</td>
-      <td>${esc(m.Type||'—')}</td>
+      <td>${m.Page??'—'}</td>
       <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
-      <td title="${esc(m.Author||'')}">${esc(m.Author||'—')}</td>
-      <td><span class="status-pill ${sc}">${esc(m.Status||'None')}</span></td>
+      <td>${esc(m.Author||'—')}</td>
+      <td><span class="stage-pill" title="${esc(stage)}">${esc(stage.length>30?stage.slice(0,28)+'…':stage)}</span></td>
+      <td>${esc(disc)}</td>
+      <td>${esc(resp)}</td>
+      <td><span class="prio-pill ${prioClass(prio)}" title="${esc(prio)}">${esc(prio.split('–')[0].trim())}</span></td>
+      <td title="${esc(action)}">${esc(action)}</td>
       <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
-      <td>${esc(m.Layer||'—')}</td>
-      <td title="${esc(m._sourceFile||'')}">${esc(m._sourceFile||'—')}</td>
-      <td>${dt}</td>
-      <td>${cs}${esc(m.Color||'—')}</td>
+      <td>${esc(due)}</td>
     </tr>`;
   }).join('');
 }
 
-function sortTable(key) {
-  sortDir = (sortKey === key && sortDir === 'asc') ? 'desc' : 'asc';
-  sortKey = key;
-  renderTable();
+function euSortTable(key){
+  euSortDir=(euSortKey===key&&euSortDir==='asc')?'desc':'asc';
+  euSortKey=key;
+  if(euMarkups.length)euRenderTable();
 }
 
-function renderJson() {
-  document.getElementById('jsonContent').innerHTML = syntaxHighlight(JSON.stringify(currentMarkups, null, 2));
+function euReset(){
+  euStagedFiles=[];euMarkups=[];
+  euRenderFiles();
+  document.getElementById('euIdleState').style.display='flex';
+  document.getElementById('euProgressTracker').style.display='none';
+  document.getElementById('euResultsSection').style.display='none';
+  document.getElementById('euSessionBanner').style.display='none';
+  document.getElementById('euExtractCard').style.display='none';
+  document.getElementById('euStartBtn').disabled=false;
+  document.getElementById('euStartBtn').style.opacity='1';
+  document.getElementById('euStartBtn').textContent='▶ Start Review';
+  document.getElementById('euCompleteBtn').disabled=true;
+  document.getElementById('euCompleteBtn').textContent='✓ Complete Review & Extract Data';
+  document.querySelectorAll('#euChipWrap .chip:not(.primary)').forEach(c=>c.remove());
+  ['setup','upload','columns','session','checkout','invite'].forEach(id=>setProg(id,''));
+  ['checkin','export','markuplist'].forEach(id=>setExtProg(id,''));
+  fetch('/poc/reset',{method:'POST'});
 }
 
-function syntaxHighlight(json) {
+// ═══════════════════════════════════════════════════════
+// DEVELOPER CONSOLE TAB
+// ═══════════════════════════════════════════════════════
+let devStagedFiles=[];
+let devMarkups=[];
+let devSortKey='Page';
+let devSortDir='asc';
+let devView='table';
+
+function devHandleFileSelect(e){devAddFiles(Array.from(e.target.files));e.target.value='';}
+function devHandleDrop(e){
+  e.preventDefault();document.getElementById('devDropZone').classList.remove('drag-over');
+  devAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));
+}
+function devAddFiles(files){
+  files.forEach(f=>{if(!devStagedFiles.find(s=>s.name===f.name))devStagedFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});
+  devRenderFiles();
+}
+function devRemoveFile(name){devStagedFiles=devStagedFiles.filter(f=>f.name!==name);devRenderFiles();}
+function devRenderFiles(){
+  const el=document.getElementById('devStagedFiles');
+  if(!devStagedFiles.length){el.innerHTML='';return;}
+  el.innerHTML=devStagedFiles.map(f=>{
+    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
+    const st=f.status==='ok'?'<span class="sf-status ok">✓</span>':f.status==='err'?'<span class="sf-status err">✗</span>':'<span class="sf-status wait">·</span>';
+    return `<div class="staged-file"><span class="staged-file-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="staged-file-size">${sz}</span>${st}${f.status!=='ok'?`<button class="remove-file-btn" onclick="devRemoveFile('${esc(f.name)}')">×</button>`:''}</div>`;
+  }).join('');
+}
+
+function devHandleReviewerKey(e){
+  if(e.key==='Enter'||e.key===','){e.preventDefault();devAddReviewer(e.target.value.trim().replace(/,$/,''));e.target.value='';}
+  if(e.key==='Backspace'&&!e.target.value){
+    const chips=document.querySelectorAll('#devChipWrap .chip:not(.primary)');
+    if(chips.length){const last=chips[chips.length-1];fetch('/poc/remove-reviewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:last.dataset.email})});last.remove();}
+  }
+}
+function devAddReviewer(email){
+  if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
+  if([...document.querySelectorAll('#devChipWrap .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
+  const chip=document.createElement('span');chip.className='chip';chip.dataset.email=email;
+  chip.innerHTML=`${esc(email)} <button class="chip-remove" onclick="devRemoveChip(this,'${esc(email)}')">×</button>`;
+  document.getElementById('devChipWrap').insertBefore(chip,document.getElementById('devReviewerInput'));
+  fetch('/poc/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reviewerEmail:email})});
+}
+function devRemoveChip(btn,email){btn.closest('.chip').remove();fetch('/poc/remove-reviewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});}
+
+function devApplyConfig(){
+  const body={};
+  const docId=document.getElementById('devDocId').value.trim();
+  const desc=document.getElementById('devDesc').value.trim();
+  if(docId)body.documentId=docId;
+  if(desc)body.description=desc;
+  if(Object.keys(body).length)fetch('/poc/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+}
+
+async function devUploadToProject(){
+  const pending=devStagedFiles.filter(f=>f.status==='staged');
+  if(!pending.length){alert('No files staged.');return;}
+  ['devUploadBtn','devUploadBtnMain'].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.textContent='⟳';}});
+  const stepEl=document.getElementById('step-upload-to-project');
+  if(stepEl){stepEl.classList.add('running-step');stepEl.classList.remove('done','error-step');}
+  const formData=new FormData();
+  pending.forEach(f=>formData.append('files',f.file,f.name));
+  try{
+    const resp=await fetch('/poc/upload-to-project',{method:'POST',body:formData});
+    const data=await resp.json();
+    if(!resp.ok)throw new Error(data.error);
+    (data.uploaded||[]).forEach(u=>{const sf=devStagedFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
+    devRenderFiles();
+    if(stepEl){stepEl.classList.remove('running-step');stepEl.classList.add('done');const n=stepEl.querySelector('.step-num');if(n)n.textContent='✓';}
+  }catch(err){
+    pending.forEach(f=>{f.status='err';});devRenderFiles();
+    if(stepEl){stepEl.classList.remove('running-step');stepEl.classList.add('error-step');}
+  }
+  ['devUploadBtn','devUploadBtnMain'].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=false;b.textContent='⬆ Upload';}});
+  devRefreshStateCards();
+}
+
+const devStepLabels={
+  'setup-project':'▶ Setup Project','apply-custom-columns':'▶ Apply Columns',
+  'trigger':'▶ Trigger Event','create-session':'▶ Create Session',
+  'register-webhook':'▶ Register Webhook','checkout-to-session':'▶ Checkout to Session',
+  'invite-reviewers':'▶ Invite Reviewers','checkin':'▶ Check In',
+  'export-markups':'▶ Export Markups','run-markuplist-job':'▶ Extract Markups',
+  'finalize':'▶ Finalize','snapshot':'▶ Get Marked-up PDF','cleanup':'▶ Cleanup'
+};
+
+async function devRunStep(step){
+  const stepEl=document.getElementById(`step-${step}`);
+  const btn=stepEl?.querySelector('.run-btn');
+  if(btn){btn.disabled=true;btn.classList.add('loading');btn.textContent='⟳ Running...';}
+  if(stepEl){stepEl.classList.remove('done','error-step');stepEl.classList.add('running-step');}
+  try{
+    const data=await postStep(step);
+    if(stepEl){stepEl.classList.remove('running-step');stepEl.classList.add('done');}
+    const numEl=stepEl?.querySelector('.step-num');if(numEl)numEl.textContent='✓';
+    if(step==='snapshot'&&data.downloads?.length){
+      document.getElementById('devDownloadSection').style.display='block';
+      document.getElementById('devDownloadLinks').innerHTML=data.downloads.map(d=>`<a class="download-link" href="${esc(d.path)}" target="_blank">⬇ ${esc(d.name)}</a>`).join('');
+    }
+    if(step==='run-markuplist-job'&&data.markups){devMarkups=data.markups;devRenderMarkups();}
+  }catch(err){
+    if(stepEl){stepEl.classList.remove('running-step');stepEl.classList.add('error-step');}
+  }
+  if(btn){btn.disabled=false;btn.classList.remove('loading');btn.textContent=devStepLabels[step]||'▶ Run';}
+  await fetchState();devRefreshStateCards();
+}
+
+function devMarkReviewDone(){
+  const el=document.getElementById('step-review');const btn=el?.querySelector('.run-btn');
+  if(el){el.classList.remove('manual-step');el.classList.add('done');}
+  const n=el?.querySelector('.step-num');if(n)n.textContent='✓';
+  if(btn){btn.textContent='✓ Done';btn.style.cssText='background:rgba(56,217,169,0.15);color:var(--green);border:1px solid var(--green);';}
+}
+
+async function devReset(){
+  await fetch('/poc/reset',{method:'POST'});
+  devStagedFiles=[];devMarkups=[];devRenderFiles();
+  document.querySelectorAll('#tab-dev .step-item').forEach(el=>{
+    el.classList.remove('done','error-step','running-step');
+    const n=el.querySelector('.step-num');if(n&&/^\d/.test(n.textContent))n.textContent=n.dataset.orig||n.textContent;
+  });
+  const rb=document.querySelector('#step-review .run-btn');
+  if(rb){rb.textContent='✓ Mark Review Complete';rb.style.cssText='';}
+  document.getElementById('devDownloadSection').style.display='none';
+  document.querySelectorAll('#devChipWrap .chip:not(.primary)').forEach(c=>c.remove());
+  devMarkups=[];devRenderMarkups();
+  await fetchState();devRefreshStateCards();
+}
+
+async function devRefreshStateCards(){
+  const data=sharedState;
+  if(!data||!data.status)return;
+
+  const badge=document.getElementById('devStatus');
+  badge.textContent=(data.status||'idle').toUpperCase().replace(/-/g,' ');
+  badge.className='status-badge';
+  const working=['triggered','creating','uploading','checking-out','inviting','checking-in','extracting-markups','finalizing','snapshotting'];
+  if(working.includes(data.status))badge.classList.add('working');
+  else if(['active','complete'].includes(data.status))badge.classList.add('active');
+  else if(data.status==='error')badge.classList.add('error');
+
+  const sc=(id,val,good)=>{const el=document.getElementById(id);if(!el)return;el.textContent=val??'none';el.className='state-card-val'+(val?(good?' ok':''):' none');};
+  sc('devStateSessionId',data.sessionId,true);
+  sc('devStateSubId',data.subscriptionId,true);
+  sc('devStateProjectFiles',data.projectFiles?.length||0,data.projectFiles?.length>0);
+  sc('devStateSessionFiles',data.sessionFileIds?.length||0,data.sessionFileIds?.length>0);
+  sc('devStateMarkups',data.markups?.length||0,data.markups?.length>0);
+  sc('devStateStatus',data.status,['active','complete'].includes(data.status));
+
+  if(data.markups?.length>0&&!devMarkups.length){devMarkups=data.markups;devRenderMarkups();}
+
+  const logEl=document.getElementById('devLogEntries');
+  if(data.log?.length){
+    logEl.innerHTML=[...data.log].reverse().map(e=>{
+      const t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});
+      return `<div class="log-entry"><span class="log-time">${t}</span><span class="log-msg ${e.type||'info'}">${esc(e.msg)}</span></div>`;
+    }).join('');
+  }
+  const whEl=document.getElementById('devWebhookList');
+  if(data.webhookEvents?.length){
+    whEl.innerHTML=[...data.webhookEvents].reverse().map(e=>`<div class="webhook-event"><div class="webhook-time">${new Date(e.receivedAt).toLocaleTimeString()}</div><div>${esc(e.ResourceType||'')} — ${esc(e.EventType||'')}</div></div>`).join('');
+  }
+}
+
+function devRenderMarkups(){
+  const count=devMarkups.length;
+  document.getElementById('devMarkupCount').innerHTML=count>0?`<span>${count}</span> markup${count!==1?'s':''} extracted`:'No markups extracted yet';
+  if(!count){document.getElementById('devMarkupEmpty').style.display='block';document.getElementById('devMarkupTableWrap').style.display='none';return;}
+  document.getElementById('devMarkupEmpty').style.display='none';
+  document.getElementById('devMarkupTableWrap').style.display='block';
+  devRenderTable();
+  document.getElementById('devJsonContent').innerHTML=syntaxHighlight(JSON.stringify(devMarkups,null,2));
+}
+
+function devRenderTable(){
+  const sorted=[...devMarkups].sort((a,b)=>{
+    const av=String(a[devSortKey]??''),bv=String(b[devSortKey]??'');
+    return devSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
+  });
+  document.getElementById('devMarkupTbody').innerHTML=sorted.map(m=>{
+    const cs=m.Color?`<span class="color-swatch" style="background:${esc(m.Color)}"></span>`:'';
+    const dt=m.DateCreated?new Date(m.DateCreated).toLocaleDateString():'—';
+    return `<tr><td>${m.Page??'—'}</td><td>${esc(m.Type||'—')}</td><td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td><td>${esc(m.Author||'—')}</td><td><span class="status-pill">${esc(m.Status||'—')}</span></td><td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td><td>${esc(m.Layer||'—')}</td><td>${esc(m._sourceFile||'—')}</td><td>${dt}</td><td>${cs}${esc(m.Color||'—')}</td></tr>`;
+  }).join('');
+}
+
+function devSortTable(key){devSortDir=(devSortKey===key&&devSortDir==='asc')?'desc':'asc';devSortKey=key;if(devMarkups.length)devRenderTable();}
+function devSetView(v){devView=v;document.getElementById('devBtnTable').classList.toggle('active',v==='table');document.getElementById('devBtnJson').classList.toggle('active',v==='json');document.getElementById('devMarkupTableView').style.display=v==='table'?'block':'none';document.getElementById('devMarkupJsonView').style.display=v==='json'?'block':'none';}
+async function devCopyJson(){if(!devMarkups.length)return;try{await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));const b=document.getElementById('devCopyBtn');b.textContent='✓ Copied';setTimeout(()=>{b.textContent='⎘ Copy JSON';},2000);}catch{}}
+
+function syntaxHighlight(json){
   return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
-      if (/^"/.test(m)) return /:$/.test(m) ? `<span class="json-key">${m}</span>` : `<span class="json-str">${m}</span>`;
-      if (/true|false/.test(m)) return `<span class="json-bool">${m}</span>`;
-      if (/null/.test(m))       return `<span class="json-null">${m}</span>`;
-      return `<span class="json-num">${m}</span>`;
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{
+      if(/^"/.test(m))return/:$/.test(m)?`<span class="json-key">${m}</span>`:`<span class="json-str">${m}</span>`;
+      if(/true|false/.test(m))return`<span class="json-bool">${m}</span>`;
+      if(/null/.test(m))return`<span class="json-null">${m}</span>`;
+      return`<span class="json-num">${m}</span>`;
     });
 }
 
-function setView(v) {
-  currentView = v;
-  document.getElementById('btnTable').classList.toggle('active', v === 'table');
-  document.getElementById('btnJson').classList.toggle('active', v === 'json');
-  document.getElementById('markupTableView').style.display = v === 'table' ? 'block' : 'none';
-  document.getElementById('markupJsonView').style.display  = v === 'json'  ? 'block' : 'none';
-}
-
-async function copyJson() {
-  if (!currentMarkups.length) return;
-  try {
-    await navigator.clipboard.writeText(JSON.stringify(currentMarkups, null, 2));
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = '✓ Copied';
-    setTimeout(() => { btn.textContent = '⎘ Copy JSON'; }, 2000);
-  } catch { /* clipboard may not be available in all contexts */ }
-}
-
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-// ── Init ────────────────────────────────────────────────────────────────────
-setInterval(refreshState, 3000);
-refreshState();
+// Init
+fetchState().then(devRefreshStateCards);
 </script>
 </body>
 </html>
