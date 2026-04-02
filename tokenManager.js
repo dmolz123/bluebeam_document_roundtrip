@@ -1,45 +1,47 @@
 // tokenManager.js
+// Per Bluebeam developer guide: token endpoint is authserver.bluebeam.com
+// Required scopes: jobs full_user offline_access
+// Do NOT request full_prime scope
+
 const sqlite3 = require('sqlite3').verbose();
-const qs = require('querystring');
-const path = require('path');
+const qs      = require('querystring');
+const path    = require('path');
 
 class TokenManager {
   constructor(dbPath) {
-    // Render sets this env var automatically for services
     const isRender = !!process.env.RENDER;
 
-    // Choose a safe writable location
     const defaultDbPath = isRender
       ? '/tmp/tokens.db'
       : path.join(process.cwd(), 'tokens.db');
 
-    // Env var still overrides, but now you can see it clearly in logs
     this.dbPath = dbPath || process.env.TOKEN_DB_PATH || defaultDbPath;
 
-    console.log('🧭 Token DB path selected:', this.dbPath);
-    console.log('🧭 isRender:', isRender, 'NODE_ENV:', process.env.NODE_ENV);
+    console.log('🧭 Token DB path:', this.dbPath);
+    console.log('🧭 isRender:', isRender, '| NODE_ENV:', process.env.NODE_ENV);
 
-    this.clientId = process.env.BB_CLIENT_ID;
+    this.clientId     = process.env.BB_CLIENT_ID;
     this.clientSecret = process.env.BB_CLIENT_SECRET;
 
     if (!this.clientId || !this.clientSecret) {
-      throw new Error(
-        '❌ Missing BB_CLIENT_ID or BB_CLIENT_SECRET in environment variables.'
-      );
+      throw new Error('❌ Missing BB_CLIENT_ID or BB_CLIENT_SECRET');
     }
 
-    this.db = null;
+    // Per developer guide: token endpoint is authserver.bluebeam.com — NOT api.bluebeam.com
+    // This was the root cause of the 401 errors on Render.
+    this.TOKEN_URL = 'https://authserver.bluebeam.com/auth/token';
+
+    this.db          = null;
     this.initPromise = this._initDb();
   }
 
-  // ESM-compatible fetch wrapper
   fetch(...args) {
     return import('node-fetch').then(({ default: fetch }) => fetch(...args));
   }
 
-  // ---------------------------------------------------------
-  // Initialize SQLite DB
-  // ---------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // SQLite init
+  // ---------------------------------------------------------------------------
   async _initDb() {
     return new Promise((resolve, reject) => {
       this.db = new sqlite3.Database(this.dbPath, (err) => {
@@ -47,20 +49,17 @@ class TokenManager {
           console.error('❌ SQLite failed to open:', this.dbPath);
           return reject(err);
         }
-
         this.db.run(
-          `
-          CREATE TABLE IF NOT EXISTS tokens (
-            id INTEGER PRIMARY KEY,
+          `CREATE TABLE IF NOT EXISTS tokens (
+            id            INTEGER PRIMARY KEY,
             refresh_token TEXT,
-            access_token TEXT,
-            expires_at INTEGER
-          )
-        `,
+            access_token  TEXT,
+            expires_at    INTEGER
+          )`,
           (err) => {
             if (err) reject(err);
             else {
-              console.log('✅ Token database initialized:', this.dbPath);
+              console.log('✅ Token database ready:', this.dbPath);
               resolve();
             }
           }
@@ -69,9 +68,9 @@ class TokenManager {
     });
   }
 
-  // ---------------------------------------------------------
-  // Save tokens (rotating refresh token supported)
-  // ---------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Persist tokens
+  // ---------------------------------------------------------------------------
   async saveTokens(accessToken, refreshToken, expiresIn) {
     await this.initPromise;
     const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
@@ -83,31 +82,18 @@ class TokenManager {
           'INSERT INTO tokens (refresh_token, access_token, expires_at) VALUES (?, ?, ?)',
           [refreshToken, accessToken, expiresAt],
           (err) => {
-            if (err) reject(err);
-            else {
-              console.log('💾 Tokens saved:');
-              console.log('   • Expires in:', expiresIn, 'sec');
-              console.log(
-                '   • Access token preview:',
-                accessToken?.substring(0, 20),
-                '...'
-              );
-              console.log(
-                '   • Refresh token preview:',
-                refreshToken?.substring(0, 20),
-                '...'
-              );
-              resolve();
-            }
+            if (err) return reject(err);
+            console.log(`💾 Tokens saved — expires in ${expiresIn}s`);
+            resolve();
           }
         );
       });
     });
   }
 
-  // ---------------------------------------------------------
-  // Read tokens from DB
-  // ---------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Read stored tokens
+  // ---------------------------------------------------------------------------
   async getTokens() {
     await this.initPromise;
     return new Promise((resolve, reject) => {
@@ -122,26 +108,25 @@ class TokenManager {
     });
   }
 
-  // ---------------------------------------------------------
-  // Refresh OAuth tokens using refresh_token
-  // ---------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Refresh via refresh_token grant
+  // Per developer guide: POST to authserver.bluebeam.com/auth/token
+  // ---------------------------------------------------------------------------
   async refreshAccessToken(refreshToken) {
-    const tokenUrl = 'https://oauth.bluebeam.com/oauth2/token';
+    console.log(`🔄 Refreshing token via ${this.TOKEN_URL}`);
 
     const payload = {
-      grant_type: 'refresh_token',
+      grant_type:    'refresh_token',
       refresh_token: refreshToken,
-      client_id: this.clientId,
+      client_id:     this.clientId,
       client_secret: this.clientSecret
     };
 
-    console.log(`🔄 Refreshing token via ${tokenUrl}`);
-
-    const fetch = await this.fetch;
-    const response = await fetch(tokenUrl, {
-      method: 'POST',
+    const fetchFn  = await this.fetch;
+    const response = await fetchFn(this.TOKEN_URL, {
+      method:  'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: qs.stringify(payload)
+      body:    qs.stringify(payload)
     });
 
     const text = await response.text();
@@ -149,81 +134,63 @@ class TokenManager {
     if (!response.ok) {
       console.error('❌ Token refresh failed');
       console.error('   Status:', response.status);
-      console.error('   Body:', text);
+      console.error('   Body:',   text);
       throw new Error(`Token refresh failed: ${response.status} - ${text}`);
     }
 
     const data = JSON.parse(text);
-    console.log('🔁 Token refreshed successfully.');
-
+    console.log('🔁 Token refreshed successfully');
     return data;
   }
 
-  // ---------------------------------------------------------
-  // Get valid access token (handles refresh + bootstrap)
-  // ---------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Get a valid access token — handles bootstrap, cache, and refresh
+  // ---------------------------------------------------------------------------
   async getValidAccessToken() {
     await this.initPromise;
 
-    const tokens = await this.getTokens();
+    const tokens  = await this.getTokens();
     const nowUnix = Math.floor(Date.now() / 1000);
 
-    // Case 1: No tokens in DB → bootstrap using env refresh token
+    // Case 1: No tokens stored — bootstrap from BB_REFRESH_TOKEN env var
     if (!tokens) {
-      console.log('⚠️ No tokens stored — using BB_REFRESH_TOKEN to bootstrap...');
+      console.log('⚠️  No tokens stored — bootstrapping from BB_REFRESH_TOKEN...');
+      const initialRefresh = process.env.BB_REFRESH_TOKEN;
+      if (!initialRefresh)
+        throw new Error('❌ No stored tokens and BB_REFRESH_TOKEN not set in env');
 
-      const initialRefreshToken = process.env.BB_REFRESH_TOKEN;
-      if (!initialRefreshToken) {
-        throw new Error('❌ No stored tokens and BB_REFRESH_TOKEN not provided.');
-      }
-
-      const newTokens = await this.refreshAccessToken(initialRefreshToken);
-      await this.saveTokens(
-        newTokens.access_token,
-        newTokens.refresh_token,
-        newTokens.expires_in
-      );
-
-      console.log('🔐 Tokens bootstrapped and saved.');
+      const newTokens = await this.refreshAccessToken(initialRefresh);
+      await this.saveTokens(newTokens.access_token, newTokens.refresh_token, newTokens.expires_in);
+      console.log('🔐 Tokens bootstrapped');
       return newTokens.access_token;
     }
 
-    // Case 2: Access token still valid
+    // Case 2: Access token still valid (with 5-minute buffer)
     if (tokens.expires_at > nowUnix + 300) {
-      console.log('✅ Using cached access token.');
+      console.log('✅ Using cached access token');
       return tokens.access_token;
     }
 
-    // Case 3: Access token expired → refresh
-    console.log('⏳ Access token expired. Refreshing...');
-
+    // Case 3: Expired — refresh using stored refresh token
+    console.log('⏳ Access token expired — refreshing...');
     try {
       const newTokens = await this.refreshAccessToken(tokens.refresh_token);
-
-      await this.saveTokens(
-        newTokens.access_token,
-        newTokens.refresh_token,
-        newTokens.expires_in
-      );
-
-      console.log(`🔐 Access token refreshed. Expires at: ${newTokens.expires_in}s`);
+      await this.saveTokens(newTokens.access_token, newTokens.refresh_token, newTokens.expires_in);
+      console.log('🔐 Token refreshed from stored refresh token');
       return newTokens.access_token;
+
     } catch (err) {
-      console.error('❌ Refresh failed. Attempt environmental bootstrap...');
+      // Case 4: Stored refresh token failed — fall back to BB_REFRESH_TOKEN env var
+      console.error('❌ Stored refresh token failed:', err.message);
+      console.log('🔁 Attempting fallback to BB_REFRESH_TOKEN env var...');
 
       const fallbackRefresh = process.env.BB_REFRESH_TOKEN;
-      if (!fallbackRefresh) {
-        throw new Error('❌ Refresh failed and no BB_REFRESH_TOKEN available.');
-      }
+      if (!fallbackRefresh)
+        throw new Error('❌ Refresh failed and no BB_REFRESH_TOKEN available for fallback');
 
       const newTokens = await this.refreshAccessToken(fallbackRefresh);
-      await this.saveTokens(
-        newTokens.access_token,
-        newTokens.refresh_token,
-        newTokens.expires_in
-      );
-
-      console.log('🔐 Recovered from refresh failure using fallback refresh token.');
+      await this.saveTokens(newTokens.access_token, newTokens.refresh_token, newTokens.expires_in);
+      console.log('🔐 Recovered using fallback refresh token');
       return newTokens.access_token;
     }
   }
