@@ -6,10 +6,8 @@
  *   - Keeps working check-in to Project copy
  *   - Keeps working exportmarkups XML generation
  *   - Adds by-path readiness verification before markuplist
- *   - Uses documented markuplist request body:
- *       { CurrentPassword: '', PageRange: '-1', Priority: 0 }
- *   - Polls the documented per-file markuplist endpoint
- *   - Adds explicit JobStatus / JobStatusMessage handling
+ *   - Tries multiple documented/defensive markuplist payload variants
+ *   - Re-resolves the current project file by path before markuplist
  *   - Preserves existing flow/endpoints/UI compatibility
  *
  * Roundtrip flow:
@@ -65,7 +63,7 @@ const FOLDER_MARKUP_EXPORTS = 'markup-exports';
 // Path to the custom columns XML bundled with this repo
 const CUSTOM_COLUMNS_XML_PATH = path.join(__dirname, 'resources', 'custom-columns.xml');
 
-// Standalone markups endpoint config (optional)
+// Optional standalone markup config
 const MARKUP_SESSION_ID = process.env.MARKUP_SESSION_ID || '';
 const MARKUP_FILE_ID = process.env.MARKUP_FILE_ID || '';
 const MARKUP_FILE_NAME = process.env.MARKUP_FILE_NAME || 'Sample Drawing.pdf';
@@ -492,46 +490,114 @@ async function performMarkupList(accessToken) {
 
     const reviewPath = `/${FOLDER_REVIEW_DOCS}/${projectFile.name}`;
 
-    await waitForProjectFileReadyByPath(accessToken, reviewPath);
+    // Re-resolve current file object by path right before markuplist
+    const currentFile = await waitForProjectFileReadyByPath(accessToken, reviewPath);
+    const effectiveFileId = currentFile?.Id || sf.projectFileId;
 
-    logStep(`Submitting markuplist job for "${sf.name}" (projectFileId=${sf.projectFileId})...`, 'info');
+    logStep(
+      `Resolved current project file before markuplist: path=${reviewPath}, fileId=${effectiveFileId}, revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
+      'info'
+    );
 
-    const submitResp = await fetch(
-      `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist`,
+    const payloadVariants = [
       {
-        method: 'POST',
-        headers: hdrs,
-        body: JSON.stringify({
+        label: 'blank-page-range',
+        body: {
+          CurrentPassword: '',
+          PageRange: '',
+          Priority: 0
+        }
+      },
+      {
+        label: 'all-pages-dash-1',
+        body: {
           CurrentPassword: '',
           PageRange: '-1',
           Priority: 0
-        })
+        }
+      },
+      {
+        label: 'all-pages-1-plus',
+        body: {
+          CurrentPassword: '',
+          PageRange: '1-',
+          Priority: 0
+        }
+      },
+      {
+        label: 'priority-only',
+        body: {
+          Priority: 0
+        }
       }
-    );
+    ];
 
-    if (!submitResp.ok) {
-      const err = await submitResp.text();
-      logStep(`markuplist submission failed for "${sf.name}": ${submitResp.status} - ${err}`, 'warn');
-      continue;
+    let extractedForFile = null;
+    let lastError = null;
+
+    for (const variant of payloadVariants) {
+      try {
+        logStep(
+          `Submitting markuplist job for "${sf.name}" using payload variant "${variant.label}" (projectFileId=${effectiveFileId})...`,
+          'info'
+        );
+
+        const submitResp = await fetch(
+          `${API_V1}/projects/${POC_PROJECT_ID}/files/${effectiveFileId}/jobs/markuplist`,
+          {
+            method: 'POST',
+            headers: hdrs,
+            body: JSON.stringify(variant.body)
+          }
+        );
+
+        if (!submitResp.ok) {
+          const err = await submitResp.text();
+          throw new Error(`submission failed: ${submitResp.status} - ${err}`);
+        }
+
+        const { Id: jobId } = await submitResp.json();
+        pocState.markupJobId = jobId;
+
+        logStep(
+          `markuplist job submitted: jobId=${jobId} — variant="${variant.label}" — polling per-file endpoint...`,
+          'success'
+        );
+
+        const pollUrl = `${API_V1}/projects/${POC_PROJECT_ID}/files/${effectiveFileId}/jobs/markuplist/${jobId}`;
+        const result = await pollJob(pollUrl, hdrs, 12, 4000);
+
+        const jobStatus = result.JobStatus ?? result.Status;
+        const jobMessage = result.JobStatusMessage ?? result.StatusMessage ?? '';
+
+        if (jobStatus !== 200) {
+          throw new Error(`job completed with non-success status: ${jobStatus} ${jobMessage}`);
+        }
+
+        const fileMarkups = (result.Markups || []).map(m => ({ ...m, _sourceFile: sf.name }));
+        pocState.markups.push(...fileMarkups);
+        extractedForFile = fileMarkups;
+
+        logStep(
+          `"${sf.name}" — ${fileMarkups.length} markup(s) extracted using variant "${variant.label}"`,
+          'success'
+        );
+
+        break;
+      } catch (err) {
+        lastError = err;
+        logStep(
+          `markuplist variant "${variant.label}" failed for "${sf.name}": ${err.message}`,
+          'warn'
+        );
+      }
     }
 
-    const { Id: jobId } = await submitResp.json();
-    pocState.markupJobId = jobId;
-    logStep(`markuplist job submitted: jobId=${jobId} — polling per-file endpoint...`, 'success');
-
-    const pollUrl = `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist/${jobId}`;
-    const result = await pollJob(pollUrl, hdrs, 60, 5000);
-
-    const jobStatus = result.JobStatus ?? result.Status;
-    const jobMessage = result.JobStatusMessage ?? result.StatusMessage ?? '';
-
-    if (jobStatus !== 200) {
-      throw new Error(`markuplist failed for "${sf.name}": ${jobMessage}`);
+    if (!extractedForFile) {
+      throw new Error(
+        `All markuplist payload variants failed for "${sf.name}". Last error: ${lastError?.message || 'Unknown error'}`
+      );
     }
-
-    const fileMarkups = (result.Markups || []).map(m => ({ ...m, _sourceFile: sf.name }));
-    pocState.markups.push(...fileMarkups);
-    logStep(`"${sf.name}" — ${fileMarkups.length} markup(s) extracted`, 'success');
   }
 
   pocState.status = 'active';
