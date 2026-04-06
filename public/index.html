@@ -111,7 +111,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .csv-label:hover{text-decoration:underline;}
 .csv-label input{position:absolute;inset:0;opacity:0;cursor:pointer;}
 
-/* Primary button */
+/* Buttons */
 .btn-primary{width:100%;padding:13px;background:var(--accent);color:white;border:none;border-radius:10px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;}
 .btn-primary:hover:not(:disabled){background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,90,255,0.3);}
 .btn-primary:disabled{background:#c5d0e8;cursor:not-allowed;transform:none;box-shadow:none;}
@@ -125,16 +125,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .btn-ghost{width:100%;padding:10px;background:none;color:var(--text-2);border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:13px;cursor:pointer;transition:all 0.15s;}
 .btn-ghost:hover{border-color:var(--error);color:var(--error);}
 
-/* Progress pill */
-.progress-pill{display:flex;align-items:center;gap:10px;background:var(--accent-l);border:1px solid rgba(26,90,255,0.15);border-radius:10px;padding:14px 18px;}
-.progress-pill.success{background:var(--green-l);border-color:rgba(13,159,110,0.2);}
-.progress-pill.error{background:var(--error-l);border-color:rgba(220,38,38,0.2);}
-.progress-pill-icon{font-size:20px;flex-shrink:0;}
-.progress-pill-text{flex:1;}
-.progress-pill-title{font-size:14px;font-weight:600;color:var(--text);}
-.progress-pill-sub{font-size:12px;color:var(--text-2);margin-top:1px;}
-
-/* Step checklist inside card */
+/* Step checklist */
 .step-list{display:flex;flex-direction:column;gap:8px;}
 .step-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .step-row:last-child{border-bottom:none;}
@@ -265,7 +256,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 /* Arrow between nodes */
 .node-arrow{display:flex;align-items:center;color:var(--border-2);font-size:16px;padding:0 4px;align-self:center;}
 
-/* Dev log at bottom */
+/* Dev log */
 .dev-log-bar{background:var(--white);border-top:1px solid var(--border);max-height:160px;overflow-y:auto;padding:12px 32px;flex-shrink:0;}
 .dev-log-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3);margin-bottom:8px;}
 .dev-log-entry{display:grid;grid-template-columns:62px 1fr;gap:8px;padding:2px 0;font-family:var(--mono);font-size:11px;border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:3px;}
@@ -315,7 +306,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
   <div>
     <div class="rw-page-title">Start a Document Review</div>
-    <div class="rw-page-sub">Upload your drawings, add reviewers, and click Start Review. Bluebeam handles the rest — creating the project, setting up the session, and sending invitations automatically.</div>
+    <div class="rw-page-sub">Upload your drawings, add reviewers, and click Start Review. Bluebeam handles the setup flow automatically. After the review is complete, run downstream processing to update the project copy and pull metadata into the dashboard.</div>
   </div>
 
   <!-- Files -->
@@ -389,40 +380,41 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
     <button class="btn-primary" id="rwStartBtn" onclick="rwStart()">Start Review</button>
   </div>
 
-  <!-- Progress (hidden until started) -->
+  <!-- Progress -->
   <div id="rwProgressSection" style="display:none;flex-direction:column;gap:16px;">
 
     <div class="card" id="rwProgressCard">
       <div class="card-title"><div class="card-title-icon">⚙️</div>Setting Up Review</div>
       <div class="step-list" id="rwStepList">
-        <div class="step-row" id="rs-setup"><div class="step-dot" id="sd-setup">1</div><div class="step-row-label muted" id="sl-setup">Project setup &amp; custom columns</div><span class="step-row-api">setup-project</span></div>
+        <div class="step-row" id="rs-setup"><div class="step-dot" id="sd-setup">1</div><div class="step-row-label muted" id="sl-setup">Project setup</div><span class="step-row-api">setup-project</span></div>
         <div class="step-row" id="rs-upload"><div class="step-dot" id="sd-upload">2</div><div class="step-row-label muted" id="sl-upload">Upload documents to project</div><span class="step-row-api">upload-to-project</span></div>
-        <div class="step-row" id="rs-columns"><div class="step-dot" id="sd-columns">3</div><div class="step-row-label muted" id="sl-columns">Apply review columns</div><span class="step-row-api">apply-custom-columns</span></div>
-        <div class="step-row" id="rs-session"><div class="step-dot" id="sd-session">4</div><div class="step-row-label muted" id="sl-session">Create Studio Session</div><span class="step-row-api">create-session</span></div>
-        <div class="step-row" id="rs-checkout"><div class="step-dot" id="sd-checkout">5</div><div class="step-row-label muted" id="sl-checkout">Check out documents to session</div><span class="step-row-api">checkout-to-session</span></div>
-        <div class="step-row" id="rs-invite"><div class="step-dot" id="sd-invite">6</div><div class="step-row-label muted" id="sl-invite">Invite reviewers</div><span class="step-row-api">invite-reviewers</span></div>
+        <div class="step-row" id="rs-session"><div class="step-dot" id="sd-session">3</div><div class="step-row-label muted" id="sl-session">Create Studio Session</div><span class="step-row-api">create-session</span></div>
+        <div class="step-row" id="rs-checkout"><div class="step-dot" id="sd-checkout">4</div><div class="step-row-label muted" id="sl-checkout">Check out documents to session</div><span class="step-row-api">checkout-to-session</span></div>
+        <div class="step-row" id="rs-invite"><div class="step-dot" id="sd-invite">5</div><div class="step-row-label muted" id="sl-invite">Invite reviewers</div><span class="step-row-api">invite-reviewers</span></div>
       </div>
     </div>
 
-    <!-- Session active -->
     <div class="session-banner" id="rwSessionBanner" style="display:none;">
       <div class="session-banner-label">✓ Session Active — Open in Bluebeam Revu</div>
       <div class="session-id" id="rwSessionId">—</div>
       <div class="session-hint">Go to Bluebeam Revu → Studio → Sessions and enter this ID to join and begin marking up documents.</div>
     </div>
 
-    <!-- Complete button -->
-    <button class="btn-success" id="rwCompleteBtn" onclick="rwComplete()" disabled style="display:none;">
-      ✓ Complete Review &amp; Extract Data
-    </button>
+    <!-- Post-review processing card -->
+    <div class="card" id="rwDownstreamCard" style="display:none;">
+      <div class="card-title"><div class="card-title-icon">🔄</div>Post-Review Processing</div>
+      <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px;">
+        After reviewers are finished in Revu, run the downstream flow to update the project copy, export markups, and pull file metadata into the dashboard.
+      </div>
 
-    <!-- Extraction progress -->
-    <div class="card" id="rwExtractCard" style="display:none;">
-      <div class="card-title"><div class="card-title-icon">🔍</div>Extracting Review Data</div>
-      <div class="step-list">
-        <div class="step-row"><div class="step-dot" id="sd-checkin">1</div><div class="step-row-label muted" id="sl-checkin">Check in documents</div><span class="step-row-api">checkin</span></div>
+      <button class="btn-success" id="rwDownstreamBtn" onclick="rwRunDownstream()">
+        Update Project Copy &amp; Pull Metadata
+      </button>
+
+      <div class="step-list" id="rwDownstreamSteps" style="margin-top:18px;display:none;">
+        <div class="step-row"><div class="step-dot" id="sd-checkin">1</div><div class="step-row-label muted" id="sl-checkin">Update project copy from session</div><span class="step-row-api">checkin</span></div>
         <div class="step-row"><div class="step-dot" id="sd-export">2</div><div class="step-row-label muted" id="sl-export">Export markup XML</div><span class="step-row-api">export-markups</span></div>
-        <div class="step-row"><div class="step-dot" id="sd-mlist">3</div><div class="step-row-label muted" id="sl-mlist">Extract markup metadata</div><span class="step-row-api">run-markuplist-job</span></div>
+        <div class="step-row"><div class="step-dot" id="sd-mlist">3</div><div class="step-row-label muted" id="sl-mlist">Pull structured file metadata</div><span class="step-row-api">run-markuplist-job</span></div>
       </div>
     </div>
 
@@ -466,7 +458,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
     </div>
 
-    <!-- Reset -->
     <button class="btn-ghost" onclick="rwReset()">↺ Start a New Review</button>
 
   </div>
@@ -481,7 +472,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 <div class="tab-content" id="tab-dev">
 <div class="dev-wrap">
 
-  <!-- Config bar -->
   <div class="dev-config-bar">
 
     <div class="dev-config-field" style="min-width:180px;max-width:220px;">
@@ -522,7 +512,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
   </div>
 
-  <!-- Flowchart canvas -->
   <div class="dev-canvas">
   <div class="dev-canvas-inner">
 
@@ -540,21 +529,15 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="fc-node-api">setup-project</div>
           <button class="fc-node-btn" onclick="devFire('setup-project')">Run</button>
         </div>
+
         <div class="node-arrow">→</div>
+
         <div class="fc-node" id="fn-upload-to-project">
           <div class="fc-node-status idle" id="fs-upload-to-project">·</div>
           <div class="fc-node-icon">⬆️</div>
           <div class="fc-node-title">Upload to Project</div>
           <div class="fc-node-api">upload-to-project</div>
           <button class="fc-node-btn" onclick="devUpload()">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-apply-custom-columns">
-          <div class="fc-node-status idle" id="fs-apply-custom-columns">·</div>
-          <div class="fc-node-icon">🏷️</div>
-          <div class="fc-node-title">Apply Custom Columns</div>
-          <div class="fc-node-api">apply-custom-columns</div>
-          <button class="fc-node-btn" onclick="devFire('apply-custom-columns')">Run</button>
         </div>
       </div>
     </div>
@@ -575,7 +558,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="fc-node-api">trigger</div>
           <button class="fc-node-btn" onclick="devFire('trigger')">Run</button>
         </div>
+
         <div class="node-arrow">→</div>
+
         <div class="fc-node" id="fn-create-session">
           <div class="fc-node-status idle" id="fs-create-session">·</div>
           <div class="fc-node-icon">🏠</div>
@@ -583,7 +568,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="fc-node-api">create-session</div>
           <button class="fc-node-btn" onclick="devFire('create-session')">Run</button>
         </div>
+
         <div class="node-arrow">→</div>
+
         <div class="fc-node" id="fn-register-webhook">
           <div class="fc-node-status idle" id="fs-register-webhook">·</div>
           <div class="fc-node-icon">🔔</div>
@@ -591,7 +578,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="fc-node-api">register-webhook</div>
           <button class="fc-node-btn" onclick="devFire('register-webhook')">Run</button>
         </div>
+
         <div class="node-arrow">→</div>
+
         <div class="fc-node" id="fn-checkout-to-session">
           <div class="fc-node-status idle" id="fs-checkout-to-session">·</div>
           <div class="fc-node-icon">🔗</div>
@@ -599,7 +588,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="fc-node-api">checkout-to-session</div>
           <button class="fc-node-btn" onclick="devFire('checkout-to-session')">Run</button>
         </div>
+
         <div class="node-arrow">→</div>
+
         <div class="fc-node" id="fn-invite-reviewers">
           <div class="fc-node-status idle" id="fs-invite-reviewers">·</div>
           <div class="fc-node-icon">📧</div>
@@ -607,7 +598,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="fc-node-api">invite-reviewers</div>
           <button class="fc-node-btn" onclick="devFire('invite-reviewers')">Run</button>
         </div>
+
         <div class="node-arrow">→</div>
+
         <div class="fc-node manual" id="fn-review">
           <div class="fc-node-status idle" id="fs-review">·</div>
           <div class="fc-node-icon">✏️</div>
@@ -627,30 +620,16 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
         <div class="phase-line"></div>
       </div>
       <div class="node-grid">
-        <div class="fc-node" id="fn-checkin">
-          <div class="fc-node-status idle" id="fs-checkin">·</div>
-          <div class="fc-node-icon">✅</div>
-          <div class="fc-node-title">Check In</div>
-          <div class="fc-node-api">checkin</div>
-          <button class="fc-node-btn" onclick="devFire('checkin')">Run</button>
+        <div class="fc-node" id="fn-downstream-process">
+          <div class="fc-node-status idle" id="fs-downstream-process">·</div>
+          <div class="fc-node-icon">🔄</div>
+          <div class="fc-node-title">Downstream Process</div>
+          <div class="fc-node-api">downstream-process</div>
+          <button class="fc-node-btn" onclick="devFire('downstream-process')">Run</button>
         </div>
+
         <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-export-markups">
-          <div class="fc-node-status idle" id="fs-export-markups">·</div>
-          <div class="fc-node-icon">📤</div>
-          <div class="fc-node-title">Export Markups</div>
-          <div class="fc-node-api">export-markups</div>
-          <button class="fc-node-btn" onclick="devFire('export-markups')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-run-markuplist-job">
-          <div class="fc-node-status idle" id="fs-run-markuplist-job">·</div>
-          <div class="fc-node-icon">🔍</div>
-          <div class="fc-node-title">Markup List Job</div>
-          <div class="fc-node-api">run-markuplist-job</div>
-          <button class="fc-node-btn" onclick="devFire('run-markuplist-job')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
+
         <div class="fc-node" id="fn-finalize">
           <div class="fc-node-status idle" id="fs-finalize">·</div>
           <div class="fc-node-icon">🏁</div>
@@ -658,7 +637,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="fc-node-api">finalize</div>
           <button class="fc-node-btn" onclick="devFire('finalize')">Run</button>
         </div>
+
         <div class="node-arrow">→</div>
+
         <div class="fc-node" id="fn-snapshot">
           <div class="fc-node-status idle" id="fs-snapshot">·</div>
           <div class="fc-node-icon">📸</div>
@@ -666,7 +647,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="fc-node-api">snapshot</div>
           <button class="fc-node-btn" onclick="devFire('snapshot')">Run</button>
         </div>
+
         <div class="node-arrow">→</div>
+
         <div class="fc-node" id="fn-cleanup">
           <div class="fc-node-status idle" id="fs-cleanup">·</div>
           <div class="fc-node-icon">🗑️</div>
@@ -677,7 +660,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       </div>
     </div>
 
-    <!-- Download links -->
     <div id="devDownloads" style="display:none;">
       <div style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Output PDFs</div>
       <div id="devDownloadLinks" style="display:flex;flex-direction:column;gap:6px;"></div>
@@ -686,7 +668,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
   </div>
   </div>
 
-  <!-- Dev markup panel -->
   <div class="dev-markup-section" id="devMarkupSection" style="display:none;">
     <div class="dev-markup-toolbar">
       <span style="font-size:13px;font-weight:600;color:var(--text);">Markup Metadata</span>
@@ -720,7 +701,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
     </div>
   </div>
 
-  <!-- Dev log -->
   <div class="dev-log-bar" id="devLogBar">
     <div class="dev-log-title">Activity Log</div>
     <div id="devLogEntries"><div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div></div>
@@ -754,7 +734,6 @@ function syntaxHL(json){
       return`<span class="json-num">${m}</span>`;
     });
 }
-// default deadline 7 days
 (()=>{const d=new Date();d.setDate(d.getDate()+7);document.getElementById('rwDeadline').value=d.toISOString().slice(0,10);})();
 
 // ── REVIEW WORKFLOW ───────────────────────────────────────────────────────────
@@ -764,14 +743,27 @@ let rwSortKey='Page';
 let rwSortDir='asc';
 
 function rwFileSelect(e){rwAddFiles(Array.from(e.target.files));e.target.value='';}
-function rwDrop(e){e.preventDefault();document.getElementById('rwDropZone').classList.remove('drag-over');rwAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));}
-function rwAddFiles(files){files.forEach(f=>{if(!rwFiles.find(s=>s.name===f.name))rwFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});rwRenderFiles();}
+function rwDrop(e){
+  e.preventDefault();
+  document.getElementById('rwDropZone').classList.remove('drag-over');
+  rwAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));
+}
+function rwAddFiles(files){
+  files.forEach(f=>{
+    if(!rwFiles.find(s=>s.name===f.name))rwFiles.push({file:f,name:f.name,size:f.size,status:'staged'});
+  });
+  rwRenderFiles();
+}
 function rwRenderFiles(){
   const el=document.getElementById('rwStagedFiles');
   if(!rwFiles.length){el.innerHTML='';return;}
   el.innerHTML=rwFiles.map(f=>{
     const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
-    const st=f.status==='ok'?'<span class="sf-status ok">✓ Uploaded</span>':f.status==='err'?'<span class="sf-status err">✗ Failed</span>':'<span class="sf-status wait">Ready to upload</span>';
+    const st=f.status==='ok'
+      ?'<span class="sf-status ok">✓ Uploaded</span>'
+      :f.status==='err'
+      ?'<span class="sf-status err">✗ Failed</span>'
+      :'<span class="sf-status wait">Ready to upload</span>';
     const rmv=f.status!=='ok'?`<button class="sf-remove" onclick="rwRemoveFile('${esc(f.name)}')">×</button>`:'';
     return`<div class="staged-file"><span class="sf-icon">📄</span><span class="sf-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="sf-size">${sz}</span>${st}${rmv}</div>`;
   }).join('');
@@ -779,31 +771,54 @@ function rwRenderFiles(){
 function rwRemoveFile(name){rwFiles=rwFiles.filter(f=>f.name!==name);rwRenderFiles();}
 
 function rwChipKey(e){
-  if(e.key==='Enter'||e.key===','){e.preventDefault();rwAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    rwAddChip(e.target.value.trim().replace(/,$/,''));
+    e.target.value='';
+  }
   if(e.key==='Backspace'&&!e.target.value){
     const chips=[...document.querySelectorAll('#rwChipBox .chip:not(.primary)')];
-    if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email});last.remove();}
+    if(chips.length){
+      const last=chips[chips.length-1];
+      api('remove-reviewer',undefined,{email:last.dataset.email});
+      last.remove();
+    }
   }
 }
 function rwAddChip(email){
   if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
   if([...document.querySelectorAll('#rwChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const c=document.createElement('span');c.className='chip';c.dataset.email=email;
+  const c=document.createElement('span');
+  c.className='chip';
+  c.dataset.email=email;
   c.innerHTML=`${esc(email)} <button class="chip-x" onclick="rwRemoveChip(this,'${esc(email)}')">×</button>`;
   document.getElementById('rwChipBox').insertBefore(c,document.getElementById('rwChipInput'));
   api('configure',undefined,{reviewerEmail:email});
 }
-function rwRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email});}
-async function rwImportCsv(e){const f=e.target.files[0];if(!f)return;const t=await f.text();t.split(/[\r\n,;]+/).map(s=>s.trim()).filter(s=>s.includes('@')).forEach(rwAddChip);e.target.value='';}
+function rwRemoveChip(btn,email){
+  btn.closest('.chip').remove();
+  api('remove-reviewer',undefined,{email});
+}
+async function rwImportCsv(e){
+  const f=e.target.files[0];
+  if(!f)return;
+  const t=await f.text();
+  t.split(/[\r\n,;]+/).map(s=>s.trim()).filter(s=>s.includes('@')).forEach(rwAddChip);
+  e.target.value='';
+}
 
-// Step dot helpers
 function rwSetStep(id,state,label=''){
   const dot=document.getElementById('sd-'+id);
   const lbl=document.getElementById('sl-'+id);
   if(!dot)return;
   dot.className='step-dot '+state;
   dot.textContent=state==='done'?'✓':state==='running'?'↻':state==='error'?'✗':(parseInt(dot.textContent)||'·');
-  if(lbl&&label){lbl.textContent=label;lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');}
+  if(lbl&&label){
+    lbl.textContent=label;
+    lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');
+  }else if(lbl){
+    lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');
+  }
 }
 
 async function rwStart(){
@@ -813,36 +828,41 @@ async function rwStart(){
 
   const disc=document.getElementById('rwDiscipline').value;
   const desc=document.getElementById('rwDesc').value.trim();
-  const deadline=document.getElementById('rwDeadline').value;
 
-  // Push config
   await api('configure',undefined,{
-    documentId:  name.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,''),
-    description: `${disc?disc+' — ':''}${desc||name}`
+    documentId:name.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,''),
+    description:`${disc?disc+' — ':''}${desc||name}`
   });
 
-  // Disable start, show progress
   const btn=document.getElementById('rwStartBtn');
-  btn.disabled=true;btn.textContent='Setting up...';
+  btn.disabled=true;
+  btn.textContent='Setting up...';
+
   document.getElementById('rwProgressSection').style.display='flex';
   document.getElementById('rwActions').style.display='none';
 
   const steps=[
-    ['setup',   ()=>api('setup-project')],
-    ['upload',  async()=>{
+    ['setup',()=>api('setup-project')],
+    ['upload',async()=>{
       const fd=new FormData();
       rwFiles.filter(f=>f.status==='staged').forEach(f=>fd.append('files',f.file,f.name));
       const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
       const d=await r.json();
       if(!r.ok)throw new Error(d.error);
-      (d.uploaded||[]).forEach(u=>{const sf=rwFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
+      (d.uploaded||[]).forEach(u=>{
+        const sf=rwFiles.find(f=>f.name===u.name);
+        if(sf)sf.status='ok';
+      });
       rwRenderFiles();
       return d;
     }],
-    ['columns', ()=>api('apply-custom-columns')],
-    ['session', async()=>{await api('trigger');await api('register-webhook');return api('create-session');}],
+    ['session',async()=>{
+      await api('trigger');
+      await api('register-webhook');
+      return api('create-session');
+    }],
     ['checkout',()=>api('checkout-to-session')],
-    ['invite',  ()=>api('invite-reviewers')],
+    ['invite',()=>api('invite-reviewers')]
   ];
 
   try{
@@ -851,59 +871,95 @@ async function rwStart(){
       await fn();
       rwSetStep(id,'done');
     }
-    // Show session banner
+
     const state=await fetch('/poc/state').then(r=>r.json());
     document.getElementById('rwSessionBanner').style.display='block';
     document.getElementById('rwSessionId').textContent=state.sessionId||'—';
-    document.getElementById('rwCompleteBtn').disabled=false;
-    document.getElementById('rwCompleteBtn').style.display='block';
+    document.getElementById('rwDownstreamCard').style.display='block';
   }catch(err){
-    ['setup','upload','columns','session','checkout','invite'].forEach(id=>{
+    ['setup','upload','session','checkout','invite'].forEach(id=>{
       if(document.getElementById('sd-'+id)?.className.includes('running'))rwSetStep(id,'error');
     });
     document.getElementById('rwProgressCard').style.border='2px solid var(--error)';
-    btn.disabled=false;btn.textContent='Start Review';
+    btn.disabled=false;
+    btn.textContent='Start Review';
     document.getElementById('rwActions').style.display='flex';
+    console.error(err);
   }
 }
 
-async function rwComplete(){
-  const btn=document.getElementById('rwCompleteBtn');
-  btn.disabled=true;btn.classList.add('loading');btn.textContent='Extracting data...';
-  document.getElementById('rwExtractCard').style.display='block';
+async function rwRunDownstream(){
+  const btn=document.getElementById('rwDownstreamBtn');
+  const stepWrap=document.getElementById('rwDownstreamSteps');
 
-  const steps=[
-    ['checkin', ()=>api('checkin')],
-    ['export',  ()=>api('export-markups')],
-    ['mlist',   ()=>api('run-markuplist-job')],
-  ];
+  btn.disabled=true;
+  btn.classList.add('loading');
+  btn.textContent='Running downstream process...';
+  stepWrap.style.display='flex';
+  stepWrap.style.flexDirection='column';
 
   try{
-    let result;
-    for(const [id,fn] of steps){
-      const dot=document.getElementById('sd-'+id);const lbl=document.getElementById('sl-'+id);
+    ['checkin','export','mlist'].forEach(id=>{
+      const dot=document.getElementById('sd-'+id);
+      const lbl=document.getElementById('sl-'+id);
       if(dot){dot.className='step-dot running';dot.textContent='↻';}
       if(lbl)lbl.className='step-row-label';
-      result=await fn();
+    });
+
+    const result=await api('downstream-process');
+
+    ['checkin','export','mlist'].forEach(id=>{
+      const dot=document.getElementById('sd-'+id);
+      const lbl=document.getElementById('sl-'+id);
       if(dot){dot.className='step-dot done';dot.textContent='✓';}
-    }
-    rwMarkups=(result?.markups)||[];
-    btn.textContent='✓ Data Extracted';btn.classList.remove('loading');
+      if(lbl)lbl.className='step-row-label';
+    });
+
+    rwMarkups=result?.markups||[];
+    btn.textContent='✓ Project Updated & Metadata Pulled';
+    btn.classList.remove('loading');
     rwRenderResults();
   }catch(err){
     ['checkin','export','mlist'].forEach(id=>{
       const dot=document.getElementById('sd-'+id);
-      if(dot?.className.includes('running')){dot.className='step-dot error';dot.textContent='✗';}
+      if(dot?.className.includes('running')){
+        dot.className='step-dot error';
+        dot.textContent='✗';
+      }
     });
-    btn.disabled=false;btn.classList.remove('loading');btn.textContent='✓ Complete Review & Extract Data';
+    btn.disabled=false;
+    btn.classList.remove('loading');
+    btn.textContent='Update Project Copy & Pull Metadata';
+    console.error(err);
   }
 }
 
 function rwRenderResults(){
   document.getElementById('rwResults').style.display='flex';
-  const ep=m=>{const e=m.ExtendedProperties||{};return{stage:e['Review Stage']||'',disc:e['Discipline']||'',resp:e['Responsibility']||'',prio:e['Priority']||'',action:e['Action Required']||'',due:e['Due Date']||''};};
-  // Attach parsed fields for sorting
-  rwMarkups=rwMarkups.map(m=>{const p=ep(m);return{...m,_stage:p.stage,_discipline:p.disc,_priority:p.prio,_action:p.action,_due:p.due};});
+
+  const ep=m=>{
+    const e=m.ExtendedProperties||{};
+    return{
+      stage:e['Review Stage']||'',
+      disc:e['Discipline']||'',
+      resp:e['Responsibility']||'',
+      prio:e['Priority']||'',
+      action:e['Action Required']||'',
+      due:e['Due Date']||''
+    };
+  };
+
+  rwMarkups=rwMarkups.map(m=>{
+    const p=ep(m);
+    return{
+      ...m,
+      _stage:p.stage,
+      _discipline:p.disc,
+      _priority:p.prio,
+      _action:p.action,
+      _due:p.due
+    };
+  });
 
   const stages=rwMarkups.map(m=>m._stage).filter(Boolean);
   const prios=rwMarkups.map(m=>m._priority).filter(Boolean);
@@ -918,20 +974,24 @@ function rwRenderResults(){
     <div class="sum-card"><div class="sum-val warn">${authors}</div><div class="sum-label">Active Reviewers</div></div>`;
 
   const renderBreakdown=(elId,items,colorFn)=>{
-    const counts={};items.forEach(s=>{counts[s]=(counts[s]||0)+1;});
+    const counts={};
+    items.forEach(s=>{counts[s]=(counts[s]||0)+1;});
     const max=Math.max(...Object.values(counts),1);
+
     document.getElementById(elId).innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1])
       .map(([l,n])=>`<div class="bd-row"><div class="bd-label" title="${esc(l)}">${esc(l)}</div><div class="bd-track"><div class="bd-bar" style="width:${Math.round(n/max*100)}%;${colorFn(l)}"></div></div><div class="bd-count">${n}</div></div>`)
-      .join('')||'<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No data — custom columns may not have been applied</div>';
+      .join('')||'<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No data available</div>';
   };
 
   renderBreakdown('rwStageBreakdown',stages,()=>'');
+
   renderBreakdown('rwPriorityBreakdown',prios,l=>{
     if(l.includes('Critical'))return'background:var(--error)';
     if(l.includes('High'))return'background:var(--warn)';
     if(l.includes('Low'))return'background:var(--green)';
     return'';
   });
+
   rwRenderTable();
 }
 
@@ -947,8 +1007,11 @@ function rwPrioPill(p){
 function rwRenderTable(){
   const sorted=[...rwMarkups].sort((a,b)=>{
     const av=String(a[rwSortKey]??''),bv=String(b[rwSortKey]??'');
-    return rwSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
+    return rwSortDir==='asc'
+      ?av.localeCompare(bv,undefined,{numeric:true})
+      :bv.localeCompare(av,undefined,{numeric:true});
   });
+
   document.getElementById('rwResultsTbody').innerHTML=sorted.map(m=>`<tr>
     <td>${m.Page??'—'}</td>
     <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
@@ -961,27 +1024,47 @@ function rwRenderTable(){
     <td>${esc(m._due||'—')}</td>
   </tr>`).join('');
 }
-function rwSort(k){rwSortDir=(rwSortKey===k&&rwSortDir==='asc')?'desc':'asc';rwSortKey=k;if(rwMarkups.length)rwRenderTable();}
+function rwSort(k){
+  rwSortDir=(rwSortKey===k&&rwSortDir==='asc')?'desc':'asc';
+  rwSortKey=k;
+  if(rwMarkups.length)rwRenderTable();
+}
 
 function rwReset(){
-  rwFiles=[];rwMarkups=[];rwRenderFiles();
+  rwFiles=[];
+  rwMarkups=[];
+  rwRenderFiles();
+
   document.getElementById('rwProgressSection').style.display='none';
   document.getElementById('rwResults').style.display='none';
   document.getElementById('rwSessionBanner').style.display='none';
-  document.getElementById('rwExtractCard').style.display='none';
-  document.getElementById('rwCompleteBtn').style.display='none';
-  document.getElementById('rwCompleteBtn').disabled=true;
-  document.getElementById('rwCompleteBtn').textContent='✓ Complete Review & Extract Data';
-  document.getElementById('rwCompleteBtn').classList.remove('loading');
+  document.getElementById('rwDownstreamCard').style.display='none';
+  document.getElementById('rwDownstreamSteps').style.display='none';
   document.getElementById('rwProgressCard').style.border='';
   document.getElementById('rwActions').style.display='flex';
-  const btn=document.getElementById('rwStartBtn');btn.disabled=false;btn.textContent='Start Review';
+
+  const btn=document.getElementById('rwStartBtn');
+  btn.disabled=false;
+  btn.textContent='Start Review';
+
+  const dbtn=document.getElementById('rwDownstreamBtn');
+  dbtn.disabled=false;
+  dbtn.textContent='Update Project Copy & Pull Metadata';
+  dbtn.classList.remove('loading');
+
   document.querySelectorAll('#rwChipBox .chip:not(.primary)').forEach(c=>c.remove());
-  ['setup','upload','columns','session','checkout','invite','checkin','export','mlist'].forEach(id=>{
+
+  ['setup','upload','session','checkout','invite','checkin','export','mlist'].forEach(id=>{
     const d=document.getElementById('sd-'+id);
-    if(d){d.className='step-dot';const orig={setup:1,upload:2,columns:3,session:4,checkout:5,invite:6,checkin:1,export:2,mlist:3};d.textContent=orig[id]||'·';}
-    const l=document.getElementById('sl-'+id);if(l)l.className='step-row-label muted';
+    if(d){
+      d.className='step-dot';
+      const orig={setup:1,upload:2,session:3,checkout:4,invite:5,checkin:1,export:2,mlist:3};
+      d.textContent=orig[id]||'·';
+    }
+    const l=document.getElementById('sl-'+id);
+    if(l)l.className='step-row-label muted';
   });
+
   api('reset');
 }
 
@@ -993,8 +1076,17 @@ let devSortDir='asc';
 let devView='table';
 
 function devFileSelect(e){devAddFiles(Array.from(e.target.files));e.target.value='';}
-function devDrop(e){e.preventDefault();document.getElementById('devUploadZone').classList.remove('drag-over');devAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));}
-function devAddFiles(files){files.forEach(f=>{if(!devFiles.find(s=>s.name===f.name))devFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});devRenderFiles();}
+function devDrop(e){
+  e.preventDefault();
+  document.getElementById('devUploadZone').classList.remove('drag-over');
+  devAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));
+}
+function devAddFiles(files){
+  files.forEach(f=>{
+    if(!devFiles.find(s=>s.name===f.name))devFiles.push({file:f,name:f.name,size:f.size,status:'staged'});
+  });
+  devRenderFiles();
+}
 function devRenderFiles(){
   document.getElementById('devStagedFiles').innerHTML=devFiles.map(f=>{
     const st=f.status==='ok'?`<span class="dev-staged-ok">✓</span>`:f.status==='err'?`<span class="dev-staged-err">✗</span>`:'·';
@@ -1002,39 +1094,57 @@ function devRenderFiles(){
   }).join('');
 }
 function devChipKey(e){
-  if(e.key==='Enter'||e.key===','){e.preventDefault();devAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    devAddChip(e.target.value.trim().replace(/,$/,''));
+    e.target.value='';
+  }
   if(e.key==='Backspace'&&!e.target.value){
     const chips=[...document.querySelectorAll('#devChipBox .chip:not(.primary)')];
-    if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email});last.remove();}
+    if(chips.length){
+      const last=chips[chips.length-1];
+      api('remove-reviewer',undefined,{email:last.dataset.email});
+      last.remove();
+    }
   }
 }
 function devAddChip(email){
   if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
   if([...document.querySelectorAll('#devChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const c=document.createElement('span');c.className='chip';c.dataset.email=email;c.style.fontSize='11px';
+  const c=document.createElement('span');
+  c.className='chip';
+  c.dataset.email=email;
+  c.style.fontSize='11px';
   c.innerHTML=`${esc(email)} <button class="chip-x" onclick="devRemoveChip(this,'${esc(email)}')">×</button>`;
   document.getElementById('devChipBox').insertBefore(c,document.getElementById('devChipInput'));
   api('configure',undefined,{reviewerEmail:email});
 }
-function devRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email});}
+function devRemoveChip(btn,email){
+  btn.closest('.chip').remove();
+  api('remove-reviewer',undefined,{email});
+}
 function devConfig(){
   const docId=document.getElementById('devDocId').value.trim();
   const desc=document.getElementById('devDesc').value.trim();
-  const body={};if(docId)body.documentId=docId;if(desc)body.description=desc;
+  const body={};
+  if(docId)body.documentId=docId;
+  if(desc)body.description=desc;
   if(Object.keys(body).length)api('configure',undefined,body);
 }
 
-// Node state helpers
 function devSetNode(endpoint,state){
   const node=document.getElementById('fn-'+endpoint);
   const status=document.getElementById('fs-'+endpoint);
   if(!node||!status)return;
+
   node.className='fc-node'+(state==='manual'?' manual':'');
   if(state==='running')node.classList.add('running');
   else if(state==='done')node.classList.add('done');
   else if(state==='error')node.classList.add('error');
+
   status.className='fc-node-status '+state;
   status.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'·';
+
   const btn=node.querySelector('.fc-node-btn');
   if(btn&&state==='done'){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
   if(btn&&state==='running'){btn.disabled=true;btn.textContent='Running...';}
@@ -1046,37 +1156,54 @@ async function devFire(endpoint){
   try{
     const data=await api(endpoint);
     devSetNode(endpoint,'done');
-    if(endpoint==='run-markuplist-job'&&data.markups){
-      devMarkups=data.markups;devRenderDevMarkups();
+
+    if((endpoint==='run-markuplist-job'||endpoint==='downstream-process')&&data.markups){
+      devMarkups=data.markups;
+      devRenderDevMarkups();
     }
+
     if(endpoint==='snapshot'&&data.downloads?.length){
       document.getElementById('devDownloads').style.display='block';
       document.getElementById('devDownloadLinks').innerHTML=data.downloads.map(d=>
         `<a href="${esc(d.path)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--green-l);border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:13px;font-weight:500;text-decoration:none;">⬇ ${esc(d.name)}</a>`
       ).join('');
     }
+
     await devRefreshLog();
   }catch(err){
     devSetNode(endpoint,'error');
     await devRefreshLog();
+    console.error(err);
   }
 }
 
 async function devUpload(){
   const pending=devFiles.filter(f=>f.status==='staged');
   if(!pending.length){alert('No files staged.');return;}
+
   devSetNode('upload-to-project','running');
-  const fd=new FormData();pending.forEach(f=>fd.append('files',f.file,f.name));
+  const fd=new FormData();
+  pending.forEach(f=>fd.append('files',f.file,f.name));
+
   try{
     const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
-    const d=await r.json();if(!r.ok)throw new Error(d.error);
-    (d.uploaded||[]).forEach(u=>{const sf=devFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
-    devRenderFiles();devSetNode('upload-to-project','done');
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error);
+
+    (d.uploaded||[]).forEach(u=>{
+      const sf=devFiles.find(f=>f.name===u.name);
+      if(sf)sf.status='ok';
+    });
+
+    devRenderFiles();
+    devSetNode('upload-to-project','done');
     await devRefreshLog();
   }catch(err){
     devFiles.filter(f=>f.status==='staged').forEach(f=>f.status='err');
-    devRenderFiles();devSetNode('upload-to-project','error');
+    devRenderFiles();
+    devSetNode('upload-to-project','error');
     await devRefreshLog();
+    console.error(err);
   }
 }
 
@@ -1109,29 +1236,70 @@ function devRenderDevMarkups(){
 function devRenderDevTable(){
   const sorted=[...devMarkups].sort((a,b)=>{
     const av=String(a[devSortKey]??''),bv=String(b[devSortKey]??'');
-    return devSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
+    return devSortDir==='asc'
+      ?av.localeCompare(bv,undefined,{numeric:true})
+      :bv.localeCompare(av,undefined,{numeric:true});
   });
+
   document.getElementById('devMarkupTbody').innerHTML=sorted.map(m=>{
     const dt=m.DateCreated?new Date(m.DateCreated).toLocaleDateString():'—';
     return`<tr><td>${m.Page??'—'}</td><td>${esc(m.Type||'—')}</td><td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td><td>${esc(m.Author||'—')}</td><td>${esc(m.Status||'—')}</td><td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td><td>${esc(m.Layer||'—')}</td><td>${esc(m._sourceFile||'—')}</td><td>${dt}</td></tr>`;
   }).join('');
 }
-function devSort(k){devSortDir=(devSortKey===k&&devSortDir==='asc')?'desc':'asc';devSortKey=k;if(devMarkups.length)devRenderDevTable();}
-function devSetView(v){devView=v;document.getElementById('devBtnTable').classList.toggle('active',v==='table');document.getElementById('devBtnJson').classList.toggle('active',v==='json');document.getElementById('devTableView').style.display=v==='table'?'block':'none';document.getElementById('devJsonView').style.display=v==='json'?'block':'none';}
-async function devCopyJson(){if(!devMarkups.length)return;try{await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));const b=document.getElementById('devCopyBtn');b.textContent='✓ Copied';setTimeout(()=>{b.textContent='⎘ Copy JSON';},2000);}catch{}}
+function devSort(k){
+  devSortDir=(devSortKey===k&&devSortDir==='asc')?'desc':'asc';
+  devSortKey=k;
+  if(devMarkups.length)devRenderDevTable();
+}
+function devSetView(v){
+  devView=v;
+  document.getElementById('devBtnTable').classList.toggle('active',v==='table');
+  document.getElementById('devBtnJson').classList.toggle('active',v==='json');
+  document.getElementById('devTableView').style.display=v==='table'?'block':'none';
+  document.getElementById('devJsonView').style.display=v==='json'?'block':'none';
+}
+async function devCopyJson(){
+  if(!devMarkups.length)return;
+  try{
+    await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));
+    const b=document.getElementById('devCopyBtn');
+    b.textContent='✓ Copied';
+    setTimeout(()=>{b.textContent='⎘ Copy JSON';},2000);
+  }catch{}
+}
 
 async function devReset(){
   await api('reset');
-  devFiles=[];devMarkups=[];devRenderFiles();
+  devFiles=[];
+  devMarkups=[];
+  devRenderFiles();
   document.querySelectorAll('#devChipBox .chip:not(.primary)').forEach(c=>c.remove());
   document.getElementById('devMarkupSection').style.display='none';
   document.getElementById('devDownloads').style.display='none';
-  // Reset all nodes
-  ['setup-project','upload-to-project','apply-custom-columns','trigger','create-session',
-   'register-webhook','checkout-to-session','invite-reviewers','checkin','export-markups',
-   'run-markuplist-job','finalize','snapshot','cleanup'].forEach(ep=>devSetNode(ep,'idle'));
+
+  [
+    'setup-project',
+    'upload-to-project',
+    'trigger',
+    'create-session',
+    'register-webhook',
+    'checkout-to-session',
+    'invite-reviewers',
+    'downstream-process',
+    'finalize',
+    'snapshot',
+    'cleanup'
+  ].forEach(ep=>devSetNode(ep,'idle'));
+
   const rev=document.getElementById('fn-review');
-  if(rev){rev.className='fc-node manual';const s=document.getElementById('fs-review');if(s){s.className='fc-node-status idle';s.textContent='·';}const b=rev.querySelector('.fc-node-btn');if(b){b.className='fc-node-btn manual-btn';b.textContent='Mark Done';}}
+  if(rev){
+    rev.className='fc-node manual';
+    const s=document.getElementById('fs-review');
+    if(s){s.className='fc-node-status idle';s.textContent='·';}
+    const b=rev.querySelector('.fc-node-btn');
+    if(b){b.className='fc-node-btn manual-btn';b.textContent='Mark Done';}
+  }
+
   document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';
 }
 </script>
