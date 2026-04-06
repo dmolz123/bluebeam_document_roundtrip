@@ -2,18 +2,12 @@
  * Bluebeam Studio API — Document Roundtrip PoC
  * Proof-of-concept reference implementation. Not for production use.
  *
- * KEY FIXES vs. previous version (cross-referenced against developer guide):
- *   - Auth endpoint: api.bluebeam.com/oauth2/token (new Developer Portal)
- *   - Header: "client_id" (with underscore) on all API calls
- *   - Checkout-to-session: uses correct dedicated endpoint
- *   - Check-in: uses /checkin endpoint with Comment body
- *   - Job polling: correct status codes (100/130/150 = in-progress, 200 = success)
- *   - File upload metadata: includes Size and CRC fields
- *   - S3 upload: no auth headers on PUT
- *   - exportmarkups job added after check-in
- *   - importcustomcolumns job added after project file upload
- *   - Project setup: creates resources + review folders on first run
- *   - Webhook: graceful localhost skip
+ * REVISED IMPROVEMENTS IN THIS VERSION:
+ *   - Adds explicit post-checkin settle / verification before downstream jobs
+ *   - Adds longer polling window for markuplist jobs
+ *   - Adds small settle delay after exportmarkups before markuplist
+ *   - Adds helper logging around project file re-query after checkin
+ *   - Preserves existing flow/endpoints/UI compatibility
  *
  * Roundtrip flow:
  *   0a. /poc/setup-project          — Create folders + upload custom-columns.xml (once)
@@ -155,11 +149,15 @@ function authHeaders(accessToken, extra = {}) {
   };
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function pollJob(url, headers, maxAttempts = 20, intervalMs = 3000) {
   const inProgress = new Set([100, 130, 150]);
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    await new Promise(r => setTimeout(r, intervalMs));
+    await sleep(intervalMs);
 
     const res = await fetch(url, { headers });
     const data = await res.json();
@@ -264,6 +262,71 @@ async function listProjectFiles(accessToken) {
   return data.ProjectFiles || [];
 }
 
+async function waitForProjectFileSettlement(accessToken, projectFileId, fileName, options = {}) {
+  const {
+    attempts = 6,
+    intervalMs = 5000,
+    finalExtraDelayMs = 5000
+  } = options;
+
+  logStep(`Waiting for project file settlement: "${fileName}" (projectFileId=${projectFileId})...`, 'info');
+
+  let lastSeen = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    const files = await listProjectFiles(accessToken);
+    const match = files.find(f => String(f.Id) === String(projectFileId));
+
+    if (match) {
+      lastSeen = match;
+
+      const observed = [
+        `path=${match.Path || '(n/a)'}`,
+        `name=${match.Name || '(n/a)'}`
+      ];
+
+      if (typeof match.Version !== 'undefined') observed.push(`version=${match.Version}`);
+      if (typeof match.IsCheckedOut !== 'undefined') observed.push(`isCheckedOut=${match.IsCheckedOut}`);
+      if (typeof match.CheckedOut !== 'undefined') observed.push(`checkedOut=${match.CheckedOut}`);
+      if (typeof match.ParentFolderId !== 'undefined') observed.push(`parentFolderId=${match.ParentFolderId}`);
+
+      logStep(
+        `Project file re-query ${attempt}/${attempts}: found "${fileName}" (${observed.join(', ')})`,
+        'info'
+      );
+
+      // If API exposes checked-out flags, wait until it is no longer checked out.
+      const checkedOutFlags = [match.IsCheckedOut, match.CheckedOut].filter(v => typeof v !== 'undefined');
+      const explicitlyCheckedOut = checkedOutFlags.some(v => v === true || String(v).toLowerCase() === 'true');
+
+      if (!explicitlyCheckedOut) {
+        if (finalExtraDelayMs > 0) {
+          logStep(`Project file appears settled. Waiting an extra ${Math.round(finalExtraDelayMs / 1000)}s before downstream jobs...`, 'info');
+          await sleep(finalExtraDelayMs);
+        }
+        return lastSeen;
+      }
+    } else {
+      logStep(`Project file re-query ${attempt}/${attempts}: projectFileId=${projectFileId} not found yet`, 'warn');
+    }
+
+    if (attempt < attempts) {
+      await sleep(intervalMs);
+    }
+  }
+
+  logStep(
+    `Project file settlement window elapsed for "${fileName}". Proceeding with downstream jobs using best-known state.`,
+    'warn'
+  );
+
+  if (finalExtraDelayMs > 0) {
+    await sleep(finalExtraDelayMs);
+  }
+
+  return lastSeen;
+}
+
 // -----------------------------------------------------------------------------
 // DOWNSTREAM HELPERS
 // -----------------------------------------------------------------------------
@@ -290,10 +353,19 @@ async function performCheckin(accessToken) {
       const err = await resp.text();
       logStep(`Check-in failed for "${sf.name}": ${resp.status} - ${err}`, 'warn');
       results.push({ name: sf.name, success: false, error: err });
-    } else {
-      logStep(`"${sf.name}" checked in to project`, 'success');
-      results.push({ name: sf.name, success: true });
+      continue;
     }
+
+    logStep(`"${sf.name}" checked in to project`, 'success');
+
+    // New: give the Project copy time to settle and re-query the project file
+    await waitForProjectFileSettlement(accessToken, sf.projectFileId, sf.name, {
+      attempts: 6,
+      intervalMs: 5000,
+      finalExtraDelayMs: 5000
+    });
+
+    results.push({ name: sf.name, success: true });
   }
 
   logStep('Check-in complete — project files updated with session markups', 'success');
@@ -348,6 +420,11 @@ async function performExportMarkups(accessToken) {
     await pollJob(pollUrl, authHeaders(accessToken), 15, 15000);
 
     logStep(`Markup XML exported: ${exportFileName}`, 'success');
+
+    // New: let Bluebeam settle exported artifacts a bit before markuplist
+    logStep('Allowing exported markup artifacts to settle for 5s...', 'info');
+    await sleep(5000);
+
     pocState.markupExports.push({
       name: sf.name,
       exportFileName,
@@ -385,10 +462,12 @@ async function performMarkupList(accessToken) {
 
     const { Id: jobId } = await submitResp.json();
     pocState.markupJobId = jobId;
-    logStep(`markuplist job submitted: jobId=${jobId} — polling...`, 'success');
+    logStep(`markuplist job submitted: jobId=${jobId} — polling with extended window...`, 'success');
 
     const pollUrl = `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist/${jobId}`;
-    const result = await pollJob(pollUrl, hdrs);
+
+    // Revised: much longer polling window for larger/complex files
+    const result = await pollJob(pollUrl, hdrs, 60, 5000);
 
     const fileMarkups = (result.Markups || []).map(m => ({ ...m, _sourceFile: sf.name }));
     pocState.markups.push(...fileMarkups);
@@ -483,7 +562,7 @@ app.post('/poc/setup-project', async (req, res) => {
       } else {
         logStep(`Creating folder "${name}"...`, 'info');
         const id = await createFolder(name, accessToken);
-        await new Promise(r => setTimeout(r, 1500));
+        await sleep(1500);
         pocState.folderIds[name] = id;
         logStep(`Folder "${name}" created (id=${id})`, 'success');
       }
@@ -797,7 +876,7 @@ app.post('/poc/checkout-to-session', async (req, res) => {
         }
       }
 
-      await new Promise(r => setTimeout(r, 1000));
+      await sleep(1000);
 
       const sessionFilesResp = await fetch(
         `${API_V1}/sessions/${pocState.sessionId}/files?includeDeleted=false`,
@@ -964,7 +1043,17 @@ app.post('/poc/downstream-process', async (req, res) => {
     const accessToken = await tokenManager.getValidAccessToken();
 
     const checkinResults = await performCheckin(accessToken);
+
+    // Extra global settle cushion after all check-ins
+    logStep('Global post-checkin settle delay: 5s...', 'info');
+    await sleep(5000);
+
     const exportResults = await performExportMarkups(accessToken);
+
+    // Extra cushion between export and markuplist
+    logStep('Global post-export settle delay: 5s...', 'info');
+    await sleep(5000);
+
     const markups = await performMarkupList(accessToken);
 
     logStep('Downstream processing complete', 'success');
@@ -1048,7 +1137,7 @@ app.post('/poc/snapshot', async (req, res) => {
       let downloadUrl = null;
 
       for (let i = 0; i < 20; i++) {
-        await new Promise(r => setTimeout(r, 5000));
+        await sleep(5000);
 
         const pollToken = await tokenManager.getValidAccessToken();
         const pollResp = await fetch(
