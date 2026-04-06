@@ -3,1234 +3,749 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bluebeam Studio — Document Roundtrip PoC</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>Bluebeam Studio — Document Roundtrip</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:      #0d0f14;
-  --surface: #13161e;
-  --surf2:   #1a1e29;
-  --border:  #252a38;
-  --accent:  #4f8ef7;
-  --green:   #38d9a9;
-  --warn:    #f7c94f;
-  --error:   #f75f5f;
-  --text:    #e2e8f0;
-  --muted:   #64748b;
-  --mono:    'IBM Plex Mono', monospace;
-  --sans:    'IBM Plex Sans', sans-serif;
+  --accent:   #1A5AFF;
+  --accent-h: #0f45d4;
+  --accent-l: #e8eeff;
+  --green:    #0d9f6e;
+  --green-l:  #e6f7f2;
+  --warn:     #d97706;
+  --warn-l:   #fef3c7;
+  --error:    #dc2626;
+  --error-l:  #fee2e2;
+  --text:     #111827;
+  --text-2:   #6b7280;
+  --text-3:   #9ca3af;
+  --border:   #e5e7eb;
+  --border-2: #d1d5db;
+  --bg:       #f9fafb;
+  --white:    #ffffff;
+  --mono:     'JetBrains Mono', monospace;
+  --sans:     'Inter', sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
 
 /* ── HEADER ── */
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.header-left{display:flex;align-items:center;gap:12px;}
-.logo{width:32px;height:32px;background:var(--accent);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;}
-h1{font-size:14px;font-weight:600;letter-spacing:0.02em;}
-h1 span{color:var(--muted);font-weight:400;}
+header{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:56px;flex-shrink:0;}
+.header-brand{display:flex;align-items:center;gap:10px;}
+.header-logo{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.header-logo svg{width:16px;height:16px;fill:white;}
+.header-title{font-size:15px;font-weight:600;color:var(--text);}
+.header-title span{color:var(--text-2);font-weight:400;}
 
 /* ── TABS ── */
-.tab-bar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:4px;flex-shrink:0;}
-.tab-btn{padding:10px 18px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;margin-bottom:-1px;}
+.tab-bar{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 32px;flex-shrink:0;}
+.tab-btn{padding:14px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;margin-bottom:-1px;letter-spacing:0.01em;}
 .tab-btn:hover{color:var(--text);}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+
 .tab-content{display:none;flex:1;overflow:hidden;}
 .tab-content.active{display:flex;flex-direction:column;}
 
-/* ── SHARED UTILS ── */
-.section-title{font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-.section-title::after{content:'';flex:1;height:1px;background:var(--border);}
-.config-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;}
-.config-input{background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:8px 12px;font-family:var(--sans);font-size:13px;color:var(--text);width:100%;transition:border-color 0.2s;}
-.config-input:focus{outline:none;border-color:var(--accent);}
-select.config-input{cursor:pointer;}
-.chip{display:inline-flex;align-items:center;gap:5px;background:rgba(79,142,247,0.15);border:1px solid rgba(79,142,247,0.3);border-radius:3px;padding:2px 8px;font-family:var(--mono);font-size:11px;color:var(--accent);}
-.chip.primary{background:rgba(56,217,169,0.1);border-color:rgba(56,217,169,0.3);color:var(--green);}
-.chip-remove{background:none;border:none;color:inherit;cursor:pointer;padding:0;line-height:1;font-size:12px;opacity:0.6;}
-.chip-remove:hover{opacity:1;}
-.chip-input-wrap{background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;display:flex;flex-wrap:wrap;gap:5px;min-height:40px;cursor:text;transition:border-color 0.2s;}
-.chip-input-wrap:focus-within{border-color:var(--accent);}
-.chip-text-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);flex:1;min-width:180px;padding:1px 0;}
-.drop-zone{border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
-.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(79,142,247,0.05);}
+/* ═══════════════════════════════════════
+   REVIEW WORKFLOW TAB
+═══════════════════════════════════════ */
+.rw-wrap{flex:1;overflow-y:auto;padding:40px 32px;}
+.rw-inner{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:24px;}
+
+.rw-page-title{font-size:24px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.rw-page-sub{font-size:14px;color:var(--text-2);line-height:1.5;}
+
+/* Cards */
+.card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:28px;}
+.card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.card-title-icon{width:28px;height:28px;background:var(--accent-l);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+
+/* Form elements */
+.field{display:flex;flex-direction:column;gap:6px;}
+.field + .field{margin-top:16px;}
+.field-row{display:grid;gap:16px;}
+.field-row.cols-2{grid-template-columns:1fr 1fr;}
+.field-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
+label{font-size:12px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;}
+input[type="text"],input[type="email"],input[type="date"],select,textarea{
+  width:100%;padding:10px 14px;border:1px solid var(--border-2);border-radius:8px;
+  font-family:var(--sans);font-size:14px;color:var(--text);background:var(--white);
+  transition:border-color 0.15s,box-shadow 0.15s;outline:none;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,90,255,0.1);}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+textarea{resize:vertical;min-height:80px;line-height:1.5;}
+
+/* Drop zone */
+.drop-zone{border:2px dashed var(--border-2);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;background:var(--bg);}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-l);}
 .drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.drop-zone-icon{font-size:24px;margin-bottom:6px;}
-.drop-zone-label{font-size:13px;color:var(--muted);}
-.drop-zone-label strong{color:var(--accent);}
-.drop-zone-hint{font-size:11px;color:var(--muted);margin-top:4px;font-family:var(--mono);}
-.staged-files{display:flex;flex-direction:column;gap:5px;margin-top:8px;}
-.staged-file{display:flex;align-items:center;justify-content:space-between;background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-family:var(--mono);font-size:11px;}
-.staged-file-name{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.staged-file-size{color:var(--muted);margin-left:8px;flex-shrink:0;}
-.sf-status{margin-left:8px;flex-shrink:0;}
+.drop-zone-icon{font-size:28px;margin-bottom:8px;}
+.drop-zone-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:3px;}
+.drop-zone-title span{color:var(--accent);}
+.drop-zone-hint{font-size:12px;color:var(--text-3);font-family:var(--mono);}
+
+.staged-files{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
+.staged-file{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;}
+.sf-icon{font-size:16px;flex-shrink:0;}
+.sf-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
+.sf-size{color:var(--text-3);font-size:12px;font-family:var(--mono);flex-shrink:0;}
+.sf-status{font-size:12px;font-weight:500;flex-shrink:0;}
 .sf-status.ok{color:var(--green);}
 .sf-status.err{color:var(--error);}
-.sf-status.wait{color:var(--muted);}
-.remove-file-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:0 4px;font-size:14px;margin-left:6px;transition:color 0.15s;}
-.remove-file-btn:hover{color:var(--error);}
+.sf-status.wait{color:var(--text-3);}
+.sf-remove{background:none;border:none;color:var(--text-3);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:16px;line-height:1;transition:all 0.15s;}
+.sf-remove:hover{color:var(--error);background:var(--error-l);}
 
-/* ═══════════════════════════════════════════════════════
-   END USER TAB
-═══════════════════════════════════════════════════════ */
-.eu-layout{display:grid;grid-template-columns:420px 1fr;height:100%;overflow:hidden;}
+/* Reviewer chips */
+.chip-box{border:1px solid var(--border-2);border-radius:8px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;min-height:44px;cursor:text;transition:border-color 0.15s,box-shadow 0.15s;background:var(--white);}
+.chip-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,90,255,0.1);}
+.chip{display:inline-flex;align-items:center;gap:5px;background:var(--accent-l);border:1px solid rgba(26,90,255,0.2);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:500;color:var(--accent);}
+.chip.primary{background:var(--green-l);border-color:rgba(13,159,110,0.25);color:var(--green);}
+.chip-x{background:none;border:none;color:inherit;cursor:pointer;padding:0;font-size:14px;opacity:0.6;line-height:1;}
+.chip-x:hover{opacity:1;}
+.chip-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:14px;color:var(--text);flex:1;min-width:160px;padding:2px 0;}
+.field-hint{font-size:11px;color:var(--text-3);margin-top:4px;}
 
-/* Form panel */
-.eu-form-panel{background:var(--surface);border-right:1px solid var(--border);padding:28px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
-.eu-form-panel h2{font-size:16px;font-weight:600;margin-bottom:4px;}
-.eu-form-panel p{font-size:13px;color:var(--muted);line-height:1.5;}
-.form-group{display:flex;flex-direction:column;gap:6px;}
+.csv-label{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--accent);cursor:pointer;font-weight:500;position:relative;margin-top:6px;}
+.csv-label:hover{text-decoration:underline;}
+.csv-label input{position:absolute;inset:0;opacity:0;cursor:pointer;}
 
-.csv-btn{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--surf2);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:10px;color:var(--muted);cursor:pointer;transition:all 0.15s;position:relative;margin-top:5px;}
-.csv-btn:hover{color:var(--text);border-color:var(--muted);}
-.csv-btn input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+/* Primary button */
+.btn-primary{width:100%;padding:13px;background:var(--accent);color:white;border:none;border-radius:10px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;}
+.btn-primary:hover:not(:disabled){background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,90,255,0.3);}
+.btn-primary:disabled{background:#c5d0e8;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-primary.loading{background:var(--warn);color:white;}
 
-.start-btn{width:100%;padding:14px;background:var(--accent);color:white;border:none;border-radius:8px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;}
-.start-btn:hover:not(:disabled){background:#6aa3f9;transform:translateY(-1px);}
-.start-btn:disabled{background:var(--surf2);color:var(--muted);cursor:not-allowed;transform:none;}
-.start-btn.running{background:var(--warn);color:#0d0f14;}
+.btn-success{width:100%;padding:13px;background:var(--white);color:var(--green);border:2px solid var(--green);border-radius:10px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;}
+.btn-success:hover:not(:disabled){background:var(--green-l);}
+.btn-success:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-success.loading{background:var(--warn);color:white;border-color:var(--warn);}
 
-.complete-btn{width:100%;padding:14px;background:rgba(56,217,169,0.15);color:var(--green);border:1px solid var(--green);border-radius:8px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;}
-.complete-btn:hover:not(:disabled){background:rgba(56,217,169,0.25);}
-.complete-btn:disabled{opacity:0.4;cursor:not-allowed;}
-.complete-btn.running{background:var(--warn);color:#0d0f14;border-color:var(--warn);}
+.btn-ghost{width:100%;padding:10px;background:none;color:var(--text-2);border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:13px;cursor:pointer;transition:all 0.15s;}
+.btn-ghost:hover{border-color:var(--error);color:var(--error);}
 
-.reset-sm{padding:8px 16px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;font-family:var(--sans);font-size:12px;cursor:pointer;transition:all 0.2s;width:100%;}
-.reset-sm:hover{color:var(--error);border-color:var(--error);}
+/* Progress pill */
+.progress-pill{display:flex;align-items:center;gap:10px;background:var(--accent-l);border:1px solid rgba(26,90,255,0.15);border-radius:10px;padding:14px 18px;}
+.progress-pill.success{background:var(--green-l);border-color:rgba(13,159,110,0.2);}
+.progress-pill.error{background:var(--error-l);border-color:rgba(220,38,38,0.2);}
+.progress-pill-icon{font-size:20px;flex-shrink:0;}
+.progress-pill-text{flex:1;}
+.progress-pill-title{font-size:14px;font-weight:600;color:var(--text);}
+.progress-pill-sub{font-size:12px;color:var(--text-2);margin-top:1px;}
 
-/* Progress tracker */
-.eu-progress-panel{padding:28px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:24px;}
+/* Step checklist inside card */
+.step-list{display:flex;flex-direction:column;gap:8px;}
+.step-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.step-row:last-child{border-bottom:none;}
+.step-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border-2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text-3);flex-shrink:0;transition:all 0.25s;}
+.step-dot.done{background:var(--green);border-color:var(--green);color:white;}
+.step-dot.running{background:var(--warn);border-color:var(--warn);color:white;animation:spin 1s linear infinite;}
+.step-dot.error{background:var(--error);border-color:var(--error);color:white;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.step-row-label{flex:1;color:var(--text);}
+.step-row-label.muted{color:var(--text-3);}
+.step-row-api{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;}
 
-.progress-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.progress-card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.progress-card-title{font-size:14px;font-weight:600;}
-.progress-steps{padding:16px 20px;display:flex;flex-direction:column;gap:8px;}
-
-.prog-step{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
-.prog-step:last-child{border-bottom:none;}
-.prog-icon{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;background:var(--surf2);border:1px solid var(--border);color:var(--muted);transition:all 0.3s;}
-.prog-icon.done{background:var(--green);border-color:var(--green);color:#0d0f14;}
-.prog-icon.running{background:var(--warn);border-color:var(--warn);color:#0d0f14;animation:pulse 1s ease infinite;}
-.prog-icon.error{background:var(--error);border-color:var(--error);color:white;}
-.prog-label{font-size:13px;color:var(--text);flex:1;}
-.prog-label.muted{color:var(--muted);}
-.prog-sub{font-size:11px;color:var(--muted);font-family:var(--mono);}
-
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
-
-/* Session active banner */
-.session-banner{background:rgba(56,217,169,0.08);border:1px solid var(--green);border-radius:8px;padding:16px 20px;}
-.session-banner-title{font-size:13px;font-weight:600;color:var(--green);margin-bottom:8px;}
-.session-id-display{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--text);letter-spacing:0.08em;margin-bottom:6px;}
-.session-hint{font-size:12px;color:var(--muted);}
+/* Session banner */
+.session-banner{background:var(--white);border:2px solid var(--green);border-radius:12px;padding:20px 24px;}
+.session-banner-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);margin-bottom:6px;}
+.session-id{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text);letter-spacing:0.05em;margin-bottom:4px;}
+.session-hint{font-size:13px;color:var(--text-2);}
 
 /* Summary cards */
-.summary-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;}
-.summary-card{background:var(--surf2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;}
-.summary-card-val{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--accent);margin-bottom:2px;}
-.summary-card-val.green{color:var(--green);}
-.summary-card-val.warn{color:var(--warn);}
-.summary-card-val.error{color:var(--error);}
-.summary-card-label{font-size:11px;color:var(--muted);}
+.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.sum-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.sum-val{font-size:28px;font-weight:700;color:var(--accent);font-family:var(--mono);line-height:1;}
+.sum-val.green{color:var(--green);}
+.sum-val.warn{color:var(--warn);}
+.sum-val.error{color:var(--error);}
+.sum-label{font-size:12px;color:var(--text-2);margin-top:4px;}
 
-/* Breakdown bars */
-.breakdown-section{display:flex;flex-direction:column;gap:8px;}
-.breakdown-item{display:flex;align-items:center;gap:10px;}
-.breakdown-label{font-size:12px;color:var(--text);width:220px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.breakdown-bar-wrap{flex:1;background:var(--surf2);border-radius:3px;height:8px;overflow:hidden;}
-.breakdown-bar{height:100%;border-radius:3px;background:var(--accent);transition:width 0.5s ease;}
-.breakdown-count{font-family:var(--mono);font-size:11px;color:var(--muted);width:24px;text-align:right;flex-shrink:0;}
+/* Breakdown */
+.breakdown{display:flex;flex-direction:column;gap:8px;}
+.bd-row{display:flex;align-items:center;gap:12px;}
+.bd-label{font-size:12px;color:var(--text);width:210px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bd-track{flex:1;background:var(--bg);border-radius:4px;height:8px;overflow:hidden;}
+.bd-bar{height:100%;border-radius:4px;background:var(--accent);transition:width 0.6s ease;}
+.bd-count{font-family:var(--mono);font-size:11px;color:var(--text-3);width:20px;text-align:right;flex-shrink:0;}
 
 /* Results table */
-.results-table-wrap{overflow-x:auto;}
-.results-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;}
-.results-table th{text-align:left;padding:8px 12px;background:var(--surf2);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;cursor:pointer;user-select:none;}
+.results-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
+.results-table{width:100%;border-collapse:collapse;font-size:12px;}
+.results-table th{text-align:left;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);white-space:nowrap;cursor:pointer;user-select:none;}
 .results-table th:hover{color:var(--text);}
 .results-table th.sort-asc::after{content:' ↑';color:var(--accent);}
 .results-table th.sort-desc::after{content:' ↓';color:var(--accent);}
-.results-table td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.results-table tr:hover td{background:var(--surf2);}
-.stage-pill{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.3);color:var(--accent);white-space:nowrap;}
-.prio-pill{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10px;white-space:nowrap;}
-.prio-pill.critical{background:rgba(247,95,95,0.12);border:1px solid rgba(247,95,95,0.4);color:var(--error);}
-.prio-pill.high{background:rgba(247,201,79,0.12);border:1px solid rgba(247,201,79,0.4);color:var(--warn);}
-.prio-pill.medium{background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.3);color:var(--accent);}
-.prio-pill.low{background:rgba(56,217,169,0.08);border:1px solid rgba(56,217,169,0.3);color:var(--green);}
-.prio-pill.info{background:var(--surf2);border:1px solid var(--border);color:var(--muted);}
+.results-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+.results-table tr:last-child td{border-bottom:none;}
+.results-table tr:hover td{background:#f8f9ff;}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;}
+.pill-blue{background:var(--accent-l);color:var(--accent);}
+.pill-green{background:var(--green-l);color:var(--green);}
+.pill-warn{background:var(--warn-l);color:var(--warn);}
+.pill-red{background:var(--error-l);color:var(--error);}
+.pill-gray{background:var(--bg);color:var(--text-2);border:1px solid var(--border);}
 
-/* ═══════════════════════════════════════════════════════
-   DEVELOPER TAB (unchanged layout)
-═══════════════════════════════════════════════════════ */
-.dev-layout{display:grid;grid-template-columns:300px 1fr;height:100%;overflow:hidden;}
-.steps-panel{background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;}
-.panel-label{font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;padding:16px 18px 8px;}
-.step-item{padding:10px 18px 12px;border-left:3px solid transparent;transition:background 0.15s;}
-.step-item:hover{background:var(--surf2);}
-.step-item.done{border-left-color:var(--green);}
-.step-item.error-step{border-left-color:var(--error);}
-.step-item.running-step{border-left-color:var(--warn);}
-.step-item.manual-step{border-left-color:var(--muted);opacity:0.75;}
-.step-item.upload-step{border-left-color:var(--accent);background:rgba(79,142,247,0.04);}
-.step-header{display:flex;align-items:center;gap:9px;margin-bottom:3px;}
-.step-num{width:20px;height:20px;border-radius:50%;background:var(--surf2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;color:var(--muted);flex-shrink:0;transition:all 0.25s;}
-.step-item.done .step-num{background:var(--green);border-color:var(--green);color:#0d0f14;}
-.step-item.error-step .step-num{background:var(--error);border-color:var(--error);color:white;}
-.step-item.running-step .step-num{background:var(--warn);border-color:var(--warn);color:#0d0f14;}
-.step-item.upload-step .step-num{background:var(--accent);border-color:var(--accent);color:white;}
-.step-title{font-size:12px;font-weight:500;}
-.step-sub{font-size:11px;color:var(--muted);margin-left:29px;line-height:1.4;}
-.step-connector{width:1px;height:7px;background:var(--border);margin-left:27px;}
-.run-btn{display:block;margin:7px 0 0 29px;padding:5px 12px;background:var(--accent);color:white;border:none;border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;width:calc(100% - 29px);text-align:left;}
-.run-btn:hover{background:#6aa3f9;}
-.run-btn:disabled{background:var(--surf2);color:var(--muted);cursor:not-allowed;}
-.run-btn.loading{background:var(--warn);color:#0d0f14;}
-.dev-main{overflow-y:auto;display:flex;flex-direction:column;}
-.setup-strip{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;flex-direction:column;gap:12px;}
-.setup-row{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;}
-.dev-drop-zone{flex:2;min-width:200px;border:2px dashed var(--border);border-radius:6px;padding:14px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
-.dev-drop-zone:hover,.dev-drop-zone.drag-over{border-color:var(--accent);background:rgba(79,142,247,0.05);}
-.dev-drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.dev-config-fields{flex:1;display:flex;flex-direction:column;gap:8px;min-width:180px;}
-.dev-config-input{background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-family:var(--mono);font-size:12px;color:var(--text);width:100%;transition:border-color 0.2s;}
-.dev-config-input:focus{outline:none;border-color:var(--accent);}
-.dev-reviewer-section{flex:1.5;min-width:200px;}
-.dev-chip-wrap{background:var(--surf2);border:1px solid var(--border);border-radius:4px;padding:5px 8px;display:flex;flex-wrap:wrap;gap:5px;min-height:34px;cursor:text;transition:border-color 0.2s;}
-.dev-chip-wrap:focus-within{border-color:var(--accent);}
-.dev-chip-text{background:none;border:none;outline:none;font-family:var(--mono);font-size:12px;color:var(--text);flex:1;min-width:140px;padding:2px 0;}
-.upload-project-btn-dev{padding:7px 16px;background:var(--accent);color:white;border:none;border-radius:5px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;align-self:flex-end;white-space:nowrap;}
-.upload-project-btn-dev:hover{background:#6aa3f9;}
-.upload-project-btn-dev:disabled{background:var(--surf2);color:var(--muted);cursor:not-allowed;}
-.dev-reset-btn{padding:6px 14px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:4px;font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;}
-.dev-reset-btn:hover{color:var(--error);border-color:var(--error);}
-.content-grid{display:grid;grid-template-columns:1fr 1fr;flex:1;min-height:300px;}
-.state-panel{border-right:1px solid var(--border);padding:16px 20px;overflow-y:auto;}
-.log-panel{padding:16px 20px;overflow-y:auto;background:var(--bg);}
-.state-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
-.state-card{background:var(--surf2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;}
-.state-card-label{font-size:10px;color:var(--muted);margin-bottom:3px;}
-.state-card-val{font-family:var(--mono);font-size:11px;color:var(--text);word-break:break-all;}
-.state-card-val.none{color:var(--muted);font-style:italic;}
-.state-card-val.ok{color:var(--green);}
-.status-badge{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:4px;background:var(--surf2);border:1px solid var(--border);color:var(--muted);transition:all 0.3s;white-space:nowrap;}
-.status-badge.active{color:var(--green);border-color:var(--green);background:rgba(56,217,169,0.08);}
-.status-badge.error{color:var(--error);border-color:var(--error);background:rgba(247,95,95,0.08);}
-.status-badge.working{color:var(--warn);border-color:var(--warn);background:rgba(247,201,79,0.08);}
-.webhook-list{display:flex;flex-direction:column;gap:6px;}
-.webhook-event{background:var(--surf2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:4px;padding:7px 10px;font-family:var(--mono);font-size:11px;}
-.webhook-time{color:var(--muted);margin-bottom:2px;}
-.download-links{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
-.download-link{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(56,217,169,0.1);border:1px solid var(--green);border-radius:5px;color:var(--green);font-family:var(--mono);font-size:12px;text-decoration:none;transition:all 0.2s;}
-.download-link:hover{background:rgba(56,217,169,0.2);}
-.log-entries{display:flex;flex-direction:column;gap:2px;}
-.log-entry{display:grid;grid-template-columns:68px 1fr;gap:8px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);font-family:var(--mono);font-size:11px;}
-.log-time{color:var(--muted);}
-.log-msg{color:var(--text);}
-.log-msg.success{color:var(--green);}
-.log-msg.error{color:var(--error);}
-.log-msg.warn{color:var(--warn);}
-.log-msg.webhook{color:var(--accent);}
-.markup-panel-dev{border-top:1px solid var(--border);padding:16px 20px;background:var(--surface);}
-.markup-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
-.view-toggle{display:flex;border:1px solid var(--border);border-radius:4px;overflow:hidden;}
-.view-toggle button{padding:4px 12px;background:var(--surf2);border:none;color:var(--muted);font-family:var(--mono);font-size:11px;cursor:pointer;}
+/* ═══════════════════════════════════════
+   DEVELOPER CONSOLE TAB
+═══════════════════════════════════════ */
+.dev-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* Config bar at top */
+.dev-config-bar{background:var(--white);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;}
+.dev-config-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px;}
+.dev-config-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);}
+.dev-input{padding:7px 11px;border:1px solid var(--border-2);border-radius:7px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);outline:none;width:100%;transition:border-color 0.15s;}
+.dev-input:focus{border-color:var(--accent);}
+.dev-chip-box{border:1px solid var(--border-2);border-radius:7px;padding:4px 8px;display:flex;flex-wrap:wrap;gap:4px;min-height:36px;cursor:text;background:var(--white);min-width:220px;transition:border-color 0.15s;}
+.dev-chip-box:focus-within{border-color:var(--accent);}
+.dev-chip-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);flex:1;min-width:120px;padding:1px 0;}
+.dev-upload-zone{border:1px dashed var(--border-2);border-radius:7px;padding:8px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;position:relative;background:var(--bg);min-width:160px;transition:all 0.15s;}
+.dev-upload-zone:hover{border-color:var(--accent);background:var(--accent-l);}
+.dev-upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.dev-upload-zone-text{font-size:12px;color:var(--text-2);}
+.dev-staged{display:flex;flex-direction:column;gap:3px;margin-top:4px;}
+.dev-staged-file{font-size:11px;color:var(--text-2);font-family:var(--mono);display:flex;align-items:center;gap:6px;}
+.dev-staged-ok{color:var(--green);}
+.dev-staged-err{color:var(--error);}
+.dev-action-btns{display:flex;gap:8px;align-self:flex-end;}
+.dev-btn{padding:8px 16px;border-radius:7px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;border:none;white-space:nowrap;}
+.dev-btn-primary{background:var(--accent);color:white;}
+.dev-btn-primary:hover:not(:disabled){background:var(--accent-h);}
+.dev-btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+.dev-btn-ghost{background:var(--white);color:var(--text-2);border:1px solid var(--border);}
+.dev-btn-ghost:hover{border-color:var(--error);color:var(--error);}
+
+/* Flowchart canvas */
+.dev-canvas{flex:1;overflow:auto;padding:32px;}
+.dev-canvas-inner{display:flex;flex-direction:column;gap:32px;max-width:900px;margin:0 auto;}
+
+/* Phase group */
+.phase{display:flex;flex-direction:column;gap:0;}
+.phase-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.phase-badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
+.phase-badge.setup{background:#e0e7ff;color:#3730a3;}
+.phase-badge.session{background:#d1fae5;color:#065f46;}
+.phase-badge.extract{background:#fef3c7;color:#92400e;}
+.phase-line{flex:1;height:1px;background:var(--border);}
+
+/* Node grid */
+.node-grid{display:flex;flex-wrap:wrap;gap:12px;position:relative;}
+
+/* Connector arrow between grids */
+.phase-arrow{display:flex;justify-content:center;align-items:center;padding:8px 0;color:var(--text-3);font-size:18px;}
+
+/* Individual node */
+.fc-node{background:var(--white);border:2px solid var(--border);border-radius:10px;padding:14px 16px;min-width:180px;max-width:220px;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;}
+.fc-node:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(26,90,255,0.12);}
+.fc-node.running{border-color:var(--warn);background:#fffbeb;box-shadow:0 0 0 3px rgba(217,119,6,0.15);}
+.fc-node.done{border-color:var(--green);background:var(--green-l);}
+.fc-node.error{border-color:var(--error);background:var(--error-l);}
+.fc-node.manual{border-style:dashed;cursor:default;}
+.fc-node.manual:hover{border-color:var(--border);box-shadow:none;}
+.fc-node-status{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+.fc-node-status.idle{background:var(--bg);border:1px solid var(--border);color:var(--text-3);}
+.fc-node-status.running{background:var(--warn);color:white;animation:pulse-node 1s ease infinite;}
+.fc-node-status.done{background:var(--green);color:white;}
+.fc-node-status.error{background:var(--error);color:white;}
+@keyframes pulse-node{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
+.fc-node-icon{font-size:18px;margin-bottom:6px;}
+.fc-node-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.fc-node.done .fc-node-title{color:var(--green);}
+.fc-node.error .fc-node-title{color:var(--error);}
+.fc-node-api{font-family:var(--mono);font-size:10px;color:var(--text-3);margin-bottom:6px;}
+.fc-node-btn{display:block;width:100%;padding:5px 0;background:var(--accent);color:white;border:none;border-radius:6px;font-family:var(--sans);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.15s;text-align:center;}
+.fc-node-btn:hover{background:var(--accent-h);}
+.fc-node-btn:disabled{background:var(--border);color:var(--text-3);cursor:not-allowed;}
+.fc-node-btn.done-btn{background:var(--green);}
+.fc-node-btn.manual-btn{background:var(--bg);color:var(--text-2);border:1px solid var(--border);}
+.fc-node-btn.manual-btn:hover{background:var(--green-l);color:var(--green);border-color:var(--green);}
+
+/* Arrow between nodes */
+.node-arrow{display:flex;align-items:center;color:var(--border-2);font-size:16px;padding:0 4px;align-self:center;}
+
+/* Dev log at bottom */
+.dev-log-bar{background:var(--white);border-top:1px solid var(--border);max-height:160px;overflow-y:auto;padding:12px 32px;flex-shrink:0;}
+.dev-log-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3);margin-bottom:8px;}
+.dev-log-entry{display:grid;grid-template-columns:62px 1fr;gap:8px;padding:2px 0;font-family:var(--mono);font-size:11px;border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:3px;}
+.dev-log-entry:last-child{border-bottom:none;}
+.dev-log-time{color:var(--text-3);}
+.dev-log-msg{color:var(--text);}
+.dev-log-msg.success{color:var(--green);}
+.dev-log-msg.error{color:var(--error);}
+.dev-log-msg.warn{color:var(--warn);}
+.dev-log-msg.webhook{color:var(--accent);}
+
+/* Dev markup section */
+.dev-markup-section{background:var(--white);border-top:1px solid var(--border);padding:20px 32px;flex-shrink:0;}
+.dev-markup-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.dev-markup-count{font-size:12px;color:var(--text-2);margin-left:auto;font-family:var(--mono);}
+.dev-markup-count span{color:var(--green);font-weight:600;}
+.view-toggle{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;}
+.view-toggle button{padding:5px 14px;background:var(--white);border:none;color:var(--text-2);font-family:var(--sans);font-size:12px;cursor:pointer;transition:all 0.15s;}
 .view-toggle button.active{background:var(--accent);color:white;}
-.markup-count{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto;}
-.markup-count span{color:var(--green);font-weight:600;}
-.icon-btn{padding:4px 10px;background:var(--surf2);border:1px solid var(--border);border-radius:4px;color:var(--muted);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.2s;}
-.icon-btn:hover{color:var(--text);border-color:var(--muted);}
-.markup-table-wrap{overflow-x:auto;}
-.markup-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;}
-.markup-table th{text-align:left;padding:7px 10px;background:var(--surf2);border-bottom:1px solid var(--border);color:var(--muted);font-size:10px;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;cursor:pointer;user-select:none;}
-.markup-table th:hover{color:var(--text);}
-.markup-table th.sort-asc::after{content:' ↑';color:var(--accent);}
-.markup-table th.sort-desc::after{content:' ↓';color:var(--accent);}
-.markup-table td{padding:6px 10px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.markup-table tr:hover td{background:var(--surf2);}
-.status-pill{display:inline-block;padding:2px 7px;border-radius:3px;font-size:10px;background:var(--surf2);border:1px solid var(--border);}
-.color-swatch{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:middle;margin-right:4px;border:1px solid rgba(255,255,255,0.1);}
-.json-view{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;overflow:auto;max-height:400px;font-family:var(--mono);font-size:11px;line-height:1.6;}
-.json-key{color:#a5c8f0;}.json-str{color:var(--green);}.json-num{color:var(--warn);}.json-bool{color:#f08a5d;}.json-null{color:var(--muted);}
-.markup-empty{color:var(--muted);font-family:var(--mono);font-size:12px;padding:20px 0;text-align:center;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}
+.json-view{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;overflow:auto;max-height:300px;font-family:var(--mono);font-size:11px;line-height:1.6;}
+.json-key{color:#1d4ed8;}.json-str{color:#059669;}.json-num{color:#d97706;}.json-bool{color:#7c3aed;}.json-null{color:var(--text-3);}
+.markup-empty{color:var(--text-3);font-size:13px;padding:16px 0;text-align:center;}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-left">
-    <div class="logo">⚡</div>
-    <h1>Bluebeam Studio <span>/ Document Roundtrip PoC</span></h1>
+  <div class="header-brand">
+    <div class="header-logo">
+      <svg viewBox="0 0 16 16"><path d="M8 2L2 6v8h12V6L8 2zm0 2l4 2.67V14H4V6.67L8 4z"/></svg>
+    </div>
+    <div class="header-title">Bluebeam Studio <span>/ API Roundtrip Demo</span></div>
   </div>
-  <span id="devStatus" class="status-badge" style="display:none;">IDLE</span>
 </header>
 
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('eu')">Review Workflow</button>
+  <button class="tab-btn active" onclick="switchTab('rw')">Review Workflow</button>
   <button class="tab-btn" onclick="switchTab('dev')">Developer Console</button>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════
-     END USER TAB
-═══════════════════════════════════════════════════════ -->
-<div class="tab-content active" id="tab-eu">
-<div class="eu-layout">
+<!-- ═══════════════════════════════════════
+     REVIEW WORKFLOW TAB
+═══════════════════════════════════════ -->
+<div class="tab-content active" id="tab-rw">
+<div class="rw-wrap">
+<div class="rw-inner">
 
-  <!-- LEFT: Form -->
-  <div class="eu-form-panel">
-    <div>
-      <h2>Start a Document Review</h2>
-      <p>Upload your drawing, fill in the details, and click Start Review. Bluebeam handles the rest.</p>
+  <div>
+    <div class="rw-page-title">Start a Document Review</div>
+    <div class="rw-page-sub">Upload your drawings, add reviewers, and click Start Review. Bluebeam handles the rest — creating the project, setting up the session, and sending invitations automatically.</div>
+  </div>
+
+  <!-- Files -->
+  <div class="card">
+    <div class="card-title"><div class="card-title-icon">📄</div>Documents</div>
+    <div class="drop-zone" id="rwDropZone"
+         ondragover="event.preventDefault();this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="rwDrop(event)">
+      <input type="file" id="rwFileInput" multiple accept=".pdf,application/pdf" onchange="rwFileSelect(event)">
+      <div class="drop-zone-icon">📁</div>
+      <div class="drop-zone-title"><span>Click to browse</span> or drag &amp; drop</div>
+      <div class="drop-zone-hint">PDF files only · multiple supported</div>
     </div>
+    <div class="staged-files" id="rwStagedFiles"></div>
+  </div>
 
-    <!-- File upload -->
-    <div class="form-group">
-      <div class="config-label" style="margin-bottom:6px;">Documents</div>
-      <div class="drop-zone" id="euDropZone"
-           ondragover="event.preventDefault();this.classList.add('drag-over')"
-           ondragleave="this.classList.remove('drag-over')"
-           ondrop="euHandleDrop(event)">
-        <input type="file" id="euFileInput" multiple accept=".pdf,application/pdf" onchange="euHandleFileSelect(event)">
-        <div class="drop-zone-icon">📄</div>
-        <div class="drop-zone-label"><strong>Click to browse</strong> or drag &amp; drop</div>
-        <div class="drop-zone-hint">PDF files only · multiple supported</div>
+  <!-- Review details -->
+  <div class="card">
+    <div class="card-title"><div class="card-title-icon">📋</div>Review Details</div>
+    <div class="field-row cols-2">
+      <div class="field">
+        <label>Review Name</label>
+        <input type="text" id="rwName" placeholder="e.g. Phase 2 Coordination Review">
       </div>
-      <div class="staged-files" id="euStagedFiles"></div>
+      <div class="field">
+        <label>Discipline</label>
+        <select id="rwDiscipline">
+          <option value="">— Select —</option>
+          <option>Architectural</option><option>Structural</option>
+          <option>Mechanical</option><option>Electrical</option>
+          <option>Plumbing</option><option>Civil</option>
+          <option>Fire Protection</option><option>Geotechnical</option>
+          <option>Landscape</option><option>Interior Design</option>
+          <option>Technology / AV / Security</option>
+          <option>General / Multi-Discipline</option>
+        </select>
+      </div>
     </div>
-
-    <!-- Review name -->
-    <div class="form-group">
-      <label class="config-label">Review Name</label>
-      <input class="config-input" id="euReviewName" type="text" placeholder="e.g. Phase 2 Coordination Review">
+    <div class="field" style="margin-top:16px;">
+      <label>Description</label>
+      <input type="text" id="rwDesc" placeholder="Brief description of what's being reviewed">
     </div>
-
-    <!-- Description -->
-    <div class="form-group">
-      <label class="config-label">Description / Purpose</label>
-      <input class="config-input" id="euDescription" type="text" placeholder="e.g. Structural drawings for coordination review">
+    <div class="field" style="margin-top:16px;">
+      <label>Review Deadline</label>
+      <input type="date" id="rwDeadline">
     </div>
+  </div>
 
-    <!-- Discipline -->
-    <div class="form-group">
-      <label class="config-label">Discipline</label>
-      <select class="config-input" id="euDiscipline">
-        <option value="">— Select discipline —</option>
-        <option>Architectural</option>
-        <option>Structural</option>
-        <option>Mechanical</option>
-        <option>Electrical</option>
-        <option>Plumbing</option>
-        <option>Civil</option>
-        <option>Fire Protection</option>
-        <option>Geotechnical</option>
-        <option>Landscape</option>
-        <option>Interior Design</option>
-        <option>Technology / AV / Security</option>
-        <option>General / Multi-Discipline</option>
-      </select>
-    </div>
-
-    <!-- Review deadline -->
-    <div class="form-group">
-      <label class="config-label">Review Deadline</label>
-      <input class="config-input" id="euDeadline" type="date">
-    </div>
-
-    <!-- Reviewers -->
-    <div class="form-group">
-      <div class="config-label" style="margin-bottom:6px;">Reviewers</div>
-      <div class="chip-input-wrap" id="euChipWrap" onclick="document.getElementById('euReviewerInput').focus()">
+  <!-- Reviewers -->
+  <div class="card">
+    <div class="card-title"><div class="card-title-icon">👥</div>Reviewers</div>
+    <div class="field">
+      <label>Reviewer Emails</label>
+      <div class="chip-box" id="rwChipBox" onclick="document.getElementById('rwChipInput').focus()">
         <span class="chip primary">dmolz@bluebeam.com</span>
-        <input class="chip-text-input" id="euReviewerInput" type="email"
-               placeholder="Add reviewer email, press Enter"
-               onkeydown="euHandleReviewerKey(event)">
+        <input class="chip-input" id="rwChipInput" type="email"
+               placeholder="Add email address, press Enter"
+               onkeydown="rwChipKey(event)">
       </div>
-      <div style="font-size:10px;color:var(--muted);margin-top:4px;">Press Enter or comma to add · or import CSV</div>
-      <label class="csv-btn">
-        📎 Import CSV
-        <input type="file" accept=".csv,text/csv" onchange="euImportCsv(event)">
+      <div class="field-hint">Press Enter or comma to add. The primary reviewer (dmolz@bluebeam.com) is always included.</div>
+      <label class="csv-label">
+        ＋ Import from CSV
+        <input type="file" accept=".csv,text/csv" onchange="rwImportCsv(event)">
       </label>
     </div>
-
-    <!-- Buttons -->
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px;">
-      <button class="start-btn" id="euStartBtn" onclick="euStartReview()">▶ Start Review</button>
-      <button class="complete-btn" id="euCompleteBtn" onclick="euCompleteReview()" disabled>
-        ✓ Complete Review &amp; Extract Data
-      </button>
-      <button class="reset-sm" onclick="euReset()">↺ Reset</button>
-    </div>
   </div>
 
-  <!-- RIGHT: Progress + Results -->
-  <div class="eu-progress-panel" id="euProgressPanel">
+  <!-- Action -->
+  <div style="display:flex;flex-direction:column;gap:10px;" id="rwActions">
+    <button class="btn-primary" id="rwStartBtn" onclick="rwStart()">Start Review</button>
+  </div>
 
-    <!-- Idle state -->
-    <div id="euIdleState" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;gap:12px;padding:40px;">
-      <div style="font-size:48px;">📋</div>
-      <div style="font-size:16px;font-weight:600;color:var(--text);">Ready to start</div>
-      <div style="font-size:13px;color:var(--muted);max-width:340px;line-height:1.6;">Upload your documents, fill in the review details, and click <strong style="color:var(--accent);">Start Review</strong> to begin.</div>
+  <!-- Progress (hidden until started) -->
+  <div id="rwProgressSection" style="display:none;flex-direction:column;gap:16px;">
+
+    <div class="card" id="rwProgressCard">
+      <div class="card-title"><div class="card-title-icon">⚙️</div>Setting Up Review</div>
+      <div class="step-list" id="rwStepList">
+        <div class="step-row" id="rs-setup"><div class="step-dot" id="sd-setup">1</div><div class="step-row-label muted" id="sl-setup">Project setup &amp; custom columns</div><span class="step-row-api">setup-project</span></div>
+        <div class="step-row" id="rs-upload"><div class="step-dot" id="sd-upload">2</div><div class="step-row-label muted" id="sl-upload">Upload documents to project</div><span class="step-row-api">upload-to-project</span></div>
+        <div class="step-row" id="rs-columns"><div class="step-dot" id="sd-columns">3</div><div class="step-row-label muted" id="sl-columns">Apply review columns</div><span class="step-row-api">apply-custom-columns</span></div>
+        <div class="step-row" id="rs-session"><div class="step-dot" id="sd-session">4</div><div class="step-row-label muted" id="sl-session">Create Studio Session</div><span class="step-row-api">create-session</span></div>
+        <div class="step-row" id="rs-checkout"><div class="step-dot" id="sd-checkout">5</div><div class="step-row-label muted" id="sl-checkout">Check out documents to session</div><span class="step-row-api">checkout-to-session</span></div>
+        <div class="step-row" id="rs-invite"><div class="step-dot" id="sd-invite">6</div><div class="step-row-label muted" id="sl-invite">Invite reviewers</div><span class="step-row-api">invite-reviewers</span></div>
+      </div>
     </div>
 
-    <!-- Progress tracker (hidden until start) -->
-    <div id="euProgressTracker" style="display:none;">
+    <!-- Session active -->
+    <div class="session-banner" id="rwSessionBanner" style="display:none;">
+      <div class="session-banner-label">✓ Session Active — Open in Bluebeam Revu</div>
+      <div class="session-id" id="rwSessionId">—</div>
+      <div class="session-hint">Go to Bluebeam Revu → Studio → Sessions and enter this ID to join and begin marking up documents.</div>
+    </div>
 
-      <div class="progress-card">
-        <div class="progress-card-header">
-          <div class="progress-card-title">Setting Up Review</div>
-          <div id="euSetupStatus" style="font-size:12px;color:var(--muted);">Waiting...</div>
-        </div>
-        <div class="progress-steps" id="euSetupSteps">
-          <div class="prog-step" id="prog-setup"><div class="prog-icon" id="pi-setup">●</div><div><div class="prog-label muted">Project setup</div><div class="prog-sub">Folders &amp; custom columns</div></div></div>
-          <div class="prog-step" id="prog-upload"><div class="prog-icon" id="pi-upload">●</div><div><div class="prog-label muted">Upload documents</div><div class="prog-sub">3-step upload to project</div></div></div>
-          <div class="prog-step" id="prog-columns"><div class="prog-icon" id="pi-columns">●</div><div><div class="prog-label muted">Apply custom columns</div><div class="prog-sub">Review Stage, Priority, Discipline</div></div></div>
-          <div class="prog-step" id="prog-session"><div class="prog-icon" id="pi-session">●</div><div><div class="prog-label muted">Create session</div><div class="prog-sub">Restricted Studio Session</div></div></div>
-          <div class="prog-step" id="prog-checkout"><div class="prog-icon" id="pi-checkout">●</div><div><div class="prog-label muted">Check out documents</div><div class="prog-sub">Link project files to session</div></div></div>
-          <div class="prog-step" id="prog-invite"><div class="prog-icon" id="pi-invite">●</div><div><div class="prog-label muted">Invite reviewers</div><div class="prog-sub" id="pi-invite-sub">—</div></div></div>
-        </div>
+    <!-- Complete button -->
+    <button class="btn-success" id="rwCompleteBtn" onclick="rwComplete()" disabled style="display:none;">
+      ✓ Complete Review &amp; Extract Data
+    </button>
+
+    <!-- Extraction progress -->
+    <div class="card" id="rwExtractCard" style="display:none;">
+      <div class="card-title"><div class="card-title-icon">🔍</div>Extracting Review Data</div>
+      <div class="step-list">
+        <div class="step-row"><div class="step-dot" id="sd-checkin">1</div><div class="step-row-label muted" id="sl-checkin">Check in documents</div><span class="step-row-api">checkin</span></div>
+        <div class="step-row"><div class="step-dot" id="sd-export">2</div><div class="step-row-label muted" id="sl-export">Export markup XML</div><span class="step-row-api">export-markups</span></div>
+        <div class="step-row"><div class="step-dot" id="sd-mlist">3</div><div class="step-row-label muted" id="sl-mlist">Extract markup metadata</div><span class="step-row-api">run-markuplist-job</span></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="rwResults" style="display:none;flex-direction:column;gap:20px;">
+
+      <div class="card">
+        <div class="card-title"><div class="card-title-icon">📊</div>Review Summary</div>
+        <div class="summary-row" id="rwSummaryCards"></div>
       </div>
 
-      <!-- Session active banner -->
-      <div class="session-banner" id="euSessionBanner" style="display:none;">
-        <div class="session-banner-title">✓ Review Session Active</div>
-        <div class="session-id-display" id="euSessionIdDisplay">—</div>
-        <div class="session-hint">Open Bluebeam Revu → Studio → Sessions → enter this ID to join and begin marking up.</div>
+      <div class="card">
+        <div class="card-title"><div class="card-title-icon">📈</div>Breakdown by Review Stage</div>
+        <div class="breakdown" id="rwStageBreakdown"></div>
       </div>
 
-      <!-- Extraction progress -->
-      <div class="progress-card" id="euExtractCard" style="display:none;">
-        <div class="progress-card-header">
-          <div class="progress-card-title">Extracting Review Data</div>
-          <div id="euExtractStatus" style="font-size:12px;color:var(--muted);">Waiting...</div>
-        </div>
-        <div class="progress-steps">
-          <div class="prog-step"><div class="prog-icon" id="pi-checkin">●</div><div><div class="prog-label muted">Check in documents</div><div class="prog-sub">Return markups to project</div></div></div>
-          <div class="prog-step"><div class="prog-icon" id="pi-export">●</div><div><div class="prog-label muted">Export markup XML</div><div class="prog-sub">Archive to project folder</div></div></div>
-          <div class="prog-step"><div class="prog-icon" id="pi-markuplist">●</div><div><div class="prog-label muted">Extract markup metadata</div><div class="prog-sub">Structured data via markuplist job</div></div></div>
-        </div>
+      <div class="card">
+        <div class="card-title"><div class="card-title-icon">🎯</div>Breakdown by Priority</div>
+        <div class="breakdown" id="rwPriorityBreakdown"></div>
       </div>
 
-      <!-- Results -->
-      <div id="euResultsSection" style="display:none;">
-
-        <div class="section-title">Review Summary</div>
-        <div class="summary-grid" id="euSummaryCards"></div>
-
-        <div class="section-title" style="margin-top:20px;">Breakdown by Review Stage</div>
-        <div class="breakdown-section" id="euStageBreakdown"></div>
-
-        <div class="section-title" style="margin-top:20px;">Breakdown by Priority</div>
-        <div class="breakdown-section" id="euPriorityBreakdown"></div>
-
-        <div class="section-title" style="margin-top:20px;">Markup Details</div>
-        <div class="results-table-wrap">
+      <div class="card">
+        <div class="card-title"><div class="card-title-icon">📝</div>Markup Details</div>
+        <div class="results-wrap">
           <table class="results-table">
-            <thead>
-              <tr>
-                <th onclick="euSortTable('Page')">Pg</th>
-                <th onclick="euSortTable('Subject')">Subject</th>
-                <th onclick="euSortTable('Author')">Author</th>
-                <th onclick="euSortTable('euReviewStage')">Review Stage</th>
-                <th onclick="euSortTable('euDiscipline')">Discipline</th>
-                <th onclick="euSortTable('euResponsibility')">Responsibility</th>
-                <th onclick="euSortTable('euPriority')">Priority</th>
-                <th onclick="euSortTable('euActionRequired')">Action Required</th>
-                <th onclick="euSortTable('Comment')">Comment</th>
-                <th onclick="euSortTable('euDueDate')">Due Date</th>
-              </tr>
-            </thead>
-            <tbody id="euResultsTbody"></tbody>
-          </table>
-        </div>
-
-      </div>
-    </div>
-
-  </div>
-</div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════
-     DEVELOPER CONSOLE TAB
-═══════════════════════════════════════════════════════ -->
-<div class="tab-content" id="tab-dev">
-<div class="dev-layout">
-
-  <!-- LEFT: Steps -->
-  <aside class="steps-panel">
-    <div class="panel-label">Setup</div>
-
-    <div class="step-item upload-step" id="step-setup-project">
-      <div class="step-header"><div class="step-num">0a</div><div class="step-title">Setup Project</div></div>
-      <div class="step-sub">Create folders + upload custom-columns.xml</div>
-      <button class="run-btn" onclick="devRunStep('setup-project')">▶ Setup Project</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item upload-step" id="step-upload-to-project">
-      <div class="step-header"><div class="step-num">0b</div><div class="step-title">Upload to Project</div></div>
-      <div class="step-sub">Push PDF(s) to project 712-566-288</div>
-      <button class="run-btn" id="devUploadBtn" onclick="devUploadToProject()">▶ Upload to Project</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-apply-custom-columns">
-      <div class="step-header"><div class="step-num">0c</div><div class="step-title">Apply Custom Columns</div></div>
-      <div class="step-sub">importcustomcolumns job</div>
-      <button class="run-btn" onclick="devRunStep('apply-custom-columns')">▶ Apply Columns</button>
-    </div>
-
-    <div style="height:6px;"></div>
-    <div class="panel-label">Outbound</div>
-
-    <div class="step-item" id="step-trigger">
-      <div class="step-header"><div class="step-num">1</div><div class="step-title">Workflow Trigger</div></div>
-      <div class="step-sub">Simulate source-system event</div>
-      <button class="run-btn" onclick="devRunStep('trigger')">▶ Trigger Event</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-create-session">
-      <div class="step-header"><div class="step-num">2</div><div class="step-title">Create Session</div></div>
-      <div class="step-sub">POST /v1/sessions</div>
-      <button class="run-btn" onclick="devRunStep('create-session')">▶ Create Session</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-register-webhook">
-      <div class="step-header"><div class="step-num">3</div><div class="step-title">Register Webhook</div></div>
-      <div class="step-sub">POST /v2/subscriptions</div>
-      <button class="run-btn" onclick="devRunStep('register-webhook')">▶ Register Webhook</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-checkout-to-session">
-      <div class="step-header"><div class="step-num">4</div><div class="step-title">Checkout to Session</div></div>
-      <div class="step-sub">POST /files/{id}/checkout-to-session</div>
-      <button class="run-btn" onclick="devRunStep('checkout-to-session')">▶ Checkout to Session</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-invite-reviewers">
-      <div class="step-header"><div class="step-num">5</div><div class="step-title">Invite Reviewers</div></div>
-      <div class="step-sub">dmolz@bluebeam.com + additional</div>
-      <button class="run-btn" onclick="devRunStep('invite-reviewers')">▶ Invite Reviewers</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item manual-step" id="step-review">
-      <div class="step-header"><div class="step-num">6</div><div class="step-title">Review in Revu</div></div>
-      <div class="step-sub">Non-API — mark up then click when done</div>
-      <button class="run-btn" style="background:var(--surf2);border:1px solid var(--border);color:var(--muted);" onclick="devMarkReviewDone()">✓ Mark Review Complete</button>
-    </div>
-
-    <div style="height:6px;"></div>
-    <div class="panel-label">Inbound</div>
-
-    <div class="step-item" id="step-checkin">
-      <div class="step-header"><div class="step-num">7</div><div class="step-title">Check In</div></div>
-      <div class="step-sub">POST /files/{id}/checkin</div>
-      <button class="run-btn" onclick="devRunStep('checkin')">▶ Check In</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-export-markups">
-      <div class="step-header"><div class="step-num">8</div><div class="step-title">Export Markups</div></div>
-      <div class="step-sub">POST jobs/exportmarkups → XML</div>
-      <button class="run-btn" onclick="devRunStep('export-markups')">▶ Export Markups</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-run-markuplist-job">
-      <div class="step-header"><div class="step-num">9</div><div class="step-title">Markup List Job</div></div>
-      <div class="step-sub">POST jobs/markuplist → poll → extract</div>
-      <button class="run-btn" onclick="devRunStep('run-markuplist-job')">▶ Extract Markups</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-finalize">
-      <div class="step-header"><div class="step-num">10</div><div class="step-title">Finalize Session</div></div>
-      <div class="step-sub">PUT session status</div>
-      <button class="run-btn" onclick="devRunStep('finalize')">▶ Finalize</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-snapshot">
-      <div class="step-header"><div class="step-num">11</div><div class="step-title">Snapshot + Download</div></div>
-      <div class="step-sub">POST snapshot → poll → PDF</div>
-      <button class="run-btn" onclick="devRunStep('snapshot')">▶ Get Marked-up PDF</button>
-    </div>
-    <div class="step-connector"></div>
-
-    <div class="step-item" id="step-cleanup">
-      <div class="step-header"><div class="step-num">12</div><div class="step-title">Cleanup</div></div>
-      <div class="step-sub">Delete webhook + session</div>
-      <button class="run-btn" onclick="devRunStep('cleanup')">▶ Cleanup</button>
-    </div>
-  </aside>
-
-  <!-- RIGHT: Config + State + Log -->
-  <div class="dev-main">
-
-    <div class="setup-strip">
-      <div class="setup-row">
-        <div style="flex:2;min-width:200px;">
-          <div class="config-label" style="margin-bottom:5px;">PDF Files</div>
-          <div class="dev-drop-zone" id="devDropZone"
-               ondragover="event.preventDefault();this.classList.add('drag-over')"
-               ondragleave="this.classList.remove('drag-over')"
-               ondrop="devHandleDrop(event)">
-            <input type="file" id="devFileInput" multiple accept=".pdf,application/pdf" onchange="devHandleFileSelect(event)">
-            <div style="font-size:18px;margin-bottom:4px;">📄</div>
-            <div style="font-size:11px;color:var(--muted);"><strong style="color:var(--accent);">Click</strong> or drag &amp; drop PDFs</div>
-          </div>
-          <div class="staged-files" id="devStagedFiles"></div>
-        </div>
-        <div class="dev-config-fields">
-          <div>
-            <div class="config-label" style="margin-bottom:3px;">Document ID</div>
-            <input class="dev-config-input" id="devDocId" type="text" placeholder="DOC-001" onchange="devApplyConfig()">
-          </div>
-          <div>
-            <div class="config-label" style="margin-bottom:3px;">Description</div>
-            <input class="dev-config-input" id="devDesc" type="text" placeholder="Design review" onchange="devApplyConfig()">
-          </div>
-        </div>
-        <div class="dev-reviewer-section">
-          <div class="config-label" style="margin-bottom:5px;">Reviewers</div>
-          <div class="dev-chip-wrap" id="devChipWrap" onclick="document.getElementById('devReviewerInput').focus()">
-            <span class="chip primary">dmolz@bluebeam.com</span>
-            <input class="dev-chip-text" id="devReviewerInput" type="email" placeholder="Add email, Enter" onkeydown="devHandleReviewerKey(event)">
-          </div>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;align-self:flex-end;">
-          <button class="upload-project-btn-dev" id="devUploadBtnMain" onclick="devUploadToProject()">⬆ Upload</button>
-          <button class="dev-reset-btn" onclick="devReset()">↺ Reset</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="content-grid">
-      <div class="state-panel">
-        <div class="section-title">Session State</div>
-        <div class="state-grid">
-          <div class="state-card"><div class="state-card-label">Session ID</div><div class="state-card-val none" id="devStateSessionId">none</div></div>
-          <div class="state-card"><div class="state-card-label">Subscription ID</div><div class="state-card-val none" id="devStateSubId">none</div></div>
-          <div class="state-card"><div class="state-card-label">Project Files</div><div class="state-card-val none" id="devStateProjectFiles">0</div></div>
-          <div class="state-card"><div class="state-card-label">Session Files</div><div class="state-card-val none" id="devStateSessionFiles">0</div></div>
-          <div class="state-card"><div class="state-card-label">Markups</div><div class="state-card-val none" id="devStateMarkups">0</div></div>
-          <div class="state-card"><div class="state-card-label">Status</div><div class="state-card-val none" id="devStateStatus">idle</div></div>
-        </div>
-        <div id="devDownloadSection" style="display:none;margin-bottom:16px;">
-          <div class="section-title">Output PDFs</div>
-          <div class="download-links" id="devDownloadLinks"></div>
-        </div>
-        <div class="section-title">Webhook Events</div>
-        <div class="webhook-list" id="devWebhookList">
-          <div style="color:var(--muted);font-family:var(--mono);font-size:11px;">Waiting...</div>
-        </div>
-      </div>
-      <div class="log-panel">
-        <div class="section-title">Activity Log</div>
-        <div class="log-entries" id="devLogEntries">
-          <div style="color:var(--muted);font-family:var(--mono);font-size:12px;">Run a step to see output...</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="markup-panel-dev">
-      <div class="markup-toolbar">
-        <div class="section-title" style="margin-bottom:0;">Markup Metadata</div>
-        <div class="view-toggle">
-          <button id="devBtnTable" class="active" onclick="devSetView('table')">Table</button>
-          <button id="devBtnJson" onclick="devSetView('json')">JSON</button>
-        </div>
-        <button class="icon-btn" onclick="devCopyJson()" id="devCopyBtn">⎘ Copy JSON</button>
-        <div class="markup-count" id="devMarkupCount">No markups extracted yet</div>
-      </div>
-      <div id="devMarkupTableView">
-        <div class="markup-empty" id="devMarkupEmpty">Run Step 9 — Markup List Job to populate.</div>
-        <div class="markup-table-wrap" id="devMarkupTableWrap" style="display:none;">
-          <table class="markup-table">
             <thead><tr>
-              <th onclick="devSortTable('Page')">Page</th>
-              <th onclick="devSortTable('Type')">Type</th>
-              <th onclick="devSortTable('Subject')">Subject</th>
-              <th onclick="devSortTable('Author')">Author</th>
-              <th onclick="devSortTable('Status')">Status</th>
-              <th onclick="devSortTable('Comment')">Comment</th>
-              <th onclick="devSortTable('Layer')">Layer</th>
-              <th onclick="devSortTable('_sourceFile')">File</th>
-              <th onclick="devSortTable('DateCreated')">Created</th>
-              <th onclick="devSortTable('Color')">Color</th>
+              <th onclick="rwSort('Page')">Pg</th>
+              <th onclick="rwSort('Subject')">Subject</th>
+              <th onclick="rwSort('Author')">Author</th>
+              <th onclick="rwSort('_stage')">Review Stage</th>
+              <th onclick="rwSort('_discipline')">Discipline</th>
+              <th onclick="rwSort('_priority')">Priority</th>
+              <th onclick="rwSort('_action')">Action Required</th>
+              <th onclick="rwSort('Comment')">Comment</th>
+              <th onclick="rwSort('_due')">Due Date</th>
             </tr></thead>
-            <tbody id="devMarkupTbody"></tbody>
+            <tbody id="rwResultsTbody"></tbody>
           </table>
         </div>
       </div>
-      <div id="devMarkupJsonView" style="display:none;">
-        <div class="json-view" id="devJsonContent"></div>
+
+    </div>
+
+    <!-- Reset -->
+    <button class="btn-ghost" onclick="rwReset()">↺ Start a New Review</button>
+
+  </div>
+
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     DEVELOPER CONSOLE TAB
+═══════════════════════════════════════ -->
+<div class="tab-content" id="tab-dev">
+<div class="dev-wrap">
+
+  <!-- Config bar -->
+  <div class="dev-config-bar">
+
+    <div class="dev-config-field" style="min-width:180px;max-width:220px;">
+      <div class="dev-config-label">PDF Files</div>
+      <div class="dev-upload-zone" id="devUploadZone"
+           ondragover="event.preventDefault();this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="devDrop(event)">
+        <input type="file" id="devFileInput" multiple accept=".pdf,application/pdf" onchange="devFileSelect(event)">
+        <span style="font-size:16px;">📄</span>
+        <span class="dev-upload-zone-text">Click or drop PDFs</span>
+      </div>
+      <div class="dev-staged" id="devStagedFiles"></div>
+    </div>
+
+    <div class="dev-config-field">
+      <div class="dev-config-label">Document ID</div>
+      <input class="dev-input" id="devDocId" type="text" placeholder="DOC-001" onchange="devConfig()">
+    </div>
+
+    <div class="dev-config-field">
+      <div class="dev-config-label">Description</div>
+      <input class="dev-input" id="devDesc" type="text" placeholder="Design review" onchange="devConfig()">
+    </div>
+
+    <div class="dev-config-field" style="flex:1.5;min-width:240px;">
+      <div class="dev-config-label">Reviewers</div>
+      <div class="dev-chip-box" id="devChipBox" onclick="document.getElementById('devChipInput').focus()">
+        <span class="chip primary" style="font-size:11px;">dmolz@bluebeam.com</span>
+        <input class="dev-chip-input" id="devChipInput" type="email" placeholder="Add email, Enter" onkeydown="devChipKey(event)">
       </div>
     </div>
 
+    <div class="dev-action-btns">
+      <button class="dev-btn dev-btn-primary" id="devUploadBtn" onclick="devUpload()">⬆ Upload</button>
+      <button class="dev-btn dev-btn-ghost" onclick="devReset()">↺ Reset</button>
+    </div>
+
   </div>
+
+  <!-- Flowchart canvas -->
+  <div class="dev-canvas">
+  <div class="dev-canvas-inner">
+
+    <!-- SETUP phase -->
+    <div class="phase">
+      <div class="phase-header">
+        <span class="phase-badge setup">Setup</span>
+        <div class="phase-line"></div>
+      </div>
+      <div class="node-grid">
+        <div class="fc-node" id="fn-setup-project">
+          <div class="fc-node-status idle" id="fs-setup-project">·</div>
+          <div class="fc-node-icon">🗂️</div>
+          <div class="fc-node-title">Setup Project</div>
+          <div class="fc-node-api">setup-project</div>
+          <button class="fc-node-btn" onclick="devFire('setup-project')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-upload-to-project">
+          <div class="fc-node-status idle" id="fs-upload-to-project">·</div>
+          <div class="fc-node-icon">⬆️</div>
+          <div class="fc-node-title">Upload to Project</div>
+          <div class="fc-node-api">upload-to-project</div>
+          <button class="fc-node-btn" onclick="devUpload()">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-apply-custom-columns">
+          <div class="fc-node-status idle" id="fs-apply-custom-columns">·</div>
+          <div class="fc-node-icon">🏷️</div>
+          <div class="fc-node-title">Apply Custom Columns</div>
+          <div class="fc-node-api">apply-custom-columns</div>
+          <button class="fc-node-btn" onclick="devFire('apply-custom-columns')">Run</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-arrow">↓</div>
+
+    <!-- SESSION phase -->
+    <div class="phase">
+      <div class="phase-header">
+        <span class="phase-badge session">Session</span>
+        <div class="phase-line"></div>
+      </div>
+      <div class="node-grid">
+        <div class="fc-node" id="fn-trigger">
+          <div class="fc-node-status idle" id="fs-trigger">·</div>
+          <div class="fc-node-icon">⚡</div>
+          <div class="fc-node-title">Trigger Event</div>
+          <div class="fc-node-api">trigger</div>
+          <button class="fc-node-btn" onclick="devFire('trigger')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-create-session">
+          <div class="fc-node-status idle" id="fs-create-session">·</div>
+          <div class="fc-node-icon">🏠</div>
+          <div class="fc-node-title">Create Session</div>
+          <div class="fc-node-api">create-session</div>
+          <button class="fc-node-btn" onclick="devFire('create-session')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-register-webhook">
+          <div class="fc-node-status idle" id="fs-register-webhook">·</div>
+          <div class="fc-node-icon">🔔</div>
+          <div class="fc-node-title">Register Webhook</div>
+          <div class="fc-node-api">register-webhook</div>
+          <button class="fc-node-btn" onclick="devFire('register-webhook')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-checkout-to-session">
+          <div class="fc-node-status idle" id="fs-checkout-to-session">·</div>
+          <div class="fc-node-icon">🔗</div>
+          <div class="fc-node-title">Checkout to Session</div>
+          <div class="fc-node-api">checkout-to-session</div>
+          <button class="fc-node-btn" onclick="devFire('checkout-to-session')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-invite-reviewers">
+          <div class="fc-node-status idle" id="fs-invite-reviewers">·</div>
+          <div class="fc-node-icon">📧</div>
+          <div class="fc-node-title">Invite Reviewers</div>
+          <div class="fc-node-api">invite-reviewers</div>
+          <button class="fc-node-btn" onclick="devFire('invite-reviewers')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node manual" id="fn-review">
+          <div class="fc-node-status idle" id="fs-review">·</div>
+          <div class="fc-node-icon">✏️</div>
+          <div class="fc-node-title">Review in Revu</div>
+          <div class="fc-node-api">non-API step</div>
+          <button class="fc-node-btn manual-btn" onclick="devMarkReviewDone()">Mark Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="phase-arrow">↓</div>
+
+    <!-- EXTRACTION phase -->
+    <div class="phase">
+      <div class="phase-header">
+        <span class="phase-badge extract">Extraction &amp; Close</span>
+        <div class="phase-line"></div>
+      </div>
+      <div class="node-grid">
+        <div class="fc-node" id="fn-checkin">
+          <div class="fc-node-status idle" id="fs-checkin">·</div>
+          <div class="fc-node-icon">✅</div>
+          <div class="fc-node-title">Check In</div>
+          <div class="fc-node-api">checkin</div>
+          <button class="fc-node-btn" onclick="devFire('checkin')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-export-markups">
+          <div class="fc-node-status idle" id="fs-export-markups">·</div>
+          <div class="fc-node-icon">📤</div>
+          <div class="fc-node-title">Export Markups</div>
+          <div class="fc-node-api">export-markups</div>
+          <button class="fc-node-btn" onclick="devFire('export-markups')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-run-markuplist-job">
+          <div class="fc-node-status idle" id="fs-run-markuplist-job">·</div>
+          <div class="fc-node-icon">🔍</div>
+          <div class="fc-node-title">Markup List Job</div>
+          <div class="fc-node-api">run-markuplist-job</div>
+          <button class="fc-node-btn" onclick="devFire('run-markuplist-job')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-finalize">
+          <div class="fc-node-status idle" id="fs-finalize">·</div>
+          <div class="fc-node-icon">🏁</div>
+          <div class="fc-node-title">Finalize Session</div>
+          <div class="fc-node-api">finalize</div>
+          <button class="fc-node-btn" onclick="devFire('finalize')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-snapshot">
+          <div class="fc-node-status idle" id="fs-snapshot">·</div>
+          <div class="fc-node-icon">📸</div>
+          <div class="fc-node-title">Snapshot PDF</div>
+          <div class="fc-node-api">snapshot</div>
+          <button class="fc-node-btn" onclick="devFire('snapshot')">Run</button>
+        </div>
+        <div class="node-arrow">→</div>
+        <div class="fc-node" id="fn-cleanup">
+          <div class="fc-node-status idle" id="fs-cleanup">·</div>
+          <div class="fc-node-icon">🗑️</div>
+          <div class="fc-node-title">Cleanup</div>
+          <div class="fc-node-api">cleanup</div>
+          <button class="fc-node-btn" onclick="devFire('cleanup')">Run</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Download links -->
+    <div id="devDownloads" style="display:none;">
+      <div style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Output PDFs</div>
+      <div id="devDownloadLinks" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+
+  </div>
+  </div>
+
+  <!-- Dev markup panel -->
+  <div class="dev-markup-section" id="devMarkupSection" style="display:none;">
+    <div class="dev-markup-toolbar">
+      <span style="font-size:13px;font-weight:600;color:var(--text);">Markup Metadata</span>
+      <div class="view-toggle">
+        <button id="devBtnTable" class="active" onclick="devSetView('table')">Table</button>
+        <button id="devBtnJson" onclick="devSetView('json')">JSON</button>
+      </div>
+      <button onclick="devCopyJson()" id="devCopyBtn" style="padding:5px 12px;background:var(--white);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;color:var(--text-2);">⎘ Copy JSON</button>
+      <div class="dev-markup-count" id="devMarkupCount"><span id="devMarkupNum">0</span> markups</div>
+    </div>
+    <div id="devTableView">
+      <div class="results-wrap">
+        <table class="results-table">
+          <thead><tr>
+            <th onclick="devSort('Page')">Pg</th>
+            <th onclick="devSort('Type')">Type</th>
+            <th onclick="devSort('Subject')">Subject</th>
+            <th onclick="devSort('Author')">Author</th>
+            <th onclick="devSort('Status')">Status</th>
+            <th onclick="devSort('Comment')">Comment</th>
+            <th onclick="devSort('Layer')">Layer</th>
+            <th onclick="devSort('_sourceFile')">File</th>
+            <th onclick="devSort('DateCreated')">Created</th>
+          </tr></thead>
+          <tbody id="devMarkupTbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="devJsonView" style="display:none;">
+      <div class="json-view" id="devJsonContent"></div>
+    </div>
+  </div>
+
+  <!-- Dev log -->
+  <div class="dev-log-bar" id="devLogBar">
+    <div class="dev-log-title">Activity Log</div>
+    <div id="devLogEntries"><div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div></div>
+  </div>
+
 </div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// TAB SWITCHING
-// ═══════════════════════════════════════════════════════
-function switchTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (i===0&&tab==='eu')||(i===1&&tab==='dev')));
-  document.getElementById('tab-eu').classList.toggle('active', tab==='eu');
-  document.getElementById('tab-dev').classList.toggle('active', tab==='dev');
-  document.getElementById('devStatus').style.display = tab==='dev' ? 'inline-flex' : 'none';
-}
-
-// ═══════════════════════════════════════════════════════
-// SHARED STATE
-// ═══════════════════════════════════════════════════════
-let sharedState = {}; // last /poc/state response
-
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-
-async function postStep(endpoint) {
-  const r = await fetch(`/poc/${endpoint}`,{method:'POST',headers:{'Content-Type':'application/json'}});
-  const d = await r.json();
-  if(!r.ok) throw new Error(d.error||`HTTP ${r.status}`);
+// ── helpers ──────────────────────────────────────────────────────────────────
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+async function api(path,method='POST',body=null){
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(body)opts.body=JSON.stringify(body);
+  const r=await fetch(`/poc/${path}`,opts);
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);
   return d;
 }
-
-async function fetchState() {
-  const r = await fetch('/poc/state');
-  sharedState = await r.json();
-  return sharedState;
+function switchTab(t){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='rw')||(i===1&&t==='dev')));
+  document.getElementById('tab-rw').classList.toggle('active',t==='rw');
+  document.getElementById('tab-dev').classList.toggle('active',t==='dev');
 }
-
-setInterval(async()=>{
-  await fetchState();
-  devRefreshStateCards();
-}, 4000);
-
-// ═══════════════════════════════════════════════════════
-// END USER TAB
-// ═══════════════════════════════════════════════════════
-let euStagedFiles = [];
-let euMarkups     = [];
-let euSortKey     = 'Page';
-let euSortDir     = 'asc';
-
-// Default deadline to 7 days from now
-(function(){
-  const d = new Date(); d.setDate(d.getDate()+7);
-  document.getElementById('euDeadline').value = d.toISOString().slice(0,10);
-})();
-
-function euHandleFileSelect(e){euAddFiles(Array.from(e.target.files));e.target.value='';}
-function euHandleDrop(e){
-  e.preventDefault();document.getElementById('euDropZone').classList.remove('drag-over');
-  euAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));
-}
-function euAddFiles(files){
-  files.forEach(f=>{if(!euStagedFiles.find(s=>s.name===f.name))euStagedFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});
-  euRenderFiles();
-}
-function euRemoveFile(name){euStagedFiles=euStagedFiles.filter(f=>f.name!==name);euRenderFiles();}
-function euRenderFiles(){
-  const el=document.getElementById('euStagedFiles');
-  if(!euStagedFiles.length){el.innerHTML='';return;}
-  el.innerHTML=euStagedFiles.map(f=>{
-    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
-    const st=f.status==='ok'?'<span class="sf-status ok">✓ Uploaded</span>':f.status==='err'?'<span class="sf-status err">✗ Failed</span>':'<span class="sf-status wait">Staged</span>';
-    return `<div class="staged-file"><span class="staged-file-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="staged-file-size">${sz}</span>${st}${f.status!=='ok'?`<button class="remove-file-btn" onclick="euRemoveFile('${esc(f.name)}')">×</button>`:''}</div>`;
-  }).join('');
-}
-
-function euHandleReviewerKey(e){
-  if(e.key==='Enter'||e.key===','){e.preventDefault();euAddReviewer(e.target.value.trim().replace(/,$/,''));e.target.value='';}
-  if(e.key==='Backspace'&&!e.target.value){
-    const chips=document.querySelectorAll('#euChipWrap .chip:not(.primary)');
-    if(chips.length){const last=chips[chips.length-1];fetch('/poc/remove-reviewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:last.dataset.email})});last.remove();}
-  }
-}
-function euAddReviewer(email){
-  if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
-  if([...document.querySelectorAll('#euChipWrap .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const chip=document.createElement('span');chip.className='chip';chip.dataset.email=email;
-  chip.innerHTML=`${esc(email)} <button class="chip-remove" onclick="euRemoveChip(this,'${esc(email)}')">×</button>`;
-  document.getElementById('euChipWrap').insertBefore(chip,document.getElementById('euReviewerInput'));
-  fetch('/poc/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reviewerEmail:email})});
-}
-function euRemoveChip(btn,email){btn.closest('.chip').remove();fetch('/poc/remove-reviewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});}
-async function euImportCsv(e){
-  const file=e.target.files[0];if(!file)return;
-  const text=await file.text();
-  text.split(/[\r\n,;]+/).map(s=>s.trim()).filter(s=>s.includes('@')).forEach(euAddReviewer);
-  e.target.value='';
-}
-
-// Progress icon helpers
-function setProg(id,state,label=''){
-  const icon=document.getElementById('pi-'+id);
-  const step=document.getElementById('prog-'+id);
-  if(!icon)return;
-  icon.className='prog-icon '+state;
-  icon.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'●';
-  if(step){const lbl=step.querySelector('.prog-label');if(lbl){lbl.className='prog-label'+(state==='done'?' ':'  muted');}}
-}
-function setExtProg(id,state){
-  const icon=document.getElementById('pi-'+id);
-  if(!icon)return;
-  icon.className='prog-icon '+state;
-  icon.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'●';
-}
-
-async function euStartReview(){
-  // Validate
-  if(!euStagedFiles.length){alert('Please add at least one PDF document.');return;}
-  const reviewName=document.getElementById('euReviewName').value.trim();
-  const description=document.getElementById('euDescription').value.trim();
-  const discipline=document.getElementById('euDiscipline').value;
-  const deadline=document.getElementById('euDeadline').value;
-
-  if(!reviewName){alert('Please enter a review name.');return;}
-
-  // Push config to server
-  await fetch('/poc/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    documentId: reviewName.replace(/\s+/g,'-'),
-    description: `${discipline?discipline+' — ':''}${description||reviewName}`
-  })});
-
-  // Set session end date from deadline
-  if(deadline){
-    demoStubEndDate=new Date(deadline+'T23:59:00').toISOString();
-  }
-
-  // Show progress tracker
-  document.getElementById('euIdleState').style.display='none';
-  document.getElementById('euProgressTracker').style.display='flex';
-  document.getElementById('euProgressTracker').style.flexDirection='column';
-  document.getElementById('euProgressTracker').style.gap='20px';
-
-  const startBtn=document.getElementById('euStartBtn');
-  startBtn.disabled=true;startBtn.classList.add('running');startBtn.textContent='⟳ Setting up review...';
-  document.getElementById('euSetupStatus').textContent='Running...';
-
-  try {
-    // Step 0a: setup project (check state first — idempotent but skip if already done)
-    setProg('setup','running');
-    const state=await fetchState();
-    if(!state.projectSetupDone){
-      await postStep('setup-project');
-    }
-    setProg('setup','done');
-
-    // Step 0b: upload files to project
-    setProg('upload','running');
-    const formData=new FormData();
-    const pending=euStagedFiles.filter(f=>f.status==='staged');
-    pending.forEach(f=>formData.append('files',f.file,f.name));
-    const upResp=await fetch('/poc/upload-to-project',{method:'POST',body:formData});
-    const upData=await upResp.json();
-    if(!upResp.ok)throw new Error(upData.error||'Upload failed');
-    (upData.uploaded||[]).forEach(u=>{const sf=euStagedFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
-    euRenderFiles();
-    setProg('upload','done');
-
-    // Step 0c: apply custom columns
-    setProg('columns','running');
-    await postStep('apply-custom-columns');
-    setProg('columns','done');
-
-    // Step 2: create session
-    setProg('session','running');
-    await postStep('trigger');
-    const sessData=await postStep('create-session');
-    await postStep('register-webhook');
-    setProg('session','done');
-
-    // Step 4: checkout to session
-    setProg('checkout','running');
-    await postStep('checkout-to-session');
-    setProg('checkout','done');
-
-    // Step 5: invite reviewers
-    const reviewers=[...document.querySelectorAll('#euChipWrap .chip')].map(c=>c.textContent.replace('×','').trim()).filter(Boolean);
-    document.getElementById('pi-invite-sub').textContent=reviewers.join(', ');
-    setProg('invite','running');
-    await postStep('invite-reviewers');
-    setProg('invite','done');
-
-    // Show session banner
-    const finalState=await fetchState();
-    document.getElementById('euSessionBanner').style.display='block';
-    document.getElementById('euSessionIdDisplay').textContent=finalState.sessionId||'—';
-    document.getElementById('euSetupStatus').textContent='Complete ✓';
-
-    document.getElementById('euCompleteBtn').disabled=false;
-    startBtn.textContent='▶ Start Review';
-    startBtn.classList.remove('running');
-    // Keep disabled so they don't double-start
-    startBtn.disabled=true;
-    startBtn.style.opacity='0.5';
-
-  } catch(err){
-    document.getElementById('euSetupStatus').textContent='Error: '+err.message;
-    // Mark last running step as error
-    ['setup','upload','columns','session','checkout','invite'].forEach(id=>{
-      if(document.getElementById('pi-'+id)?.className.includes('running'))setProg(id,'error');
-    });
-    startBtn.disabled=false;startBtn.classList.remove('running');startBtn.textContent='▶ Start Review';
-  }
-}
-
-async function euCompleteReview(){
-  const completeBtn=document.getElementById('euCompleteBtn');
-  completeBtn.disabled=true;completeBtn.classList.add('running');completeBtn.textContent='⟳ Extracting data...';
-
-  document.getElementById('euExtractCard').style.display='block';
-  document.getElementById('euExtractStatus').textContent='Running...';
-
-  try{
-    setExtProg('checkin','running');
-    await postStep('checkin');
-    setExtProg('checkin','done');
-
-    setExtProg('export','running');
-    await postStep('export-markups');
-    setExtProg('export','done');
-
-    setExtProg('markuplist','running');
-    const result=await postStep('run-markuplist-job');
-    setExtProg('markuplist','done');
-
-    euMarkups=result.markups||[];
-    document.getElementById('euExtractStatus').textContent='Complete ✓';
-
-    euRenderResults();
-
-    completeBtn.textContent='✓ Data Extracted';
-    completeBtn.classList.remove('running');
-
-  }catch(err){
-    document.getElementById('euExtractStatus').textContent='Error: '+err.message;
-    ['checkin','export','markuplist'].forEach(id=>{
-      if(document.getElementById('pi-'+id)?.className.includes('running'))setExtProg(id,'error');
-    });
-    completeBtn.disabled=false;completeBtn.classList.remove('running');completeBtn.textContent='✓ Complete Review & Extract Data';
-  }
-}
-
-function euRenderResults(){
-  const markups=euMarkups;
-  document.getElementById('euResultsSection').style.display='block';
-
-  // ── Summary cards ──────────────────────────────────────────────────────
-  const ext=m=>m.ExtendedProperties||{};
-  const getField=(m,key)=>ext(m)[key]||ext(m)[key.replace(/ /g,'')]||'';
-
-  const stages=markups.map(m=>getField(m,'Review Stage')).filter(Boolean);
-  const priorities=markups.map(m=>getField(m,'Priority')).filter(Boolean);
-  const needsAction=markups.filter(m=>getField(m,'Action Required')).length;
-  const critical=priorities.filter(p=>p.includes('Critical')).length;
-
-  document.getElementById('euSummaryCards').innerHTML=`
-    <div class="summary-card"><div class="summary-card-val">${markups.length}</div><div class="summary-card-label">Total Markups</div></div>
-    <div class="summary-card"><div class="summary-card-val green">${needsAction}</div><div class="summary-card-label">Action Required</div></div>
-    <div class="summary-card"><div class="summary-card-val error">${critical}</div><div class="summary-card-label">Critical Items</div></div>
-    <div class="summary-card"><div class="summary-card-val warn">${[...new Set(markups.map(m=>m.Author).filter(Boolean))].length}</div><div class="summary-card-label">Reviewers Active</div></div>
-  `;
-
-  // ── Stage breakdown ────────────────────────────────────────────────────
-  const stageCounts={};
-  stages.forEach(s=>{stageCounts[s]=(stageCounts[s]||0)+1;});
-  const maxStage=Math.max(...Object.values(stageCounts),1);
-  document.getElementById('euStageBreakdown').innerHTML=Object.entries(stageCounts)
-    .sort((a,b)=>b[1]-a[1])
-    .map(([label,count])=>`
-      <div class="breakdown-item">
-        <div class="breakdown-label" title="${esc(label)}">${esc(label)}</div>
-        <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${Math.round(count/maxStage*100)}%"></div></div>
-        <div class="breakdown-count">${count}</div>
-      </div>`).join('') || '<div style="color:var(--muted);font-size:12px;">No Review Stage data — ensure custom columns were applied before upload</div>';
-
-  // ── Priority breakdown ─────────────────────────────────────────────────
-  const prioCounts={};
-  priorities.forEach(p=>{prioCounts[p]=(prioCounts[p]||0)+1;});
-  const maxPrio=Math.max(...Object.values(prioCounts),1);
-  const prioColors={'Critical':'#f75f5f','High':'#f7c94f','Medium':'#4f8ef7','Low':'#38d9a9'};
-  document.getElementById('euPriorityBreakdown').innerHTML=Object.entries(prioCounts)
-    .sort((a,b)=>b[1]-a[1])
-    .map(([label,count])=>{
-      const color=Object.entries(prioColors).find(([k])=>label.includes(k))?.[1]||'#4f8ef7';
-      return `<div class="breakdown-item">
-        <div class="breakdown-label" title="${esc(label)}">${esc(label)}</div>
-        <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${Math.round(count/maxPrio*100)}%;background:${color}"></div></div>
-        <div class="breakdown-count">${count}</div>
-      </div>`;
-    }).join('') || '<div style="color:var(--muted);font-size:12px;">No Priority data</div>';
-
-  // ── Results table ──────────────────────────────────────────────────────
-  euRenderTable();
-}
-
-function euGetSortVal(m,key){
-  if(['euReviewStage','euDiscipline','euResponsibility','euPriority','euActionRequired','euDueDate'].includes(key)){
-    const fieldMap={euReviewStage:'Review Stage',euDiscipline:'Discipline',euResponsibility:'Responsibility',euPriority:'Priority',euActionRequired:'Action Required',euDueDate:'Due Date'};
-    const ext=m.ExtendedProperties||{};
-    return ext[fieldMap[key]]||ext[fieldMap[key]?.replace(/ /g,'')]||'';
-  }
-  return m[key]??'';
-}
-
-function euRenderTable(){
-  const sorted=[...euMarkups].sort((a,b)=>{
-    const av=String(euGetSortVal(a,euSortKey)),bv=String(euGetSortVal(b,euSortKey));
-    return euSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
-  });
-
-  const prioClass=p=>{if(!p)return'';if(p.includes('Critical'))return'critical';if(p.includes('High'))return'high';if(p.includes('Medium'))return'medium';if(p.includes('Low'))return'low';return'info';};
-
-  document.getElementById('euResultsTbody').innerHTML=sorted.map(m=>{
-    const ep=m.ExtendedProperties||{};
-    const stage=ep['Review Stage']||ep['ReviewStage']||'—';
-    const disc=ep['Discipline']||'—';
-    const resp=ep['Responsibility']||'—';
-    const prio=ep['Priority']||'—';
-    const action=ep['Action Required']||ep['ActionRequired']||'—';
-    const due=ep['Due Date']||ep['DueDate']||'—';
-    return `<tr>
-      <td>${m.Page??'—'}</td>
-      <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
-      <td>${esc(m.Author||'—')}</td>
-      <td><span class="stage-pill" title="${esc(stage)}">${esc(stage.length>30?stage.slice(0,28)+'…':stage)}</span></td>
-      <td>${esc(disc)}</td>
-      <td>${esc(resp)}</td>
-      <td><span class="prio-pill ${prioClass(prio)}" title="${esc(prio)}">${esc(prio.split('–')[0].trim())}</span></td>
-      <td title="${esc(action)}">${esc(action)}</td>
-      <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
-      <td>${esc(due)}</td>
-    </tr>`;
-  }).join('');
-}
-
-function euSortTable(key){
-  euSortDir=(euSortKey===key&&euSortDir==='asc')?'desc':'asc';
-  euSortKey=key;
-  if(euMarkups.length)euRenderTable();
-}
-
-function euReset(){
-  euStagedFiles=[];euMarkups=[];
-  euRenderFiles();
-  document.getElementById('euIdleState').style.display='flex';
-  document.getElementById('euProgressTracker').style.display='none';
-  document.getElementById('euResultsSection').style.display='none';
-  document.getElementById('euSessionBanner').style.display='none';
-  document.getElementById('euExtractCard').style.display='none';
-  document.getElementById('euStartBtn').disabled=false;
-  document.getElementById('euStartBtn').style.opacity='1';
-  document.getElementById('euStartBtn').textContent='▶ Start Review';
-  document.getElementById('euCompleteBtn').disabled=true;
-  document.getElementById('euCompleteBtn').textContent='✓ Complete Review & Extract Data';
-  document.querySelectorAll('#euChipWrap .chip:not(.primary)').forEach(c=>c.remove());
-  ['setup','upload','columns','session','checkout','invite'].forEach(id=>setProg(id,''));
-  ['checkin','export','markuplist'].forEach(id=>setExtProg(id,''));
-  fetch('/poc/reset',{method:'POST'});
-}
-
-// ═══════════════════════════════════════════════════════
-// DEVELOPER CONSOLE TAB
-// ═══════════════════════════════════════════════════════
-let devStagedFiles=[];
-let devMarkups=[];
-let devSortKey='Page';
-let devSortDir='asc';
-let devView='table';
-
-function devHandleFileSelect(e){devAddFiles(Array.from(e.target.files));e.target.value='';}
-function devHandleDrop(e){
-  e.preventDefault();document.getElementById('devDropZone').classList.remove('drag-over');
-  devAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));
-}
-function devAddFiles(files){
-  files.forEach(f=>{if(!devStagedFiles.find(s=>s.name===f.name))devStagedFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});
-  devRenderFiles();
-}
-function devRemoveFile(name){devStagedFiles=devStagedFiles.filter(f=>f.name!==name);devRenderFiles();}
-function devRenderFiles(){
-  const el=document.getElementById('devStagedFiles');
-  if(!devStagedFiles.length){el.innerHTML='';return;}
-  el.innerHTML=devStagedFiles.map(f=>{
-    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
-    const st=f.status==='ok'?'<span class="sf-status ok">✓</span>':f.status==='err'?'<span class="sf-status err">✗</span>':'<span class="sf-status wait">·</span>';
-    return `<div class="staged-file"><span class="staged-file-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="staged-file-size">${sz}</span>${st}${f.status!=='ok'?`<button class="remove-file-btn" onclick="devRemoveFile('${esc(f.name)}')">×</button>`:''}</div>`;
-  }).join('');
-}
-
-function devHandleReviewerKey(e){
-  if(e.key==='Enter'||e.key===','){e.preventDefault();devAddReviewer(e.target.value.trim().replace(/,$/,''));e.target.value='';}
-  if(e.key==='Backspace'&&!e.target.value){
-    const chips=document.querySelectorAll('#devChipWrap .chip:not(.primary)');
-    if(chips.length){const last=chips[chips.length-1];fetch('/poc/remove-reviewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:last.dataset.email})});last.remove();}
-  }
-}
-function devAddReviewer(email){
-  if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
-  if([...document.querySelectorAll('#devChipWrap .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const chip=document.createElement('span');chip.className='chip';chip.dataset.email=email;
-  chip.innerHTML=`${esc(email)} <button class="chip-remove" onclick="devRemoveChip(this,'${esc(email)}')">×</button>`;
-  document.getElementById('devChipWrap').insertBefore(chip,document.getElementById('devReviewerInput'));
-  fetch('/poc/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reviewerEmail:email})});
-}
-function devRemoveChip(btn,email){btn.closest('.chip').remove();fetch('/poc/remove-reviewer',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});}
-
-function devApplyConfig(){
-  const body={};
-  const docId=document.getElementById('devDocId').value.trim();
-  const desc=document.getElementById('devDesc').value.trim();
-  if(docId)body.documentId=docId;
-  if(desc)body.description=desc;
-  if(Object.keys(body).length)fetch('/poc/configure',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-}
-
-async function devUploadToProject(){
-  const pending=devStagedFiles.filter(f=>f.status==='staged');
-  if(!pending.length){alert('No files staged.');return;}
-  ['devUploadBtn','devUploadBtnMain'].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=true;b.textContent='⟳';}});
-  const stepEl=document.getElementById('step-upload-to-project');
-  if(stepEl){stepEl.classList.add('running-step');stepEl.classList.remove('done','error-step');}
-  const formData=new FormData();
-  pending.forEach(f=>formData.append('files',f.file,f.name));
-  try{
-    const resp=await fetch('/poc/upload-to-project',{method:'POST',body:formData});
-    const data=await resp.json();
-    if(!resp.ok)throw new Error(data.error);
-    (data.uploaded||[]).forEach(u=>{const sf=devStagedFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
-    devRenderFiles();
-    if(stepEl){stepEl.classList.remove('running-step');stepEl.classList.add('done');const n=stepEl.querySelector('.step-num');if(n)n.textContent='✓';}
-  }catch(err){
-    pending.forEach(f=>{f.status='err';});devRenderFiles();
-    if(stepEl){stepEl.classList.remove('running-step');stepEl.classList.add('error-step');}
-  }
-  ['devUploadBtn','devUploadBtnMain'].forEach(id=>{const b=document.getElementById(id);if(b){b.disabled=false;b.textContent='⬆ Upload';}});
-  devRefreshStateCards();
-}
-
-const devStepLabels={
-  'setup-project':'▶ Setup Project','apply-custom-columns':'▶ Apply Columns',
-  'trigger':'▶ Trigger Event','create-session':'▶ Create Session',
-  'register-webhook':'▶ Register Webhook','checkout-to-session':'▶ Checkout to Session',
-  'invite-reviewers':'▶ Invite Reviewers','checkin':'▶ Check In',
-  'export-markups':'▶ Export Markups','run-markuplist-job':'▶ Extract Markups',
-  'finalize':'▶ Finalize','snapshot':'▶ Get Marked-up PDF','cleanup':'▶ Cleanup'
-};
-
-async function devRunStep(step){
-  const stepEl=document.getElementById(`step-${step}`);
-  const btn=stepEl?.querySelector('.run-btn');
-  if(btn){btn.disabled=true;btn.classList.add('loading');btn.textContent='⟳ Running...';}
-  if(stepEl){stepEl.classList.remove('done','error-step');stepEl.classList.add('running-step');}
-  try{
-    const data=await postStep(step);
-    if(stepEl){stepEl.classList.remove('running-step');stepEl.classList.add('done');}
-    const numEl=stepEl?.querySelector('.step-num');if(numEl)numEl.textContent='✓';
-    if(step==='snapshot'&&data.downloads?.length){
-      document.getElementById('devDownloadSection').style.display='block';
-      document.getElementById('devDownloadLinks').innerHTML=data.downloads.map(d=>`<a class="download-link" href="${esc(d.path)}" target="_blank">⬇ ${esc(d.name)}</a>`).join('');
-    }
-    if(step==='run-markuplist-job'&&data.markups){devMarkups=data.markups;devRenderMarkups();}
-  }catch(err){
-    if(stepEl){stepEl.classList.remove('running-step');stepEl.classList.add('error-step');}
-  }
-  if(btn){btn.disabled=false;btn.classList.remove('loading');btn.textContent=devStepLabels[step]||'▶ Run';}
-  await fetchState();devRefreshStateCards();
-}
-
-function devMarkReviewDone(){
-  const el=document.getElementById('step-review');const btn=el?.querySelector('.run-btn');
-  if(el){el.classList.remove('manual-step');el.classList.add('done');}
-  const n=el?.querySelector('.step-num');if(n)n.textContent='✓';
-  if(btn){btn.textContent='✓ Done';btn.style.cssText='background:rgba(56,217,169,0.15);color:var(--green);border:1px solid var(--green);';}
-}
-
-async function devReset(){
-  await fetch('/poc/reset',{method:'POST'});
-  devStagedFiles=[];devMarkups=[];devRenderFiles();
-  document.querySelectorAll('#tab-dev .step-item').forEach(el=>{
-    el.classList.remove('done','error-step','running-step');
-    const n=el.querySelector('.step-num');if(n&&/^\d/.test(n.textContent))n.textContent=n.dataset.orig||n.textContent;
-  });
-  const rb=document.querySelector('#step-review .run-btn');
-  if(rb){rb.textContent='✓ Mark Review Complete';rb.style.cssText='';}
-  document.getElementById('devDownloadSection').style.display='none';
-  document.querySelectorAll('#devChipWrap .chip:not(.primary)').forEach(c=>c.remove());
-  devMarkups=[];devRenderMarkups();
-  await fetchState();devRefreshStateCards();
-}
-
-async function devRefreshStateCards(){
-  const data=sharedState;
-  if(!data||!data.status)return;
-
-  const badge=document.getElementById('devStatus');
-  badge.textContent=(data.status||'idle').toUpperCase().replace(/-/g,' ');
-  badge.className='status-badge';
-  const working=['triggered','creating','uploading','checking-out','inviting','checking-in','extracting-markups','finalizing','snapshotting'];
-  if(working.includes(data.status))badge.classList.add('working');
-  else if(['active','complete'].includes(data.status))badge.classList.add('active');
-  else if(data.status==='error')badge.classList.add('error');
-
-  const sc=(id,val,good)=>{const el=document.getElementById(id);if(!el)return;el.textContent=val??'none';el.className='state-card-val'+(val?(good?' ok':''):' none');};
-  sc('devStateSessionId',data.sessionId,true);
-  sc('devStateSubId',data.subscriptionId,true);
-  sc('devStateProjectFiles',data.projectFiles?.length||0,data.projectFiles?.length>0);
-  sc('devStateSessionFiles',data.sessionFileIds?.length||0,data.sessionFileIds?.length>0);
-  sc('devStateMarkups',data.markups?.length||0,data.markups?.length>0);
-  sc('devStateStatus',data.status,['active','complete'].includes(data.status));
-
-  if(data.markups?.length>0&&!devMarkups.length){devMarkups=data.markups;devRenderMarkups();}
-
-  const logEl=document.getElementById('devLogEntries');
-  if(data.log?.length){
-    logEl.innerHTML=[...data.log].reverse().map(e=>{
-      const t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});
-      return `<div class="log-entry"><span class="log-time">${t}</span><span class="log-msg ${e.type||'info'}">${esc(e.msg)}</span></div>`;
-    }).join('');
-  }
-  const whEl=document.getElementById('devWebhookList');
-  if(data.webhookEvents?.length){
-    whEl.innerHTML=[...data.webhookEvents].reverse().map(e=>`<div class="webhook-event"><div class="webhook-time">${new Date(e.receivedAt).toLocaleTimeString()}</div><div>${esc(e.ResourceType||'')} — ${esc(e.EventType||'')}</div></div>`).join('');
-  }
-}
-
-function devRenderMarkups(){
-  const count=devMarkups.length;
-  document.getElementById('devMarkupCount').innerHTML=count>0?`<span>${count}</span> markup${count!==1?'s':''} extracted`:'No markups extracted yet';
-  if(!count){document.getElementById('devMarkupEmpty').style.display='block';document.getElementById('devMarkupTableWrap').style.display='none';return;}
-  document.getElementById('devMarkupEmpty').style.display='none';
-  document.getElementById('devMarkupTableWrap').style.display='block';
-  devRenderTable();
-  document.getElementById('devJsonContent').innerHTML=syntaxHighlight(JSON.stringify(devMarkups,null,2));
-}
-
-function devRenderTable(){
-  const sorted=[...devMarkups].sort((a,b)=>{
-    const av=String(a[devSortKey]??''),bv=String(b[devSortKey]??'');
-    return devSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
-  });
-  document.getElementById('devMarkupTbody').innerHTML=sorted.map(m=>{
-    const cs=m.Color?`<span class="color-swatch" style="background:${esc(m.Color)}"></span>`:'';
-    const dt=m.DateCreated?new Date(m.DateCreated).toLocaleDateString():'—';
-    return `<tr><td>${m.Page??'—'}</td><td>${esc(m.Type||'—')}</td><td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td><td>${esc(m.Author||'—')}</td><td><span class="status-pill">${esc(m.Status||'—')}</span></td><td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td><td>${esc(m.Layer||'—')}</td><td>${esc(m._sourceFile||'—')}</td><td>${dt}</td><td>${cs}${esc(m.Color||'—')}</td></tr>`;
-  }).join('');
-}
-
-function devSortTable(key){devSortDir=(devSortKey===key&&devSortDir==='asc')?'desc':'asc';devSortKey=key;if(devMarkups.length)devRenderTable();}
-function devSetView(v){devView=v;document.getElementById('devBtnTable').classList.toggle('active',v==='table');document.getElementById('devBtnJson').classList.toggle('active',v==='json');document.getElementById('devMarkupTableView').style.display=v==='table'?'block':'none';document.getElementById('devMarkupJsonView').style.display=v==='json'?'block':'none';}
-async function devCopyJson(){if(!devMarkups.length)return;try{await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));const b=document.getElementById('devCopyBtn');b.textContent='✓ Copied';setTimeout(()=>{b.textContent='⎘ Copy JSON';},2000);}catch{}}
-
-function syntaxHighlight(json){
+function syntaxHL(json){
   return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{
       if(/^"/.test(m))return/:$/.test(m)?`<span class="json-key">${m}</span>`:`<span class="json-str">${m}</span>`;
@@ -1239,9 +754,386 @@ function syntaxHighlight(json){
       return`<span class="json-num">${m}</span>`;
     });
 }
+// default deadline 7 days
+(()=>{const d=new Date();d.setDate(d.getDate()+7);document.getElementById('rwDeadline').value=d.toISOString().slice(0,10);})();
 
-// Init
-fetchState().then(devRefreshStateCards);
+// ── REVIEW WORKFLOW ───────────────────────────────────────────────────────────
+let rwFiles=[];
+let rwMarkups=[];
+let rwSortKey='Page';
+let rwSortDir='asc';
+
+function rwFileSelect(e){rwAddFiles(Array.from(e.target.files));e.target.value='';}
+function rwDrop(e){e.preventDefault();document.getElementById('rwDropZone').classList.remove('drag-over');rwAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));}
+function rwAddFiles(files){files.forEach(f=>{if(!rwFiles.find(s=>s.name===f.name))rwFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});rwRenderFiles();}
+function rwRenderFiles(){
+  const el=document.getElementById('rwStagedFiles');
+  if(!rwFiles.length){el.innerHTML='';return;}
+  el.innerHTML=rwFiles.map(f=>{
+    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
+    const st=f.status==='ok'?'<span class="sf-status ok">✓ Uploaded</span>':f.status==='err'?'<span class="sf-status err">✗ Failed</span>':'<span class="sf-status wait">Ready to upload</span>';
+    const rmv=f.status!=='ok'?`<button class="sf-remove" onclick="rwRemoveFile('${esc(f.name)}')">×</button>`:'';
+    return`<div class="staged-file"><span class="sf-icon">📄</span><span class="sf-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="sf-size">${sz}</span>${st}${rmv}</div>`;
+  }).join('');
+}
+function rwRemoveFile(name){rwFiles=rwFiles.filter(f=>f.name!==name);rwRenderFiles();}
+
+function rwChipKey(e){
+  if(e.key==='Enter'||e.key===','){e.preventDefault();rwAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
+  if(e.key==='Backspace'&&!e.target.value){
+    const chips=[...document.querySelectorAll('#rwChipBox .chip:not(.primary)')];
+    if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email});last.remove();}
+  }
+}
+function rwAddChip(email){
+  if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
+  if([...document.querySelectorAll('#rwChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
+  const c=document.createElement('span');c.className='chip';c.dataset.email=email;
+  c.innerHTML=`${esc(email)} <button class="chip-x" onclick="rwRemoveChip(this,'${esc(email)}')">×</button>`;
+  document.getElementById('rwChipBox').insertBefore(c,document.getElementById('rwChipInput'));
+  api('configure',undefined,{reviewerEmail:email});
+}
+function rwRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email});}
+async function rwImportCsv(e){const f=e.target.files[0];if(!f)return;const t=await f.text();t.split(/[\r\n,;]+/).map(s=>s.trim()).filter(s=>s.includes('@')).forEach(rwAddChip);e.target.value='';}
+
+// Step dot helpers
+function rwSetStep(id,state,label=''){
+  const dot=document.getElementById('sd-'+id);
+  const lbl=document.getElementById('sl-'+id);
+  if(!dot)return;
+  dot.className='step-dot '+state;
+  dot.textContent=state==='done'?'✓':state==='running'?'↻':state==='error'?'✗':(parseInt(dot.textContent)||'·');
+  if(lbl&&label){lbl.textContent=label;lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');}
+}
+
+async function rwStart(){
+  if(!rwFiles.length){alert('Please add at least one PDF.');return;}
+  const name=document.getElementById('rwName').value.trim();
+  if(!name){alert('Please enter a review name.');return;}
+
+  const disc=document.getElementById('rwDiscipline').value;
+  const desc=document.getElementById('rwDesc').value.trim();
+  const deadline=document.getElementById('rwDeadline').value;
+
+  // Push config
+  await api('configure',undefined,{
+    documentId:  name.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,''),
+    description: `${disc?disc+' — ':''}${desc||name}`
+  });
+
+  // Disable start, show progress
+  const btn=document.getElementById('rwStartBtn');
+  btn.disabled=true;btn.textContent='Setting up...';
+  document.getElementById('rwProgressSection').style.display='flex';
+  document.getElementById('rwActions').style.display='none';
+
+  const steps=[
+    ['setup',   ()=>api('setup-project')],
+    ['upload',  async()=>{
+      const fd=new FormData();
+      rwFiles.filter(f=>f.status==='staged').forEach(f=>fd.append('files',f.file,f.name));
+      const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
+      const d=await r.json();
+      if(!r.ok)throw new Error(d.error);
+      (d.uploaded||[]).forEach(u=>{const sf=rwFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
+      rwRenderFiles();
+      return d;
+    }],
+    ['columns', ()=>api('apply-custom-columns')],
+    ['session', async()=>{await api('trigger');await api('register-webhook');return api('create-session');}],
+    ['checkout',()=>api('checkout-to-session')],
+    ['invite',  ()=>api('invite-reviewers')],
+  ];
+
+  try{
+    for(const [id,fn] of steps){
+      rwSetStep(id,'running');
+      await fn();
+      rwSetStep(id,'done');
+    }
+    // Show session banner
+    const state=await fetch('/poc/state').then(r=>r.json());
+    document.getElementById('rwSessionBanner').style.display='block';
+    document.getElementById('rwSessionId').textContent=state.sessionId||'—';
+    document.getElementById('rwCompleteBtn').disabled=false;
+    document.getElementById('rwCompleteBtn').style.display='block';
+  }catch(err){
+    ['setup','upload','columns','session','checkout','invite'].forEach(id=>{
+      if(document.getElementById('sd-'+id)?.className.includes('running'))rwSetStep(id,'error');
+    });
+    document.getElementById('rwProgressCard').style.border='2px solid var(--error)';
+    btn.disabled=false;btn.textContent='Start Review';
+    document.getElementById('rwActions').style.display='flex';
+  }
+}
+
+async function rwComplete(){
+  const btn=document.getElementById('rwCompleteBtn');
+  btn.disabled=true;btn.classList.add('loading');btn.textContent='Extracting data...';
+  document.getElementById('rwExtractCard').style.display='block';
+
+  const steps=[
+    ['checkin', ()=>api('checkin')],
+    ['export',  ()=>api('export-markups')],
+    ['mlist',   ()=>api('run-markuplist-job')],
+  ];
+
+  try{
+    let result;
+    for(const [id,fn] of steps){
+      const dot=document.getElementById('sd-'+id);const lbl=document.getElementById('sl-'+id);
+      if(dot){dot.className='step-dot running';dot.textContent='↻';}
+      if(lbl)lbl.className='step-row-label';
+      result=await fn();
+      if(dot){dot.className='step-dot done';dot.textContent='✓';}
+    }
+    rwMarkups=(result?.markups)||[];
+    btn.textContent='✓ Data Extracted';btn.classList.remove('loading');
+    rwRenderResults();
+  }catch(err){
+    ['checkin','export','mlist'].forEach(id=>{
+      const dot=document.getElementById('sd-'+id);
+      if(dot?.className.includes('running')){dot.className='step-dot error';dot.textContent='✗';}
+    });
+    btn.disabled=false;btn.classList.remove('loading');btn.textContent='✓ Complete Review & Extract Data';
+  }
+}
+
+function rwRenderResults(){
+  document.getElementById('rwResults').style.display='flex';
+  const ep=m=>{const e=m.ExtendedProperties||{};return{stage:e['Review Stage']||'',disc:e['Discipline']||'',resp:e['Responsibility']||'',prio:e['Priority']||'',action:e['Action Required']||'',due:e['Due Date']||''};};
+  // Attach parsed fields for sorting
+  rwMarkups=rwMarkups.map(m=>{const p=ep(m);return{...m,_stage:p.stage,_discipline:p.disc,_priority:p.prio,_action:p.action,_due:p.due};});
+
+  const stages=rwMarkups.map(m=>m._stage).filter(Boolean);
+  const prios=rwMarkups.map(m=>m._priority).filter(Boolean);
+  const withAction=rwMarkups.filter(m=>m._action).length;
+  const critical=prios.filter(p=>p.includes('Critical')).length;
+  const authors=[...new Set(rwMarkups.map(m=>m.Author).filter(Boolean))].length;
+
+  document.getElementById('rwSummaryCards').innerHTML=`
+    <div class="sum-card"><div class="sum-val">${rwMarkups.length}</div><div class="sum-label">Total Markups</div></div>
+    <div class="sum-card"><div class="sum-val green">${withAction}</div><div class="sum-label">Action Required</div></div>
+    <div class="sum-card"><div class="sum-val error">${critical}</div><div class="sum-label">Critical Items</div></div>
+    <div class="sum-card"><div class="sum-val warn">${authors}</div><div class="sum-label">Active Reviewers</div></div>`;
+
+  const renderBreakdown=(elId,items,colorFn)=>{
+    const counts={};items.forEach(s=>{counts[s]=(counts[s]||0)+1;});
+    const max=Math.max(...Object.values(counts),1);
+    document.getElementById(elId).innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1])
+      .map(([l,n])=>`<div class="bd-row"><div class="bd-label" title="${esc(l)}">${esc(l)}</div><div class="bd-track"><div class="bd-bar" style="width:${Math.round(n/max*100)}%;${colorFn(l)}"></div></div><div class="bd-count">${n}</div></div>`)
+      .join('')||'<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No data — custom columns may not have been applied</div>';
+  };
+
+  renderBreakdown('rwStageBreakdown',stages,()=>'');
+  renderBreakdown('rwPriorityBreakdown',prios,l=>{
+    if(l.includes('Critical'))return'background:var(--error)';
+    if(l.includes('High'))return'background:var(--warn)';
+    if(l.includes('Low'))return'background:var(--green)';
+    return'';
+  });
+  rwRenderTable();
+}
+
+function rwPrioPill(p){
+  if(!p)return`<span class="pill pill-gray">—</span>`;
+  if(p.includes('Critical'))return`<span class="pill pill-red">${esc(p.split('–')[0].trim())}</span>`;
+  if(p.includes('High'))return`<span class="pill pill-warn">${esc(p.split('–')[0].trim())}</span>`;
+  if(p.includes('Low'))return`<span class="pill pill-green">${esc(p.split('–')[0].trim())}</span>`;
+  if(p.includes('Information'))return`<span class="pill pill-gray">${esc(p.split('–')[0].trim())}</span>`;
+  return`<span class="pill pill-blue">${esc(p.split('–')[0].trim())}</span>`;
+}
+
+function rwRenderTable(){
+  const sorted=[...rwMarkups].sort((a,b)=>{
+    const av=String(a[rwSortKey]??''),bv=String(b[rwSortKey]??'');
+    return rwSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
+  });
+  document.getElementById('rwResultsTbody').innerHTML=sorted.map(m=>`<tr>
+    <td>${m.Page??'—'}</td>
+    <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
+    <td>${esc(m.Author||'—')}</td>
+    <td>${m._stage?`<span class="pill pill-blue" title="${esc(m._stage)}">${esc(m._stage.length>28?m._stage.slice(0,26)+'…':m._stage)}</span>`:'—'}</td>
+    <td>${esc(m._discipline||'—')}</td>
+    <td>${rwPrioPill(m._priority)}</td>
+    <td title="${esc(m._action||'')}">${esc(m._action||'—')}</td>
+    <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
+    <td>${esc(m._due||'—')}</td>
+  </tr>`).join('');
+}
+function rwSort(k){rwSortDir=(rwSortKey===k&&rwSortDir==='asc')?'desc':'asc';rwSortKey=k;if(rwMarkups.length)rwRenderTable();}
+
+function rwReset(){
+  rwFiles=[];rwMarkups=[];rwRenderFiles();
+  document.getElementById('rwProgressSection').style.display='none';
+  document.getElementById('rwResults').style.display='none';
+  document.getElementById('rwSessionBanner').style.display='none';
+  document.getElementById('rwExtractCard').style.display='none';
+  document.getElementById('rwCompleteBtn').style.display='none';
+  document.getElementById('rwCompleteBtn').disabled=true;
+  document.getElementById('rwCompleteBtn').textContent='✓ Complete Review & Extract Data';
+  document.getElementById('rwCompleteBtn').classList.remove('loading');
+  document.getElementById('rwProgressCard').style.border='';
+  document.getElementById('rwActions').style.display='flex';
+  const btn=document.getElementById('rwStartBtn');btn.disabled=false;btn.textContent='Start Review';
+  document.querySelectorAll('#rwChipBox .chip:not(.primary)').forEach(c=>c.remove());
+  ['setup','upload','columns','session','checkout','invite','checkin','export','mlist'].forEach(id=>{
+    const d=document.getElementById('sd-'+id);
+    if(d){d.className='step-dot';const orig={setup:1,upload:2,columns:3,session:4,checkout:5,invite:6,checkin:1,export:2,mlist:3};d.textContent=orig[id]||'·';}
+    const l=document.getElementById('sl-'+id);if(l)l.className='step-row-label muted';
+  });
+  api('reset');
+}
+
+// ── DEVELOPER CONSOLE ─────────────────────────────────────────────────────────
+let devFiles=[];
+let devMarkups=[];
+let devSortKey='Page';
+let devSortDir='asc';
+let devView='table';
+
+function devFileSelect(e){devAddFiles(Array.from(e.target.files));e.target.value='';}
+function devDrop(e){e.preventDefault();document.getElementById('devUploadZone').classList.remove('drag-over');devAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));}
+function devAddFiles(files){files.forEach(f=>{if(!devFiles.find(s=>s.name===f.name))devFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});devRenderFiles();}
+function devRenderFiles(){
+  document.getElementById('devStagedFiles').innerHTML=devFiles.map(f=>{
+    const st=f.status==='ok'?`<span class="dev-staged-ok">✓</span>`:f.status==='err'?`<span class="dev-staged-err">✗</span>`:'·';
+    return`<div class="dev-staged-file">${st} ${esc(f.name)}</div>`;
+  }).join('');
+}
+function devChipKey(e){
+  if(e.key==='Enter'||e.key===','){e.preventDefault();devAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
+  if(e.key==='Backspace'&&!e.target.value){
+    const chips=[...document.querySelectorAll('#devChipBox .chip:not(.primary)')];
+    if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email});last.remove();}
+  }
+}
+function devAddChip(email){
+  if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
+  if([...document.querySelectorAll('#devChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
+  const c=document.createElement('span');c.className='chip';c.dataset.email=email;c.style.fontSize='11px';
+  c.innerHTML=`${esc(email)} <button class="chip-x" onclick="devRemoveChip(this,'${esc(email)}')">×</button>`;
+  document.getElementById('devChipBox').insertBefore(c,document.getElementById('devChipInput'));
+  api('configure',undefined,{reviewerEmail:email});
+}
+function devRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email});}
+function devConfig(){
+  const docId=document.getElementById('devDocId').value.trim();
+  const desc=document.getElementById('devDesc').value.trim();
+  const body={};if(docId)body.documentId=docId;if(desc)body.description=desc;
+  if(Object.keys(body).length)api('configure',undefined,body);
+}
+
+// Node state helpers
+function devSetNode(endpoint,state){
+  const node=document.getElementById('fn-'+endpoint);
+  const status=document.getElementById('fs-'+endpoint);
+  if(!node||!status)return;
+  node.className='fc-node'+(state==='manual'?' manual':'');
+  if(state==='running')node.classList.add('running');
+  else if(state==='done')node.classList.add('done');
+  else if(state==='error')node.classList.add('error');
+  status.className='fc-node-status '+state;
+  status.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'·';
+  const btn=node.querySelector('.fc-node-btn');
+  if(btn&&state==='done'){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
+  if(btn&&state==='running'){btn.disabled=true;btn.textContent='Running...';}
+  if(btn&&state!=='running'&&state!=='done'){btn.disabled=false;btn.textContent='Run';}
+}
+
+async function devFire(endpoint){
+  devSetNode(endpoint,'running');
+  try{
+    const data=await api(endpoint);
+    devSetNode(endpoint,'done');
+    if(endpoint==='run-markuplist-job'&&data.markups){
+      devMarkups=data.markups;devRenderDevMarkups();
+    }
+    if(endpoint==='snapshot'&&data.downloads?.length){
+      document.getElementById('devDownloads').style.display='block';
+      document.getElementById('devDownloadLinks').innerHTML=data.downloads.map(d=>
+        `<a href="${esc(d.path)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--green-l);border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:13px;font-weight:500;text-decoration:none;">⬇ ${esc(d.name)}</a>`
+      ).join('');
+    }
+    await devRefreshLog();
+  }catch(err){
+    devSetNode(endpoint,'error');
+    await devRefreshLog();
+  }
+}
+
+async function devUpload(){
+  const pending=devFiles.filter(f=>f.status==='staged');
+  if(!pending.length){alert('No files staged.');return;}
+  devSetNode('upload-to-project','running');
+  const fd=new FormData();pending.forEach(f=>fd.append('files',f.file,f.name));
+  try{
+    const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
+    const d=await r.json();if(!r.ok)throw new Error(d.error);
+    (d.uploaded||[]).forEach(u=>{const sf=devFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
+    devRenderFiles();devSetNode('upload-to-project','done');
+    await devRefreshLog();
+  }catch(err){
+    devFiles.filter(f=>f.status==='staged').forEach(f=>f.status='err');
+    devRenderFiles();devSetNode('upload-to-project','error');
+    await devRefreshLog();
+  }
+}
+
+function devMarkReviewDone(){
+  const node=document.getElementById('fn-review');
+  const status=document.getElementById('fs-review');
+  if(node){node.classList.remove('manual');node.classList.add('done');}
+  if(status){status.className='fc-node-status done';status.textContent='✓';}
+  const btn=node?.querySelector('.fc-node-btn');
+  if(btn){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
+}
+
+async function devRefreshLog(){
+  const state=await fetch('/poc/state').then(r=>r.json());
+  if(state.log?.length){
+    document.getElementById('devLogEntries').innerHTML=[...state.log].reverse().slice(0,30).map(e=>{
+      const t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});
+      return`<div class="dev-log-entry"><span class="dev-log-time">${t}</span><span class="dev-log-msg ${e.type||'info'}">${esc(e.msg)}</span></div>`;
+    }).join('');
+  }
+}
+
+function devRenderDevMarkups(){
+  if(!devMarkups.length)return;
+  document.getElementById('devMarkupSection').style.display='block';
+  document.getElementById('devMarkupNum').textContent=devMarkups.length;
+  devRenderDevTable();
+  document.getElementById('devJsonContent').innerHTML=syntaxHL(JSON.stringify(devMarkups,null,2));
+}
+function devRenderDevTable(){
+  const sorted=[...devMarkups].sort((a,b)=>{
+    const av=String(a[devSortKey]??''),bv=String(b[devSortKey]??'');
+    return devSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
+  });
+  document.getElementById('devMarkupTbody').innerHTML=sorted.map(m=>{
+    const dt=m.DateCreated?new Date(m.DateCreated).toLocaleDateString():'—';
+    return`<tr><td>${m.Page??'—'}</td><td>${esc(m.Type||'—')}</td><td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td><td>${esc(m.Author||'—')}</td><td>${esc(m.Status||'—')}</td><td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td><td>${esc(m.Layer||'—')}</td><td>${esc(m._sourceFile||'—')}</td><td>${dt}</td></tr>`;
+  }).join('');
+}
+function devSort(k){devSortDir=(devSortKey===k&&devSortDir==='asc')?'desc':'asc';devSortKey=k;if(devMarkups.length)devRenderDevTable();}
+function devSetView(v){devView=v;document.getElementById('devBtnTable').classList.toggle('active',v==='table');document.getElementById('devBtnJson').classList.toggle('active',v==='json');document.getElementById('devTableView').style.display=v==='table'?'block':'none';document.getElementById('devJsonView').style.display=v==='json'?'block':'none';}
+async function devCopyJson(){if(!devMarkups.length)return;try{await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));const b=document.getElementById('devCopyBtn');b.textContent='✓ Copied';setTimeout(()=>{b.textContent='⎘ Copy JSON';},2000);}catch{}}
+
+async function devReset(){
+  await api('reset');
+  devFiles=[];devMarkups=[];devRenderFiles();
+  document.querySelectorAll('#devChipBox .chip:not(.primary)').forEach(c=>c.remove());
+  document.getElementById('devMarkupSection').style.display='none';
+  document.getElementById('devDownloads').style.display='none';
+  // Reset all nodes
+  ['setup-project','upload-to-project','apply-custom-columns','trigger','create-session',
+   'register-webhook','checkout-to-session','invite-reviewers','checkin','export-markups',
+   'run-markuplist-job','finalize','snapshot','cleanup'].forEach(ep=>devSetNode(ep,'idle'));
+  const rev=document.getElementById('fn-review');
+  if(rev){rev.className='fc-node manual';const s=document.getElementById('fs-review');if(s){s.className='fc-node-status idle';s.textContent='·';}const b=rev.querySelector('.fc-node-btn');if(b){b.className='fc-node-btn manual-btn';b.textContent='Mark Done';}}
+  document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';
+}
 </script>
 </body>
 </html>
