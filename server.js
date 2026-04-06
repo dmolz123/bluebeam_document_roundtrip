@@ -1,1139 +1,1212 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bluebeam Studio — Document Roundtrip</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root {
-  --accent:   #1A5AFF;
-  --accent-h: #0f45d4;
-  --accent-l: #e8eeff;
-  --green:    #0d9f6e;
-  --green-l:  #e6f7f2;
-  --warn:     #d97706;
-  --warn-l:   #fef3c7;
-  --error:    #dc2626;
-  --error-l:  #fee2e2;
-  --text:     #111827;
-  --text-2:   #6b7280;
-  --text-3:   #9ca3af;
-  --border:   #e5e7eb;
-  --border-2: #d1d5db;
-  --bg:       #f9fafb;
-  --white:    #ffffff;
-  --mono:     'JetBrains Mono', monospace;
-  --sans:     'Inter', sans-serif;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
-
-/* ── HEADER ── */
-header{background:var(--white);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:56px;flex-shrink:0;}
-.header-brand{display:flex;align-items:center;gap:10px;}
-.header-logo{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;}
-.header-logo svg{width:16px;height:16px;fill:white;}
-.header-title{font-size:15px;font-weight:600;color:var(--text);}
-.header-title span{color:var(--text-2);font-weight:400;}
-
-/* ── TABS ── */
-.tab-bar{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 32px;flex-shrink:0;}
-.tab-btn{padding:14px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;margin-bottom:-1px;letter-spacing:0.01em;}
-.tab-btn:hover{color:var(--text);}
-.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
-
-.tab-content{display:none;flex:1;overflow:hidden;}
-.tab-content.active{display:flex;flex-direction:column;}
-
-/* ═══════════════════════════════════════
-   REVIEW WORKFLOW TAB
-═══════════════════════════════════════ */
-.rw-wrap{flex:1;overflow-y:auto;padding:40px 32px;}
-.rw-inner{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:24px;}
-
-.rw-page-title{font-size:24px;font-weight:700;color:var(--text);margin-bottom:2px;}
-.rw-page-sub{font-size:14px;color:var(--text-2);line-height:1.5;}
-
-/* Cards */
-.card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:28px;}
-.card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
-.card-title-icon{width:28px;height:28px;background:var(--accent-l);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
-
-/* Form elements */
-.field{display:flex;flex-direction:column;gap:6px;}
-.field + .field{margin-top:16px;}
-.field-row{display:grid;gap:16px;}
-.field-row.cols-2{grid-template-columns:1fr 1fr;}
-.field-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
-label{font-size:12px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;}
-input[type="text"],input[type="email"],input[type="date"],select,textarea{
-  width:100%;padding:10px 14px;border:1px solid var(--border-2);border-radius:8px;
-  font-family:var(--sans);font-size:14px;color:var(--text);background:var(--white);
-  transition:border-color 0.15s,box-shadow 0.15s;outline:none;
-}
-input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,90,255,0.1);}
-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
-textarea{resize:vertical;min-height:80px;line-height:1.5;}
-
-/* Drop zone */
-.drop-zone{border:2px dashed var(--border-2);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;background:var(--bg);}
-.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-l);}
-.drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
-.drop-zone-icon{font-size:28px;margin-bottom:8px;}
-.drop-zone-title{font-size:14px;font-weight:500;color:var(--text);margin-bottom:3px;}
-.drop-zone-title span{color:var(--accent);}
-.drop-zone-hint{font-size:12px;color:var(--text-3);font-family:var(--mono);}
-
-.staged-files{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
-.staged-file{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;}
-.sf-icon{font-size:16px;flex-shrink:0;}
-.sf-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
-.sf-size{color:var(--text-3);font-size:12px;font-family:var(--mono);flex-shrink:0;}
-.sf-status{font-size:12px;font-weight:500;flex-shrink:0;}
-.sf-status.ok{color:var(--green);}
-.sf-status.err{color:var(--error);}
-.sf-status.wait{color:var(--text-3);}
-.sf-remove{background:none;border:none;color:var(--text-3);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:16px;line-height:1;transition:all 0.15s;}
-.sf-remove:hover{color:var(--error);background:var(--error-l);}
-
-/* Reviewer chips */
-.chip-box{border:1px solid var(--border-2);border-radius:8px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;min-height:44px;cursor:text;transition:border-color 0.15s,box-shadow 0.15s;background:var(--white);}
-.chip-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,90,255,0.1);}
-.chip{display:inline-flex;align-items:center;gap:5px;background:var(--accent-l);border:1px solid rgba(26,90,255,0.2);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:500;color:var(--accent);}
-.chip.primary{background:var(--green-l);border-color:rgba(13,159,110,0.25);color:var(--green);}
-.chip-x{background:none;border:none;color:inherit;cursor:pointer;padding:0;font-size:14px;opacity:0.6;line-height:1;}
-.chip-x:hover{opacity:1;}
-.chip-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:14px;color:var(--text);flex:1;min-width:160px;padding:2px 0;}
-.field-hint{font-size:11px;color:var(--text-3);margin-top:4px;}
-
-.csv-label{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--accent);cursor:pointer;font-weight:500;position:relative;margin-top:6px;}
-.csv-label:hover{text-decoration:underline;}
-.csv-label input{position:absolute;inset:0;opacity:0;cursor:pointer;}
-
-/* Primary button */
-.btn-primary{width:100%;padding:13px;background:var(--accent);color:white;border:none;border-radius:10px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;}
-.btn-primary:hover:not(:disabled){background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,90,255,0.3);}
-.btn-primary:disabled{background:#c5d0e8;cursor:not-allowed;transform:none;box-shadow:none;}
-.btn-primary.loading{background:var(--warn);color:white;}
-
-.btn-success{width:100%;padding:13px;background:var(--white);color:var(--green);border:2px solid var(--green);border-radius:10px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;}
-.btn-success:hover:not(:disabled){background:var(--green-l);}
-.btn-success:disabled{opacity:0.4;cursor:not-allowed;}
-.btn-success.loading{background:var(--warn);color:white;border-color:var(--warn);}
-
-.btn-ghost{width:100%;padding:10px;background:none;color:var(--text-2);border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:13px;cursor:pointer;transition:all 0.15s;}
-.btn-ghost:hover{border-color:var(--error);color:var(--error);}
-
-/* Progress pill */
-.progress-pill{display:flex;align-items:center;gap:10px;background:var(--accent-l);border:1px solid rgba(26,90,255,0.15);border-radius:10px;padding:14px 18px;}
-.progress-pill.success{background:var(--green-l);border-color:rgba(13,159,110,0.2);}
-.progress-pill.error{background:var(--error-l);border-color:rgba(220,38,38,0.2);}
-.progress-pill-icon{font-size:20px;flex-shrink:0;}
-.progress-pill-text{flex:1;}
-.progress-pill-title{font-size:14px;font-weight:600;color:var(--text);}
-.progress-pill-sub{font-size:12px;color:var(--text-2);margin-top:1px;}
-
-/* Step checklist inside card */
-.step-list{display:flex;flex-direction:column;gap:8px;}
-.step-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
-.step-row:last-child{border-bottom:none;}
-.step-dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border-2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text-3);flex-shrink:0;transition:all 0.25s;}
-.step-dot.done{background:var(--green);border-color:var(--green);color:white;}
-.step-dot.running{background:var(--warn);border-color:var(--warn);color:white;animation:spin 1s linear infinite;}
-.step-dot.error{background:var(--error);border-color:var(--error);color:white;}
-@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
-.step-row-label{flex:1;color:var(--text);}
-.step-row-label.muted{color:var(--text-3);}
-.step-row-api{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;}
-
-/* Session banner */
-.session-banner{background:var(--white);border:2px solid var(--green);border-radius:12px;padding:20px 24px;}
-.session-banner-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);margin-bottom:6px;}
-.session-id{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text);letter-spacing:0.05em;margin-bottom:4px;}
-.session-hint{font-size:13px;color:var(--text-2);}
-
-/* Summary cards */
-.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-.sum-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px;}
-.sum-val{font-size:28px;font-weight:700;color:var(--accent);font-family:var(--mono);line-height:1;}
-.sum-val.green{color:var(--green);}
-.sum-val.warn{color:var(--warn);}
-.sum-val.error{color:var(--error);}
-.sum-label{font-size:12px;color:var(--text-2);margin-top:4px;}
-
-/* Breakdown */
-.breakdown{display:flex;flex-direction:column;gap:8px;}
-.bd-row{display:flex;align-items:center;gap:12px;}
-.bd-label{font-size:12px;color:var(--text);width:210px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.bd-track{flex:1;background:var(--bg);border-radius:4px;height:8px;overflow:hidden;}
-.bd-bar{height:100%;border-radius:4px;background:var(--accent);transition:width 0.6s ease;}
-.bd-count{font-family:var(--mono);font-size:11px;color:var(--text-3);width:20px;text-align:right;flex-shrink:0;}
-
-/* Results table */
-.results-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
-.results-table{width:100%;border-collapse:collapse;font-size:12px;}
-.results-table th{text-align:left;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);white-space:nowrap;cursor:pointer;user-select:none;}
-.results-table th:hover{color:var(--text);}
-.results-table th.sort-asc::after{content:' ↑';color:var(--accent);}
-.results-table th.sort-desc::after{content:' ↓';color:var(--accent);}
-.results-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
-.results-table tr:last-child td{border-bottom:none;}
-.results-table tr:hover td{background:#f8f9ff;}
-.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap;}
-.pill-blue{background:var(--accent-l);color:var(--accent);}
-.pill-green{background:var(--green-l);color:var(--green);}
-.pill-warn{background:var(--warn-l);color:var(--warn);}
-.pill-red{background:var(--error-l);color:var(--error);}
-.pill-gray{background:var(--bg);color:var(--text-2);border:1px solid var(--border);}
-
-/* ═══════════════════════════════════════
-   DEVELOPER CONSOLE TAB
-═══════════════════════════════════════ */
-.dev-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-
-/* Config bar at top */
-.dev-config-bar{background:var(--white);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;}
-.dev-config-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px;}
-.dev-config-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);}
-.dev-input{padding:7px 11px;border:1px solid var(--border-2);border-radius:7px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);outline:none;width:100%;transition:border-color 0.15s;}
-.dev-input:focus{border-color:var(--accent);}
-.dev-chip-box{border:1px solid var(--border-2);border-radius:7px;padding:4px 8px;display:flex;flex-wrap:wrap;gap:4px;min-height:36px;cursor:text;background:var(--white);min-width:220px;transition:border-color 0.15s;}
-.dev-chip-box:focus-within{border-color:var(--accent);}
-.dev-chip-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);flex:1;min-width:120px;padding:1px 0;}
-.dev-upload-zone{border:1px dashed var(--border-2);border-radius:7px;padding:8px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;position:relative;background:var(--bg);min-width:160px;transition:all 0.15s;}
-.dev-upload-zone:hover{border-color:var(--accent);background:var(--accent-l);}
-.dev-upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
-.dev-upload-zone-text{font-size:12px;color:var(--text-2);}
-.dev-staged{display:flex;flex-direction:column;gap:3px;margin-top:4px;}
-.dev-staged-file{font-size:11px;color:var(--text-2);font-family:var(--mono);display:flex;align-items:center;gap:6px;}
-.dev-staged-ok{color:var(--green);}
-.dev-staged-err{color:var(--error);}
-.dev-action-btns{display:flex;gap:8px;align-self:flex-end;}
-.dev-btn{padding:8px 16px;border-radius:7px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;border:none;white-space:nowrap;}
-.dev-btn-primary{background:var(--accent);color:white;}
-.dev-btn-primary:hover:not(:disabled){background:var(--accent-h);}
-.dev-btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
-.dev-btn-ghost{background:var(--white);color:var(--text-2);border:1px solid var(--border);}
-.dev-btn-ghost:hover{border-color:var(--error);color:var(--error);}
-
-/* Flowchart canvas */
-.dev-canvas{flex:1;overflow:auto;padding:32px;}
-.dev-canvas-inner{display:flex;flex-direction:column;gap:32px;max-width:900px;margin:0 auto;}
-
-/* Phase group */
-.phase{display:flex;flex-direction:column;gap:0;}
-.phase-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
-.phase-badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
-.phase-badge.setup{background:#e0e7ff;color:#3730a3;}
-.phase-badge.session{background:#d1fae5;color:#065f46;}
-.phase-badge.extract{background:#fef3c7;color:#92400e;}
-.phase-line{flex:1;height:1px;background:var(--border);}
-
-/* Node grid */
-.node-grid{display:flex;flex-wrap:wrap;gap:12px;position:relative;}
-
-/* Connector arrow between grids */
-.phase-arrow{display:flex;justify-content:center;align-items:center;padding:8px 0;color:var(--text-3);font-size:18px;}
-
-/* Individual node */
-.fc-node{background:var(--white);border:2px solid var(--border);border-radius:10px;padding:14px 16px;min-width:180px;max-width:220px;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;}
-.fc-node:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(26,90,255,0.12);}
-.fc-node.running{border-color:var(--warn);background:#fffbeb;box-shadow:0 0 0 3px rgba(217,119,6,0.15);}
-.fc-node.done{border-color:var(--green);background:var(--green-l);}
-.fc-node.error{border-color:var(--error);background:var(--error-l);}
-.fc-node.manual{border-style:dashed;cursor:default;}
-.fc-node.manual:hover{border-color:var(--border);box-shadow:none;}
-.fc-node-status{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;}
-.fc-node-status.idle{background:var(--bg);border:1px solid var(--border);color:var(--text-3);}
-.fc-node-status.running{background:var(--warn);color:white;animation:pulse-node 1s ease infinite;}
-.fc-node-status.done{background:var(--green);color:white;}
-.fc-node-status.error{background:var(--error);color:white;}
-@keyframes pulse-node{0%,100%{transform:scale(1);}50%{transform:scale(1.15);}}
-.fc-node-icon{font-size:18px;margin-bottom:6px;}
-.fc-node-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px;}
-.fc-node.done .fc-node-title{color:var(--green);}
-.fc-node.error .fc-node-title{color:var(--error);}
-.fc-node-api{font-family:var(--mono);font-size:10px;color:var(--text-3);margin-bottom:6px;}
-.fc-node-btn{display:block;width:100%;padding:5px 0;background:var(--accent);color:white;border:none;border-radius:6px;font-family:var(--sans);font-size:11px;font-weight:500;cursor:pointer;transition:all 0.15s;text-align:center;}
-.fc-node-btn:hover{background:var(--accent-h);}
-.fc-node-btn:disabled{background:var(--border);color:var(--text-3);cursor:not-allowed;}
-.fc-node-btn.done-btn{background:var(--green);}
-.fc-node-btn.manual-btn{background:var(--bg);color:var(--text-2);border:1px solid var(--border);}
-.fc-node-btn.manual-btn:hover{background:var(--green-l);color:var(--green);border-color:var(--green);}
-
-/* Arrow between nodes */
-.node-arrow{display:flex;align-items:center;color:var(--border-2);font-size:16px;padding:0 4px;align-self:center;}
-
-/* Dev log at bottom */
-.dev-log-bar{background:var(--white);border-top:1px solid var(--border);max-height:160px;overflow-y:auto;padding:12px 32px;flex-shrink:0;}
-.dev-log-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3);margin-bottom:8px;}
-.dev-log-entry{display:grid;grid-template-columns:62px 1fr;gap:8px;padding:2px 0;font-family:var(--mono);font-size:11px;border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:3px;}
-.dev-log-entry:last-child{border-bottom:none;}
-.dev-log-time{color:var(--text-3);}
-.dev-log-msg{color:var(--text);}
-.dev-log-msg.success{color:var(--green);}
-.dev-log-msg.error{color:var(--error);}
-.dev-log-msg.warn{color:var(--warn);}
-.dev-log-msg.webhook{color:var(--accent);}
-
-/* Dev markup section */
-.dev-markup-section{background:var(--white);border-top:1px solid var(--border);padding:20px 32px;flex-shrink:0;}
-.dev-markup-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
-.dev-markup-count{font-size:12px;color:var(--text-2);margin-left:auto;font-family:var(--mono);}
-.dev-markup-count span{color:var(--green);font-weight:600;}
-.view-toggle{display:flex;border:1px solid var(--border);border-radius:7px;overflow:hidden;}
-.view-toggle button{padding:5px 14px;background:var(--white);border:none;color:var(--text-2);font-family:var(--sans);font-size:12px;cursor:pointer;transition:all 0.15s;}
-.view-toggle button.active{background:var(--accent);color:white;}
-.json-view{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;overflow:auto;max-height:300px;font-family:var(--mono);font-size:11px;line-height:1.6;}
-.json-key{color:#1d4ed8;}.json-str{color:#059669;}.json-num{color:#d97706;}.json-bool{color:#7c3aed;}.json-null{color:var(--text-3);}
-.markup-empty{color:var(--text-3);font-size:13px;padding:16px 0;text-align:center;}
-</style>
-</head>
-<body>
-
-<header>
-  <div class="header-brand">
-    <div class="header-logo">
-      <svg viewBox="0 0 16 16"><path d="M8 2L2 6v8h12V6L8 2zm0 2l4 2.67V14H4V6.67L8 4z"/></svg>
-    </div>
-    <div class="header-title">Bluebeam Studio <span>/ API Roundtrip Demo</span></div>
-  </div>
-</header>
-
-<div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('rw')">Review Workflow</button>
-  <button class="tab-btn" onclick="switchTab('dev')">Developer Console</button>
-</div>
-
-<!-- ═══════════════════════════════════════
-     REVIEW WORKFLOW TAB
-═══════════════════════════════════════ -->
-<div class="tab-content active" id="tab-rw">
-<div class="rw-wrap">
-<div class="rw-inner">
-
-  <div>
-    <div class="rw-page-title">Start a Document Review</div>
-    <div class="rw-page-sub">Upload your drawings, add reviewers, and click Start Review. Bluebeam handles the rest — creating the project, setting up the session, and sending invitations automatically.</div>
-  </div>
-
-  <!-- Files -->
-  <div class="card">
-    <div class="card-title"><div class="card-title-icon">📄</div>Documents</div>
-    <div class="drop-zone" id="rwDropZone"
-         ondragover="event.preventDefault();this.classList.add('drag-over')"
-         ondragleave="this.classList.remove('drag-over')"
-         ondrop="rwDrop(event)">
-      <input type="file" id="rwFileInput" multiple accept=".pdf,application/pdf" onchange="rwFileSelect(event)">
-      <div class="drop-zone-icon">📁</div>
-      <div class="drop-zone-title"><span>Click to browse</span> or drag &amp; drop</div>
-      <div class="drop-zone-hint">PDF files only · multiple supported</div>
-    </div>
-    <div class="staged-files" id="rwStagedFiles"></div>
-  </div>
-
-  <!-- Review details -->
-  <div class="card">
-    <div class="card-title"><div class="card-title-icon">📋</div>Review Details</div>
-    <div class="field-row cols-2">
-      <div class="field">
-        <label>Review Name</label>
-        <input type="text" id="rwName" placeholder="e.g. Phase 2 Coordination Review">
-      </div>
-      <div class="field">
-        <label>Discipline</label>
-        <select id="rwDiscipline">
-          <option value="">— Select —</option>
-          <option>Architectural</option><option>Structural</option>
-          <option>Mechanical</option><option>Electrical</option>
-          <option>Plumbing</option><option>Civil</option>
-          <option>Fire Protection</option><option>Geotechnical</option>
-          <option>Landscape</option><option>Interior Design</option>
-          <option>Technology / AV / Security</option>
-          <option>General / Multi-Discipline</option>
-        </select>
-      </div>
-    </div>
-    <div class="field" style="margin-top:16px;">
-      <label>Description</label>
-      <input type="text" id="rwDesc" placeholder="Brief description of what's being reviewed">
-    </div>
-    <div class="field" style="margin-top:16px;">
-      <label>Review Deadline</label>
-      <input type="date" id="rwDeadline">
-    </div>
-  </div>
-
-  <!-- Reviewers -->
-  <div class="card">
-    <div class="card-title"><div class="card-title-icon">👥</div>Reviewers</div>
-    <div class="field">
-      <label>Reviewer Emails</label>
-      <div class="chip-box" id="rwChipBox" onclick="document.getElementById('rwChipInput').focus()">
-        <span class="chip primary">dmolz@bluebeam.com</span>
-        <input class="chip-input" id="rwChipInput" type="email"
-               placeholder="Add email address, press Enter"
-               onkeydown="rwChipKey(event)">
-      </div>
-      <div class="field-hint">Press Enter or comma to add. The primary reviewer (dmolz@bluebeam.com) is always included.</div>
-      <label class="csv-label">
-        ＋ Import from CSV
-        <input type="file" accept=".csv,text/csv" onchange="rwImportCsv(event)">
-      </label>
-    </div>
-  </div>
-
-  <!-- Action -->
-  <div style="display:flex;flex-direction:column;gap:10px;" id="rwActions">
-    <button class="btn-primary" id="rwStartBtn" onclick="rwStart()">Start Review</button>
-  </div>
-
-  <!-- Progress (hidden until started) -->
-  <div id="rwProgressSection" style="display:none;flex-direction:column;gap:16px;">
-
-    <div class="card" id="rwProgressCard">
-      <div class="card-title"><div class="card-title-icon">⚙️</div>Setting Up Review</div>
-      <div class="step-list" id="rwStepList">
-        <div class="step-row" id="rs-setup"><div class="step-dot" id="sd-setup">1</div><div class="step-row-label muted" id="sl-setup">Project setup &amp; custom columns</div><span class="step-row-api">setup-project</span></div>
-        <div class="step-row" id="rs-upload"><div class="step-dot" id="sd-upload">2</div><div class="step-row-label muted" id="sl-upload">Upload documents to project</div><span class="step-row-api">upload-to-project</span></div>
-        <div class="step-row" id="rs-columns"><div class="step-dot" id="sd-columns">3</div><div class="step-row-label muted" id="sl-columns">Apply review columns</div><span class="step-row-api">apply-custom-columns</span></div>
-        <div class="step-row" id="rs-session"><div class="step-dot" id="sd-session">4</div><div class="step-row-label muted" id="sl-session">Create Studio Session</div><span class="step-row-api">create-session</span></div>
-        <div class="step-row" id="rs-checkout"><div class="step-dot" id="sd-checkout">5</div><div class="step-row-label muted" id="sl-checkout">Check out documents to session</div><span class="step-row-api">checkout-to-session</span></div>
-        <div class="step-row" id="rs-invite"><div class="step-dot" id="sd-invite">6</div><div class="step-row-label muted" id="sl-invite">Invite reviewers</div><span class="step-row-api">invite-reviewers</span></div>
-      </div>
-    </div>
-
-    <!-- Session active -->
-    <div class="session-banner" id="rwSessionBanner" style="display:none;">
-      <div class="session-banner-label">✓ Session Active — Open in Bluebeam Revu</div>
-      <div class="session-id" id="rwSessionId">—</div>
-      <div class="session-hint">Go to Bluebeam Revu → Studio → Sessions and enter this ID to join and begin marking up documents.</div>
-    </div>
-
-    <!-- Complete button -->
-    <button class="btn-success" id="rwCompleteBtn" onclick="rwComplete()" disabled style="display:none;">
-      ✓ Complete Review &amp; Extract Data
-    </button>
-
-    <!-- Extraction progress -->
-    <div class="card" id="rwExtractCard" style="display:none;">
-      <div class="card-title"><div class="card-title-icon">🔍</div>Extracting Review Data</div>
-      <div class="step-list">
-        <div class="step-row"><div class="step-dot" id="sd-checkin">1</div><div class="step-row-label muted" id="sl-checkin">Check in documents</div><span class="step-row-api">checkin</span></div>
-        <div class="step-row"><div class="step-dot" id="sd-export">2</div><div class="step-row-label muted" id="sl-export">Export markup XML</div><span class="step-row-api">export-markups</span></div>
-        <div class="step-row"><div class="step-dot" id="sd-mlist">3</div><div class="step-row-label muted" id="sl-mlist">Extract markup metadata</div><span class="step-row-api">run-markuplist-job</span></div>
-      </div>
-    </div>
-
-    <!-- Results -->
-    <div id="rwResults" style="display:none;flex-direction:column;gap:20px;">
-
-      <div class="card">
-        <div class="card-title"><div class="card-title-icon">📊</div>Review Summary</div>
-        <div class="summary-row" id="rwSummaryCards"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title"><div class="card-title-icon">📈</div>Breakdown by Review Stage</div>
-        <div class="breakdown" id="rwStageBreakdown"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title"><div class="card-title-icon">🎯</div>Breakdown by Priority</div>
-        <div class="breakdown" id="rwPriorityBreakdown"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title"><div class="card-title-icon">📝</div>Markup Details</div>
-        <div class="results-wrap">
-          <table class="results-table">
-            <thead><tr>
-              <th onclick="rwSort('Page')">Pg</th>
-              <th onclick="rwSort('Subject')">Subject</th>
-              <th onclick="rwSort('Author')">Author</th>
-              <th onclick="rwSort('_stage')">Review Stage</th>
-              <th onclick="rwSort('_discipline')">Discipline</th>
-              <th onclick="rwSort('_priority')">Priority</th>
-              <th onclick="rwSort('_action')">Action Required</th>
-              <th onclick="rwSort('Comment')">Comment</th>
-              <th onclick="rwSort('_due')">Due Date</th>
-            </tr></thead>
-            <tbody id="rwResultsTbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Reset -->
-    <button class="btn-ghost" onclick="rwReset()">↺ Start a New Review</button>
-
-  </div>
-
-</div>
-</div>
-</div>
-
-<!-- ═══════════════════════════════════════
-     DEVELOPER CONSOLE TAB
-═══════════════════════════════════════ -->
-<div class="tab-content" id="tab-dev">
-<div class="dev-wrap">
-
-  <!-- Config bar -->
-  <div class="dev-config-bar">
-
-    <div class="dev-config-field" style="min-width:180px;max-width:220px;">
-      <div class="dev-config-label">PDF Files</div>
-      <div class="dev-upload-zone" id="devUploadZone"
-           ondragover="event.preventDefault();this.classList.add('drag-over')"
-           ondragleave="this.classList.remove('drag-over')"
-           ondrop="devDrop(event)">
-        <input type="file" id="devFileInput" multiple accept=".pdf,application/pdf" onchange="devFileSelect(event)">
-        <span style="font-size:16px;">📄</span>
-        <span class="dev-upload-zone-text">Click or drop PDFs</span>
-      </div>
-      <div class="dev-staged" id="devStagedFiles"></div>
-    </div>
-
-    <div class="dev-config-field">
-      <div class="dev-config-label">Document ID</div>
-      <input class="dev-input" id="devDocId" type="text" placeholder="DOC-001" onchange="devConfig()">
-    </div>
-
-    <div class="dev-config-field">
-      <div class="dev-config-label">Description</div>
-      <input class="dev-input" id="devDesc" type="text" placeholder="Design review" onchange="devConfig()">
-    </div>
-
-    <div class="dev-config-field" style="flex:1.5;min-width:240px;">
-      <div class="dev-config-label">Reviewers</div>
-      <div class="dev-chip-box" id="devChipBox" onclick="document.getElementById('devChipInput').focus()">
-        <span class="chip primary" style="font-size:11px;">dmolz@bluebeam.com</span>
-        <input class="dev-chip-input" id="devChipInput" type="email" placeholder="Add email, Enter" onkeydown="devChipKey(event)">
-      </div>
-    </div>
-
-    <div class="dev-action-btns">
-      <button class="dev-btn dev-btn-primary" id="devUploadBtn" onclick="devUpload()">⬆ Upload</button>
-      <button class="dev-btn dev-btn-ghost" onclick="devReset()">↺ Reset</button>
-    </div>
-
-  </div>
-
-  <!-- Flowchart canvas -->
-  <div class="dev-canvas">
-  <div class="dev-canvas-inner">
-
-    <!-- SETUP phase -->
-    <div class="phase">
-      <div class="phase-header">
-        <span class="phase-badge setup">Setup</span>
-        <div class="phase-line"></div>
-      </div>
-      <div class="node-grid">
-        <div class="fc-node" id="fn-setup-project">
-          <div class="fc-node-status idle" id="fs-setup-project">·</div>
-          <div class="fc-node-icon">🗂️</div>
-          <div class="fc-node-title">Setup Project</div>
-          <div class="fc-node-api">setup-project</div>
-          <button class="fc-node-btn" onclick="devFire('setup-project')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-upload-to-project">
-          <div class="fc-node-status idle" id="fs-upload-to-project">·</div>
-          <div class="fc-node-icon">⬆️</div>
-          <div class="fc-node-title">Upload to Project</div>
-          <div class="fc-node-api">upload-to-project</div>
-          <button class="fc-node-btn" onclick="devUpload()">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-apply-custom-columns">
-          <div class="fc-node-status idle" id="fs-apply-custom-columns">·</div>
-          <div class="fc-node-icon">🏷️</div>
-          <div class="fc-node-title">Apply Custom Columns</div>
-          <div class="fc-node-api">apply-custom-columns</div>
-          <button class="fc-node-btn" onclick="devFire('apply-custom-columns')">Run</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="phase-arrow">↓</div>
-
-    <!-- SESSION phase -->
-    <div class="phase">
-      <div class="phase-header">
-        <span class="phase-badge session">Session</span>
-        <div class="phase-line"></div>
-      </div>
-      <div class="node-grid">
-        <div class="fc-node" id="fn-trigger">
-          <div class="fc-node-status idle" id="fs-trigger">·</div>
-          <div class="fc-node-icon">⚡</div>
-          <div class="fc-node-title">Trigger Event</div>
-          <div class="fc-node-api">trigger</div>
-          <button class="fc-node-btn" onclick="devFire('trigger')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-create-session">
-          <div class="fc-node-status idle" id="fs-create-session">·</div>
-          <div class="fc-node-icon">🏠</div>
-          <div class="fc-node-title">Create Session</div>
-          <div class="fc-node-api">create-session</div>
-          <button class="fc-node-btn" onclick="devFire('create-session')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-register-webhook">
-          <div class="fc-node-status idle" id="fs-register-webhook">·</div>
-          <div class="fc-node-icon">🔔</div>
-          <div class="fc-node-title">Register Webhook</div>
-          <div class="fc-node-api">register-webhook</div>
-          <button class="fc-node-btn" onclick="devFire('register-webhook')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-checkout-to-session">
-          <div class="fc-node-status idle" id="fs-checkout-to-session">·</div>
-          <div class="fc-node-icon">🔗</div>
-          <div class="fc-node-title">Checkout to Session</div>
-          <div class="fc-node-api">checkout-to-session</div>
-          <button class="fc-node-btn" onclick="devFire('checkout-to-session')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-invite-reviewers">
-          <div class="fc-node-status idle" id="fs-invite-reviewers">·</div>
-          <div class="fc-node-icon">📧</div>
-          <div class="fc-node-title">Invite Reviewers</div>
-          <div class="fc-node-api">invite-reviewers</div>
-          <button class="fc-node-btn" onclick="devFire('invite-reviewers')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node manual" id="fn-review">
-          <div class="fc-node-status idle" id="fs-review">·</div>
-          <div class="fc-node-icon">✏️</div>
-          <div class="fc-node-title">Review in Revu</div>
-          <div class="fc-node-api">non-API step</div>
-          <button class="fc-node-btn manual-btn" onclick="devMarkReviewDone()">Mark Done</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="phase-arrow">↓</div>
-
-    <!-- EXTRACTION phase -->
-    <div class="phase">
-      <div class="phase-header">
-        <span class="phase-badge extract">Extraction &amp; Close</span>
-        <div class="phase-line"></div>
-      </div>
-      <div class="node-grid">
-        <div class="fc-node" id="fn-checkin">
-          <div class="fc-node-status idle" id="fs-checkin">·</div>
-          <div class="fc-node-icon">✅</div>
-          <div class="fc-node-title">Check In</div>
-          <div class="fc-node-api">checkin</div>
-          <button class="fc-node-btn" onclick="devFire('checkin')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-export-markups">
-          <div class="fc-node-status idle" id="fs-export-markups">·</div>
-          <div class="fc-node-icon">📤</div>
-          <div class="fc-node-title">Export Markups</div>
-          <div class="fc-node-api">export-markups</div>
-          <button class="fc-node-btn" onclick="devFire('export-markups')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-run-markuplist-job">
-          <div class="fc-node-status idle" id="fs-run-markuplist-job">·</div>
-          <div class="fc-node-icon">🔍</div>
-          <div class="fc-node-title">Markup List Job</div>
-          <div class="fc-node-api">run-markuplist-job</div>
-          <button class="fc-node-btn" onclick="devFire('run-markuplist-job')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-finalize">
-          <div class="fc-node-status idle" id="fs-finalize">·</div>
-          <div class="fc-node-icon">🏁</div>
-          <div class="fc-node-title">Finalize Session</div>
-          <div class="fc-node-api">finalize</div>
-          <button class="fc-node-btn" onclick="devFire('finalize')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-snapshot">
-          <div class="fc-node-status idle" id="fs-snapshot">·</div>
-          <div class="fc-node-icon">📸</div>
-          <div class="fc-node-title">Snapshot PDF</div>
-          <div class="fc-node-api">snapshot</div>
-          <button class="fc-node-btn" onclick="devFire('snapshot')">Run</button>
-        </div>
-        <div class="node-arrow">→</div>
-        <div class="fc-node" id="fn-cleanup">
-          <div class="fc-node-status idle" id="fs-cleanup">·</div>
-          <div class="fc-node-icon">🗑️</div>
-          <div class="fc-node-title">Cleanup</div>
-          <div class="fc-node-api">cleanup</div>
-          <button class="fc-node-btn" onclick="devFire('cleanup')">Run</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Download links -->
-    <div id="devDownloads" style="display:none;">
-      <div style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Output PDFs</div>
-      <div id="devDownloadLinks" style="display:flex;flex-direction:column;gap:6px;"></div>
-    </div>
-
-  </div>
-  </div>
-
-  <!-- Dev markup panel -->
-  <div class="dev-markup-section" id="devMarkupSection" style="display:none;">
-    <div class="dev-markup-toolbar">
-      <span style="font-size:13px;font-weight:600;color:var(--text);">Markup Metadata</span>
-      <div class="view-toggle">
-        <button id="devBtnTable" class="active" onclick="devSetView('table')">Table</button>
-        <button id="devBtnJson" onclick="devSetView('json')">JSON</button>
-      </div>
-      <button onclick="devCopyJson()" id="devCopyBtn" style="padding:5px 12px;background:var(--white);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;color:var(--text-2);">⎘ Copy JSON</button>
-      <div class="dev-markup-count" id="devMarkupCount"><span id="devMarkupNum">0</span> markups</div>
-    </div>
-    <div id="devTableView">
-      <div class="results-wrap">
-        <table class="results-table">
-          <thead><tr>
-            <th onclick="devSort('Page')">Pg</th>
-            <th onclick="devSort('Type')">Type</th>
-            <th onclick="devSort('Subject')">Subject</th>
-            <th onclick="devSort('Author')">Author</th>
-            <th onclick="devSort('Status')">Status</th>
-            <th onclick="devSort('Comment')">Comment</th>
-            <th onclick="devSort('Layer')">Layer</th>
-            <th onclick="devSort('_sourceFile')">File</th>
-            <th onclick="devSort('DateCreated')">Created</th>
-          </tr></thead>
-          <tbody id="devMarkupTbody"></tbody>
-        </table>
-      </div>
-    </div>
-    <div id="devJsonView" style="display:none;">
-      <div class="json-view" id="devJsonContent"></div>
-    </div>
-  </div>
-
-  <!-- Dev log -->
-  <div class="dev-log-bar" id="devLogBar">
-    <div class="dev-log-title">Activity Log</div>
-    <div id="devLogEntries"><div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div></div>
-  </div>
-
-</div>
-</div>
-
-<script>
-// ── helpers ──────────────────────────────────────────────────────────────────
-function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-async function api(path,method='POST',body=null){
-  const opts={method,headers:{'Content-Type':'application/json'}};
-  if(body)opts.body=JSON.stringify(body);
-  const r=await fetch(`/poc/${path}`,opts);
-  const d=await r.json();
-  if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);
-  return d;
-}
-function switchTab(t){
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='rw')||(i===1&&t==='dev')));
-  document.getElementById('tab-rw').classList.toggle('active',t==='rw');
-  document.getElementById('tab-dev').classList.toggle('active',t==='dev');
-}
-function syntaxHL(json){
-  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{
-      if(/^"/.test(m))return/:$/.test(m)?`<span class="json-key">${m}</span>`:`<span class="json-str">${m}</span>`;
-      if(/true|false/.test(m))return`<span class="json-bool">${m}</span>`;
-      if(/null/.test(m))return`<span class="json-null">${m}</span>`;
-      return`<span class="json-num">${m}</span>`;
-    });
-}
-// default deadline 7 days
-(()=>{const d=new Date();d.setDate(d.getDate()+7);document.getElementById('rwDeadline').value=d.toISOString().slice(0,10);})();
-
-// ── REVIEW WORKFLOW ───────────────────────────────────────────────────────────
-let rwFiles=[];
-let rwMarkups=[];
-let rwSortKey='Page';
-let rwSortDir='asc';
-
-function rwFileSelect(e){rwAddFiles(Array.from(e.target.files));e.target.value='';}
-function rwDrop(e){e.preventDefault();document.getElementById('rwDropZone').classList.remove('drag-over');rwAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));}
-function rwAddFiles(files){files.forEach(f=>{if(!rwFiles.find(s=>s.name===f.name))rwFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});rwRenderFiles();}
-function rwRenderFiles(){
-  const el=document.getElementById('rwStagedFiles');
-  if(!rwFiles.length){el.innerHTML='';return;}
-  el.innerHTML=rwFiles.map(f=>{
-    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
-    const st=f.status==='ok'?'<span class="sf-status ok">✓ Uploaded</span>':f.status==='err'?'<span class="sf-status err">✗ Failed</span>':'<span class="sf-status wait">Ready to upload</span>';
-    const rmv=f.status!=='ok'?`<button class="sf-remove" onclick="rwRemoveFile('${esc(f.name)}')">×</button>`:'';
-    return`<div class="staged-file"><span class="sf-icon">📄</span><span class="sf-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="sf-size">${sz}</span>${st}${rmv}</div>`;
-  }).join('');
-}
-function rwRemoveFile(name){rwFiles=rwFiles.filter(f=>f.name!==name);rwRenderFiles();}
-
-function rwChipKey(e){
-  if(e.key==='Enter'||e.key===','){e.preventDefault();rwAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
-  if(e.key==='Backspace'&&!e.target.value){
-    const chips=[...document.querySelectorAll('#rwChipBox .chip:not(.primary)')];
-    if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email});last.remove();}
-  }
-}
-function rwAddChip(email){
-  if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
-  if([...document.querySelectorAll('#rwChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const c=document.createElement('span');c.className='chip';c.dataset.email=email;
-  c.innerHTML=`${esc(email)} <button class="chip-x" onclick="rwRemoveChip(this,'${esc(email)}')">×</button>`;
-  document.getElementById('rwChipBox').insertBefore(c,document.getElementById('rwChipInput'));
-  api('configure',undefined,{reviewerEmail:email});
-}
-function rwRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email});}
-async function rwImportCsv(e){const f=e.target.files[0];if(!f)return;const t=await f.text();t.split(/[\r\n,;]+/).map(s=>s.trim()).filter(s=>s.includes('@')).forEach(rwAddChip);e.target.value='';}
-
-// Step dot helpers
-function rwSetStep(id,state,label=''){
-  const dot=document.getElementById('sd-'+id);
-  const lbl=document.getElementById('sl-'+id);
-  if(!dot)return;
-  dot.className='step-dot '+state;
-  dot.textContent=state==='done'?'✓':state==='running'?'↻':state==='error'?'✗':(parseInt(dot.textContent)||'·');
-  if(lbl&&label){lbl.textContent=label;lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');}
+/**
+ * Bluebeam Studio API — Document Roundtrip PoC
+ * Proof-of-concept reference implementation. Not for production use.
+ *
+ * KEY FIXES vs. previous version (cross-referenced against developer guide):
+ *   - Auth endpoint: api.bluebeam.com/oauth2/token (new Developer Portal)
+ *   - Header: "client_id" (with underscore) on all API calls
+ *   - Checkout-to-session: uses correct dedicated endpoint
+ *   - Check-in: uses /checkin endpoint with Comment body
+ *   - Job polling: correct status codes (100/130/150 = in-progress, 200 = success)
+ *   - File upload metadata: includes Size and CRC fields
+ *   - S3 upload: no auth headers on PUT
+ *   - exportmarkups job added after check-in
+ *   - importcustomcolumns job added after project file upload
+ *   - Project setup: creates resources + review folders on first run
+ *   - Webhook: graceful localhost skip
+ *
+ * Roundtrip flow:
+ *   0a. /poc/setup-project          — Create folders + upload custom-columns.xml (once)
+ *   0b. /poc/upload-to-project      — Upload PDF(s) from UI → project review folder
+ *   0c. /poc/apply-custom-columns   — Apply custom-columns.xml to each uploaded file (optional / not used in UI)
+ *   1.  /poc/trigger                — Simulate source-system workflow event
+ *   2.  /poc/create-session         — Create Studio Session
+ *   3.  /poc/register-webhook       — Subscribe to session events
+ *   4.  /poc/checkout-to-session    — Check project file(s) out into session
+ *   5.  /poc/invite-reviewers       — Invite reviewers
+ *   6.  (Review in Bluebeam Revu — no API step)
+ *   7.  /poc/checkin                — Check session file(s) back into project
+ *   8.  /poc/export-markups         — Run exportmarkups job → XML in project
+ *   9.  /poc/run-markuplist-job     — Run markuplist job → structured markup data
+ *   9b. /poc/downstream-process     — Combined downstream step: checkin + export + markuplist
+ *   10. /poc/finalize               — Finalize session
+ *   11. /poc/snapshot               — Snapshot + download marked-up PDF
+ *   12. /poc/cleanup                — Delete webhook + session
+ */
+
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+const TokenManager = require('./tokenManager');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+const upload = multer({ storage: multer.memoryStorage() });
+
+// -----------------------------------------------------------------------------
+// API CONFIGURATION
+// -----------------------------------------------------------------------------
+const API_V1 = 'https://api.bluebeam.com/publicapi/v1';
+const API_V2 = 'https://api.bluebeam.com/publicapi/v2';
+const CLIENT_ID = process.env.BB_CLIENT_ID;
+
+const WEBHOOK_CALLBACK_URL =
+  process.env.WEBHOOK_CALLBACK_URL ||
+  `http://localhost:${PORT}/webhook/studio-events`;
+
+// Hardcoded project ID for this PoC
+const POC_PROJECT_ID = '712-566-288';
+
+// Project folder names
+const FOLDER_RESOURCES = 'resources';
+const FOLDER_REVIEW_DOCS = 'review-documents';
+const FOLDER_MARKUP_EXPORTS = 'markup-exports';
+
+// Path to the custom columns XML bundled with this repo
+const CUSTOM_COLUMNS_XML_PATH = path.join(__dirname, 'resources', 'custom-columns.xml');
+
+// Standalone markups endpoint config (optional)
+const MARKUP_SESSION_ID = process.env.MARKUP_SESSION_ID || '';
+const MARKUP_FILE_ID = process.env.MARKUP_FILE_ID || '';
+const MARKUP_FILE_NAME = process.env.MARKUP_FILE_NAME || 'Sample Drawing.pdf';
+
+// -----------------------------------------------------------------------------
+// DEMO STUB
+// -----------------------------------------------------------------------------
+let demoStub = {
+  documentId: process.env.DEMO_DOCUMENT_ID || 'DOC-001',
+  description: process.env.DEMO_DESCRIPTION || 'Design review — coordination update',
+  reviewers: [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }],
+  sessionEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+};
+
+// -----------------------------------------------------------------------------
+// IN-MEMORY STATE
+// -----------------------------------------------------------------------------
+let pocState = {
+  sessionId: null,
+  subscriptionId: null,
+  projectSetupDone: false,
+  folderIds: {},
+  customColumnsFileId: null,
+  projectFiles: [],
+  sessionFileIds: [],
+  markupExports: [],
+  markups: [],
+  markupJobId: null,
+  status: 'idle',
+  log: [],
+  createdAt: null,
+  webhookEvents: []
+};
+
+function logStep(msg, type = 'info') {
+  const entry = { time: new Date().toISOString(), msg, type };
+  pocState.log.push(entry);
+  console.log(`[${type.toUpperCase()}] ${msg}`);
+  return entry;
 }
 
-async function rwStart(){
-  if(!rwFiles.length){alert('Please add at least one PDF.');return;}
-  const name=document.getElementById('rwName').value.trim();
-  if(!name){alert('Please enter a review name.');return;}
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
 
-  const disc=document.getElementById('rwDiscipline').value;
-  const desc=document.getElementById('rwDesc').value.trim();
-  const deadline=document.getElementById('rwDeadline').value;
+const fetch = (...args) =>
+  import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
-  // Push config
-  await api('configure',undefined,{
-    documentId:  name.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,''),
-    description: `${disc?disc+' — ':''}${desc||name}`
-  });
+const tokenManager = new TokenManager();
 
-  // Disable start, show progress
-  const btn=document.getElementById('rwStartBtn');
-  btn.disabled=true;btn.textContent='Setting up...';
-  document.getElementById('rwProgressSection').style.display='flex';
-  document.getElementById('rwActions').style.display='none';
-
-  const steps=[
-    ['setup',   ()=>api('setup-project')],
-    ['upload',  async()=>{
-      const fd=new FormData();
-      rwFiles.filter(f=>f.status==='staged').forEach(f=>fd.append('files',f.file,f.name));
-      const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
-      const d=await r.json();
-      if(!r.ok)throw new Error(d.error);
-      (d.uploaded||[]).forEach(u=>{const sf=rwFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
-      rwRenderFiles();
-      return d;
-    }],
-    ['columns', ()=>api('apply-custom-columns')],
-    ['session', async()=>{await api('trigger');await api('register-webhook');return api('create-session');}],
-    ['checkout',()=>api('checkout-to-session')],
-    ['invite',  ()=>api('invite-reviewers')],
-  ];
-
-  try{
-    for(const [id,fn] of steps){
-      rwSetStep(id,'running');
-      await fn();
-      rwSetStep(id,'done');
-    }
-    // Show session banner
-    const state=await fetch('/poc/state').then(r=>r.json());
-    document.getElementById('rwSessionBanner').style.display='block';
-    document.getElementById('rwSessionId').textContent=state.sessionId||'—';
-    document.getElementById('rwCompleteBtn').disabled=false;
-    document.getElementById('rwCompleteBtn').style.display='block';
-  }catch(err){
-    ['setup','upload','columns','session','checkout','invite'].forEach(id=>{
-      if(document.getElementById('sd-'+id)?.className.includes('running'))rwSetStep(id,'error');
-    });
-    document.getElementById('rwProgressCard').style.border='2px solid var(--error)';
-    btn.disabled=false;btn.textContent='Start Review';
-    document.getElementById('rwActions').style.display='flex';
-  }
-}
-
-async function rwComplete(){
-  const btn=document.getElementById('rwCompleteBtn');
-  btn.disabled=true;btn.classList.add('loading');btn.textContent='Extracting data...';
-  document.getElementById('rwExtractCard').style.display='block';
-
-  const steps=[
-    ['checkin', ()=>api('checkin')],
-    ['export',  ()=>api('export-markups')],
-    ['mlist',   ()=>api('run-markuplist-job')],
-  ];
-
-  try{
-    let result;
-    for(const [id,fn] of steps){
-      const dot=document.getElementById('sd-'+id);const lbl=document.getElementById('sl-'+id);
-      if(dot){dot.className='step-dot running';dot.textContent='↻';}
-      if(lbl)lbl.className='step-row-label';
-      result=await fn();
-      if(dot){dot.className='step-dot done';dot.textContent='✓';}
-    }
-    rwMarkups=(result?.markups)||[];
-    btn.textContent='✓ Data Extracted';btn.classList.remove('loading');
-    rwRenderResults();
-  }catch(err){
-    ['checkin','export','mlist'].forEach(id=>{
-      const dot=document.getElementById('sd-'+id);
-      if(dot?.className.includes('running')){dot.className='step-dot error';dot.textContent='✗';}
-    });
-    btn.disabled=false;btn.classList.remove('loading');btn.textContent='✓ Complete Review & Extract Data';
-  }
-}
-
-function rwRenderResults(){
-  document.getElementById('rwResults').style.display='flex';
-  const ep=m=>{const e=m.ExtendedProperties||{};return{stage:e['Review Stage']||'',disc:e['Discipline']||'',resp:e['Responsibility']||'',prio:e['Priority']||'',action:e['Action Required']||'',due:e['Due Date']||''};};
-  // Attach parsed fields for sorting
-  rwMarkups=rwMarkups.map(m=>{const p=ep(m);return{...m,_stage:p.stage,_discipline:p.disc,_priority:p.prio,_action:p.action,_due:p.due};});
-
-  const stages=rwMarkups.map(m=>m._stage).filter(Boolean);
-  const prios=rwMarkups.map(m=>m._priority).filter(Boolean);
-  const withAction=rwMarkups.filter(m=>m._action).length;
-  const critical=prios.filter(p=>p.includes('Critical')).length;
-  const authors=[...new Set(rwMarkups.map(m=>m.Author).filter(Boolean))].length;
-
-  document.getElementById('rwSummaryCards').innerHTML=`
-    <div class="sum-card"><div class="sum-val">${rwMarkups.length}</div><div class="sum-label">Total Markups</div></div>
-    <div class="sum-card"><div class="sum-val green">${withAction}</div><div class="sum-label">Action Required</div></div>
-    <div class="sum-card"><div class="sum-val error">${critical}</div><div class="sum-label">Critical Items</div></div>
-    <div class="sum-card"><div class="sum-val warn">${authors}</div><div class="sum-label">Active Reviewers</div></div>`;
-
-  const renderBreakdown=(elId,items,colorFn)=>{
-    const counts={};items.forEach(s=>{counts[s]=(counts[s]||0)+1;});
-    const max=Math.max(...Object.values(counts),1);
-    document.getElementById(elId).innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1])
-      .map(([l,n])=>`<div class="bd-row"><div class="bd-label" title="${esc(l)}">${esc(l)}</div><div class="bd-track"><div class="bd-bar" style="width:${Math.round(n/max*100)}%;${colorFn(l)}"></div></div><div class="bd-count">${n}</div></div>`)
-      .join('')||'<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No data — custom columns may not have been applied</div>';
+// -----------------------------------------------------------------------------
+// HELPERS
+// -----------------------------------------------------------------------------
+function resetPocState() {
+  pocState = {
+    sessionId: null,
+    subscriptionId: null,
+    projectSetupDone: false,
+    folderIds: {},
+    customColumnsFileId: null,
+    projectFiles: [],
+    sessionFileIds: [],
+    markupExports: [],
+    markups: [],
+    markupJobId: null,
+    status: 'idle',
+    log: [],
+    createdAt: null,
+    webhookEvents: []
   };
-
-  renderBreakdown('rwStageBreakdown',stages,()=>'');
-  renderBreakdown('rwPriorityBreakdown',prios,l=>{
-    if(l.includes('Critical'))return'background:var(--error)';
-    if(l.includes('High'))return'background:var(--warn)';
-    if(l.includes('Low'))return'background:var(--green)';
-    return'';
-  });
-  rwRenderTable();
 }
 
-function rwPrioPill(p){
-  if(!p)return`<span class="pill pill-gray">—</span>`;
-  if(p.includes('Critical'))return`<span class="pill pill-red">${esc(p.split('–')[0].trim())}</span>`;
-  if(p.includes('High'))return`<span class="pill pill-warn">${esc(p.split('–')[0].trim())}</span>`;
-  if(p.includes('Low'))return`<span class="pill pill-green">${esc(p.split('–')[0].trim())}</span>`;
-  if(p.includes('Information'))return`<span class="pill pill-gray">${esc(p.split('–')[0].trim())}</span>`;
-  return`<span class="pill pill-blue">${esc(p.split('–')[0].trim())}</span>`;
+function isLocalhost(url) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)/.test(url);
 }
 
-function rwRenderTable(){
-  const sorted=[...rwMarkups].sort((a,b)=>{
-    const av=String(a[rwSortKey]??''),bv=String(b[rwSortKey]??'');
-    return rwSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
-  });
-  document.getElementById('rwResultsTbody').innerHTML=sorted.map(m=>`<tr>
-    <td>${m.Page??'—'}</td>
-    <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
-    <td>${esc(m.Author||'—')}</td>
-    <td>${m._stage?`<span class="pill pill-blue" title="${esc(m._stage)}">${esc(m._stage.length>28?m._stage.slice(0,26)+'…':m._stage)}</span>`:'—'}</td>
-    <td>${esc(m._discipline||'—')}</td>
-    <td>${rwPrioPill(m._priority)}</td>
-    <td title="${esc(m._action||'')}">${esc(m._action||'—')}</td>
-    <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
-    <td>${esc(m._due||'—')}</td>
-  </tr>`).join('');
-}
-function rwSort(k){rwSortDir=(rwSortKey===k&&rwSortDir==='asc')?'desc':'asc';rwSortKey=k;if(rwMarkups.length)rwRenderTable();}
-
-function rwReset(){
-  rwFiles=[];rwMarkups=[];rwRenderFiles();
-  document.getElementById('rwProgressSection').style.display='none';
-  document.getElementById('rwResults').style.display='none';
-  document.getElementById('rwSessionBanner').style.display='none';
-  document.getElementById('rwExtractCard').style.display='none';
-  document.getElementById('rwCompleteBtn').style.display='none';
-  document.getElementById('rwCompleteBtn').disabled=true;
-  document.getElementById('rwCompleteBtn').textContent='✓ Complete Review & Extract Data';
-  document.getElementById('rwCompleteBtn').classList.remove('loading');
-  document.getElementById('rwProgressCard').style.border='';
-  document.getElementById('rwActions').style.display='flex';
-  const btn=document.getElementById('rwStartBtn');btn.disabled=false;btn.textContent='Start Review';
-  document.querySelectorAll('#rwChipBox .chip:not(.primary)').forEach(c=>c.remove());
-  ['setup','upload','columns','session','checkout','invite','checkin','export','mlist'].forEach(id=>{
-    const d=document.getElementById('sd-'+id);
-    if(d){d.className='step-dot';const orig={setup:1,upload:2,columns:3,session:4,checkout:5,invite:6,checkin:1,export:2,mlist:3};d.textContent=orig[id]||'·';}
-    const l=document.getElementById('sl-'+id);if(l)l.className='step-row-label muted';
-  });
-  api('reset');
+function authHeaders(accessToken, extra = {}) {
+  return {
+    Authorization: `Bearer ${accessToken}`,
+    client_id: CLIENT_ID,
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    ...extra
+  };
 }
 
-// ── DEVELOPER CONSOLE ─────────────────────────────────────────────────────────
-let devFiles=[];
-let devMarkups=[];
-let devSortKey='Page';
-let devSortDir='asc';
-let devView='table';
+async function pollJob(url, headers, maxAttempts = 20, intervalMs = 3000) {
+  const inProgress = new Set([100, 130, 150]);
 
-function devFileSelect(e){devAddFiles(Array.from(e.target.files));e.target.value='';}
-function devDrop(e){e.preventDefault();document.getElementById('devUploadZone').classList.remove('drag-over');devAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));}
-function devAddFiles(files){files.forEach(f=>{if(!devFiles.find(s=>s.name===f.name))devFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});devRenderFiles();}
-function devRenderFiles(){
-  document.getElementById('devStagedFiles').innerHTML=devFiles.map(f=>{
-    const st=f.status==='ok'?`<span class="dev-staged-ok">✓</span>`:f.status==='err'?`<span class="dev-staged-err">✗</span>`:'·';
-    return`<div class="dev-staged-file">${st} ${esc(f.name)}</div>`;
-  }).join('');
-}
-function devChipKey(e){
-  if(e.key==='Enter'||e.key===','){e.preventDefault();devAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
-  if(e.key==='Backspace'&&!e.target.value){
-    const chips=[...document.querySelectorAll('#devChipBox .chip:not(.primary)')];
-    if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email});last.remove();}
-  }
-}
-function devAddChip(email){
-  if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
-  if([...document.querySelectorAll('#devChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const c=document.createElement('span');c.className='chip';c.dataset.email=email;c.style.fontSize='11px';
-  c.innerHTML=`${esc(email)} <button class="chip-x" onclick="devRemoveChip(this,'${esc(email)}')">×</button>`;
-  document.getElementById('devChipBox').insertBefore(c,document.getElementById('devChipInput'));
-  api('configure',undefined,{reviewerEmail:email});
-}
-function devRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email});}
-function devConfig(){
-  const docId=document.getElementById('devDocId').value.trim();
-  const desc=document.getElementById('devDesc').value.trim();
-  const body={};if(docId)body.documentId=docId;if(desc)body.description=desc;
-  if(Object.keys(body).length)api('configure',undefined,body);
-}
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    await new Promise(r => setTimeout(r, intervalMs));
 
-// Node state helpers
-function devSetNode(endpoint,state){
-  const node=document.getElementById('fn-'+endpoint);
-  const status=document.getElementById('fs-'+endpoint);
-  if(!node||!status)return;
-  node.className='fc-node'+(state==='manual'?' manual':'');
-  if(state==='running')node.classList.add('running');
-  else if(state==='done')node.classList.add('done');
-  else if(state==='error')node.classList.add('error');
-  status.className='fc-node-status '+state;
-  status.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'·';
-  const btn=node.querySelector('.fc-node-btn');
-  if(btn&&state==='done'){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
-  if(btn&&state==='running'){btn.disabled=true;btn.textContent='Running...';}
-  if(btn&&state!=='running'&&state!=='done'){btn.disabled=false;btn.textContent='Run';}
-}
+    const res = await fetch(url, { headers });
+    const data = await res.json();
 
-async function devFire(endpoint){
-  devSetNode(endpoint,'running');
-  try{
-    const data=await api(endpoint);
-    devSetNode(endpoint,'done');
-    if(endpoint==='run-markuplist-job'&&data.markups){
-      devMarkups=data.markups;devRenderDevMarkups();
+    const status = data.Status ?? data.JobStatus;
+    const msg = data.StatusMessage ?? data.JobStatusMessage ?? '';
+    logStep(`Job poll ${attempt}/${maxAttempts}: status=${status} ${msg}`.trim(), 'info');
+
+    if (status === 200) return data;
+    if (!inProgress.has(status)) {
+      throw new Error(`Job failed (status=${status}): ${msg}`);
     }
-    if(endpoint==='snapshot'&&data.downloads?.length){
-      document.getElementById('devDownloads').style.display='block';
-      document.getElementById('devDownloadLinks').innerHTML=data.downloads.map(d=>
-        `<a href="${esc(d.path)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--green-l);border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:13px;font-weight:500;text-decoration:none;">⬇ ${esc(d.name)}</a>`
-      ).join('');
-    }
-    await devRefreshLog();
-  }catch(err){
-    devSetNode(endpoint,'error');
-    await devRefreshLog();
   }
+
+  throw new Error(`Job did not complete after ${maxAttempts} attempts`);
 }
 
-async function devUpload(){
-  const pending=devFiles.filter(f=>f.status==='staged');
-  if(!pending.length){alert('No files staged.');return;}
-  devSetNode('upload-to-project','running');
-  const fd=new FormData();pending.forEach(f=>fd.append('files',f.file,f.name));
-  try{
-    const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
-    const d=await r.json();if(!r.ok)throw new Error(d.error);
-    (d.uploaded||[]).forEach(u=>{const sf=devFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
-    devRenderFiles();devSetNode('upload-to-project','done');
-    await devRefreshLog();
-  }catch(err){
-    devFiles.filter(f=>f.status==='staged').forEach(f=>f.status='err');
-    devRenderFiles();devSetNode('upload-to-project','error');
-    await devRefreshLog();
-  }
-}
-
-function devMarkReviewDone(){
-  const node=document.getElementById('fn-review');
-  const status=document.getElementById('fs-review');
-  if(node){node.classList.remove('manual');node.classList.add('done');}
-  if(status){status.className='fc-node-status done';status.textContent='✓';}
-  const btn=node?.querySelector('.fc-node-btn');
-  if(btn){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
-}
-
-async function devRefreshLog(){
-  const state=await fetch('/poc/state').then(r=>r.json());
-  if(state.log?.length){
-    document.getElementById('devLogEntries').innerHTML=[...state.log].reverse().slice(0,30).map(e=>{
-      const t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});
-      return`<div class="dev-log-entry"><span class="dev-log-time">${t}</span><span class="dev-log-msg ${e.type||'info'}">${esc(e.msg)}</span></div>`;
-    }).join('');
-  }
-}
-
-function devRenderDevMarkups(){
-  if(!devMarkups.length)return;
-  document.getElementById('devMarkupSection').style.display='block';
-  document.getElementById('devMarkupNum').textContent=devMarkups.length;
-  devRenderDevTable();
-  document.getElementById('devJsonContent').innerHTML=syntaxHL(JSON.stringify(devMarkups,null,2));
-}
-function devRenderDevTable(){
-  const sorted=[...devMarkups].sort((a,b)=>{
-    const av=String(a[devSortKey]??''),bv=String(b[devSortKey]??'');
-    return devSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
+async function listProjectFolders(accessToken) {
+  const resp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/folders`, {
+    headers: authHeaders(accessToken)
   });
-  document.getElementById('devMarkupTbody').innerHTML=sorted.map(m=>{
-    const dt=m.DateCreated?new Date(m.DateCreated).toLocaleDateString():'—';
-    return`<tr><td>${m.Page??'—'}</td><td>${esc(m.Type||'—')}</td><td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td><td>${esc(m.Author||'—')}</td><td>${esc(m.Status||'—')}</td><td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td><td>${esc(m.Layer||'—')}</td><td>${esc(m._sourceFile||'—')}</td><td>${dt}</td></tr>`;
-  }).join('');
+  if (!resp.ok) throw new Error(`Failed to list folders: ${resp.status} - ${await resp.text()}`);
+  const data = await resp.json();
+  return data.ProjectFolders || [];
 }
-function devSort(k){devSortDir=(devSortKey===k&&devSortDir==='asc')?'desc':'asc';devSortKey=k;if(devMarkups.length)devRenderDevTable();}
-function devSetView(v){devView=v;document.getElementById('devBtnTable').classList.toggle('active',v==='table');document.getElementById('devBtnJson').classList.toggle('active',v==='json');document.getElementById('devTableView').style.display=v==='table'?'block':'none';document.getElementById('devJsonView').style.display=v==='json'?'block':'none';}
-async function devCopyJson(){if(!devMarkups.length)return;try{await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));const b=document.getElementById('devCopyBtn');b.textContent='✓ Copied';setTimeout(()=>{b.textContent='⎘ Copy JSON';},2000);}catch{}}
 
-async function devReset(){
-  await api('reset');
-  devFiles=[];devMarkups=[];devRenderFiles();
-  document.querySelectorAll('#devChipBox .chip:not(.primary)').forEach(c=>c.remove());
-  document.getElementById('devMarkupSection').style.display='none';
-  document.getElementById('devDownloads').style.display='none';
-  // Reset all nodes
-  ['setup-project','upload-to-project','apply-custom-columns','trigger','create-session',
-   'register-webhook','checkout-to-session','invite-reviewers','checkin','export-markups',
-   'run-markuplist-job','finalize','snapshot','cleanup'].forEach(ep=>devSetNode(ep,'idle'));
-  const rev=document.getElementById('fn-review');
-  if(rev){rev.className='fc-node manual';const s=document.getElementById('fs-review');if(s){s.className='fc-node-status idle';s.textContent='·';}const b=rev.querySelector('.fc-node-btn');if(b){b.className='fc-node-btn manual-btn';b.textContent='Mark Done';}}
-  document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';
+async function createFolder(name, accessToken) {
+  const resp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/folders`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ Name: name })
+  });
+  if (!resp.ok) throw new Error(`Failed to create folder "${name}": ${resp.status} - ${await resp.text()}`);
+  const data = await resp.json();
+  return data.Id;
 }
-</script>
-</body>
-</html>
+
+async function uploadFileToProject(fileBuffer, fileName, accessToken, folderId = null) {
+  logStep(`Uploading "${fileName}" to project ${POC_PROJECT_ID}${folderId ? ` (folderId=${folderId})` : ''}...`, 'info');
+
+  const metaBody = {
+    Name: fileName,
+    Size: fileBuffer.length,
+    CRC: '0'
+  };
+  if (folderId) metaBody.ParentFolderId = folderId;
+
+  const metaResp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/files`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify(metaBody)
+  });
+
+  if (!metaResp.ok) {
+    throw new Error(`Metadata block failed for "${fileName}": ${metaResp.status} - ${await metaResp.text()}`);
+  }
+
+  const meta = await metaResp.json();
+  const projectFileId = meta.Id;
+  const uploadUrl = meta.UploadUrl;
+  const uploadContentType = meta.UploadContentType || 'application/pdf';
+
+  logStep(`Metadata block created: projectFileId=${projectFileId}`, 'success');
+
+  logStep(`Uploading ${fileBuffer.length} bytes to storage...`, 'info');
+  const s3Resp = await fetch(uploadUrl, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': uploadContentType,
+      'x-amz-server-side-encryption': 'AES256'
+    },
+    body: fileBuffer
+  });
+
+  if (!s3Resp.ok) {
+    throw new Error(`S3 upload failed for "${fileName}": ${s3Resp.status}`);
+  }
+
+  logStep('S3 upload complete', 'success');
+
+  const confirmResp = await fetch(
+    `${API_V1}/projects/${POC_PROJECT_ID}/files/${projectFileId}/confirm-upload`,
+    { method: 'POST', headers: authHeaders(accessToken), body: '{}' }
+  );
+
+  if (!confirmResp.ok) {
+    throw new Error(`Confirm upload failed for "${fileName}": ${confirmResp.status} - ${await confirmResp.text()}`);
+  }
+
+  logStep(`"${fileName}" confirmed in project (projectFileId=${projectFileId})`, 'success');
+  return { projectFileId, name: fileName, size: fileBuffer.length, folderId };
+}
+
+async function listProjectFiles(accessToken) {
+  const resp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/files`, {
+    headers: authHeaders(accessToken)
+  });
+  if (!resp.ok) {
+    throw new Error(`Failed to list project files: ${resp.status} - ${await resp.text()}`);
+  }
+  const data = await resp.json();
+  return data.ProjectFiles || [];
+}
+
+// -----------------------------------------------------------------------------
+// DOWNSTREAM HELPERS
+// -----------------------------------------------------------------------------
+async function performCheckin(accessToken) {
+  if (!pocState.sessionId) throw new Error('No active session');
+  if (pocState.sessionFileIds.length === 0) throw new Error('No session files — run checkout-to-session first');
+
+  pocState.status = 'checking-in';
+  const results = [];
+
+  for (const sf of pocState.sessionFileIds) {
+    logStep(`Checking in "${sf.name}" (sessionFileId=${sf.sessionFileId})...`, 'info');
+
+    const resp = await fetch(
+      `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/checkin`,
+      {
+        method: 'POST',
+        headers: authHeaders(accessToken),
+        body: JSON.stringify({ Comment: 'Session markup review complete' })
+      }
+    );
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      logStep(`Check-in failed for "${sf.name}": ${resp.status} - ${err}`, 'warn');
+      results.push({ name: sf.name, success: false, error: err });
+    } else {
+      logStep(`"${sf.name}" checked in to project`, 'success');
+      results.push({ name: sf.name, success: true });
+    }
+  }
+
+  logStep('Check-in complete — project files updated with session markups', 'success');
+  return results;
+}
+
+async function performExportMarkups(accessToken) {
+  if (pocState.sessionFileIds.length === 0) {
+    throw new Error('No session files — run checkout-to-session first');
+  }
+
+  logStep('Exporting markups to XML...', 'info');
+  const results = [];
+
+  if (!pocState.folderIds[FOLDER_MARKUP_EXPORTS]) {
+    logStep('markup-exports folder ID not set — re-querying folders...', 'info');
+    const folders = await listProjectFolders(accessToken);
+    const found = folders.find(f => f.Name === FOLDER_MARKUP_EXPORTS);
+    if (found) pocState.folderIds[FOLDER_MARKUP_EXPORTS] = found.Id;
+    else throw new Error(`Folder "${FOLDER_MARKUP_EXPORTS}" not found — run setup-project first`);
+  }
+
+  for (const sf of pocState.sessionFileIds) {
+    const exportFileName = `Markups-${sf.projectFileId}.xml`;
+
+    logStep(`Submitting exportmarkups job for "${sf.name}" → ${exportFileName}...`, 'info');
+
+    const jobResp = await fetch(
+      `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/exportmarkups`,
+      {
+        method: 'POST',
+        headers: authHeaders(accessToken),
+        body: JSON.stringify({
+          OutputFileName: exportFileName,
+          OutputPath: FOLDER_MARKUP_EXPORTS,
+          Priority: 0
+        })
+      }
+    );
+
+    if (!jobResp.ok) {
+      const err = await jobResp.text();
+      logStep(`exportmarkups submission failed for "${sf.name}": ${jobResp.status} - ${err}`, 'warn');
+      results.push({ name: sf.name, success: false, error: err });
+      continue;
+    }
+
+    const { Id: jobId } = await jobResp.json();
+    logStep(`exportmarkups job submitted: jobId=${jobId} — polling (15s interval)...`, 'success');
+
+    const pollUrl = `${API_V1}/jobs/${jobId}`;
+    await pollJob(pollUrl, authHeaders(accessToken), 15, 15000);
+
+    logStep(`Markup XML exported: ${exportFileName}`, 'success');
+    pocState.markupExports.push({
+      name: sf.name,
+      exportFileName,
+      projectPath: FOLDER_MARKUP_EXPORTS
+    });
+    results.push({ name: sf.name, success: true, exportFileName });
+  }
+
+  return results;
+}
+
+async function performMarkupList(accessToken) {
+  if (pocState.sessionFileIds.length === 0) {
+    throw new Error('No session files — run checkout-to-session first');
+  }
+
+  pocState.status = 'extracting-markups';
+  pocState.markups = [];
+
+  const hdrs = authHeaders(accessToken);
+
+  for (const sf of pocState.sessionFileIds) {
+    logStep(`Submitting markuplist job for "${sf.name}" (projectFileId=${sf.projectFileId})...`, 'info');
+
+    const submitResp = await fetch(
+      `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist`,
+      { method: 'POST', headers: hdrs, body: '{}' }
+    );
+
+    if (!submitResp.ok) {
+      const err = await submitResp.text();
+      logStep(`markuplist submission failed for "${sf.name}": ${submitResp.status} - ${err}`, 'warn');
+      continue;
+    }
+
+    const { Id: jobId } = await submitResp.json();
+    pocState.markupJobId = jobId;
+    logStep(`markuplist job submitted: jobId=${jobId} — polling...`, 'success');
+
+    const pollUrl = `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist/${jobId}`;
+    const result = await pollJob(pollUrl, hdrs);
+
+    const fileMarkups = (result.Markups || []).map(m => ({ ...m, _sourceFile: sf.name }));
+    pocState.markups.push(...fileMarkups);
+    logStep(`"${sf.name}" — ${fileMarkups.length} markup(s) extracted`, 'success');
+  }
+
+  pocState.status = 'active';
+  logStep(`Markuplist complete — ${pocState.markups.length} total markup(s)`, 'success');
+  return pocState.markups;
+}
+
+// -----------------------------------------------------------------------------
+// HEALTH CHECK
+// -----------------------------------------------------------------------------
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    projectId: POC_PROJECT_ID,
+    config: {
+      hasClientId: Boolean(CLIENT_ID),
+      webhookCallbackUrl: WEBHOOK_CALLBACK_URL,
+      webhookIsLocalhost: isLocalhost(WEBHOOK_CALLBACK_URL),
+      customColumnsXmlExists: fs.existsSync(CUSTOM_COLUMNS_XML_PATH)
+    }
+  });
+});
+
+// =============================================================================
+// POC ROUTES
+// =============================================================================
+app.get('/poc/state', (req, res) => {
+  res.json({ ...pocState, stub: demoStub, projectId: POC_PROJECT_ID });
+});
+
+app.get('/poc/stub', (req, res) => res.json(demoStub));
+
+app.post('/poc/configure', (req, res) => {
+  const { documentId, description, reviewerEmail } = req.body || {};
+
+  if (documentId) demoStub.documentId = documentId;
+  if (description) demoStub.description = description;
+
+  if (reviewerEmail && reviewerEmail !== 'dmolz@bluebeam.com') {
+    if (!demoStub.reviewers.some(r => r.email === reviewerEmail)) {
+      demoStub.reviewers.push({ email: reviewerEmail, hasStudioAccount: false });
+      logStep(`Added reviewer: ${reviewerEmail}`, 'info');
+    }
+  }
+
+  demoStub.sessionEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  res.json({ success: true, stub: demoStub });
+});
+
+app.post('/poc/remove-reviewer', (req, res) => {
+  const { email } = req.body || {};
+  if (email === 'dmolz@bluebeam.com') {
+    return res.status(400).json({ error: 'Cannot remove primary reviewer' });
+  }
+  demoStub.reviewers = demoStub.reviewers.filter(r => r.email !== email);
+  res.json({ success: true, stub: demoStub });
+});
+
+app.post('/poc/reset', (req, res) => {
+  resetPocState();
+  demoStub.reviewers = [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }];
+  logStep('PoC state reset', 'info');
+  res.json({ success: true });
+});
+
+// -----------------------------------------------------------------------------
+// STEP 0a — Project Setup
+// -----------------------------------------------------------------------------
+app.post('/poc/setup-project', async (req, res) => {
+  try {
+    if (!fs.existsSync(CUSTOM_COLUMNS_XML_PATH)) {
+      throw new Error(`custom-columns.xml not found at ${CUSTOM_COLUMNS_XML_PATH} — ensure resources/ folder is present`);
+    }
+
+    logStep('Running project setup...', 'info');
+    const accessToken = await tokenManager.getValidAccessToken();
+
+    const existing = await listProjectFolders(accessToken);
+    const folderMap = {};
+    existing.forEach(f => { folderMap[f.Name] = f.Id; });
+
+    const needed = [FOLDER_RESOURCES, FOLDER_REVIEW_DOCS, FOLDER_MARKUP_EXPORTS];
+
+    for (const name of needed) {
+      if (folderMap[name]) {
+        logStep(`Folder "${name}" already exists (id=${folderMap[name]})`, 'info');
+        pocState.folderIds[name] = folderMap[name];
+      } else {
+        logStep(`Creating folder "${name}"...`, 'info');
+        const id = await createFolder(name, accessToken);
+        await new Promise(r => setTimeout(r, 1500));
+        pocState.folderIds[name] = id;
+        logStep(`Folder "${name}" created (id=${id})`, 'success');
+      }
+    }
+
+    const allFiles = await listProjectFiles(accessToken);
+    const existingXml = allFiles.find(f =>
+      f.Name === 'custom-columns.xml' &&
+      f.ParentFolderId === pocState.folderIds[FOLDER_RESOURCES]
+    );
+
+    if (existingXml) {
+      pocState.customColumnsFileId = existingXml.Id;
+      logStep(`custom-columns.xml already in resources folder (fileId=${existingXml.Id})`, 'info');
+    } else {
+      logStep('Uploading custom-columns.xml to resources folder...', 'info');
+      const xmlBuffer = fs.readFileSync(CUSTOM_COLUMNS_XML_PATH);
+      const result = await uploadFileToProject(
+        xmlBuffer,
+        'custom-columns.xml',
+        accessToken,
+        pocState.folderIds[FOLDER_RESOURCES]
+      );
+      pocState.customColumnsFileId = result.projectFileId;
+      logStep(`custom-columns.xml uploaded (fileId=${pocState.customColumnsFileId})`, 'success');
+    }
+
+    pocState.projectSetupDone = true;
+    logStep('Project setup complete', 'success');
+
+    res.json({
+      success: true,
+      folderIds: pocState.folderIds,
+      customColumnsFileId: pocState.customColumnsFileId,
+      state: pocState
+    });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 0b — Upload PDF(s)
+// -----------------------------------------------------------------------------
+app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      throw new Error('No files received');
+    }
+
+    pocState.status = 'uploading';
+    logStep(`Received ${req.files.length} file(s) for upload`, 'info');
+
+    const accessToken = await tokenManager.getValidAccessToken();
+    const reviewFolderId = pocState.folderIds[FOLDER_REVIEW_DOCS] || null;
+    const uploaded = [];
+
+    for (const file of req.files) {
+      const result = await uploadFileToProject(
+        file.buffer,
+        file.originalname,
+        accessToken,
+        reviewFolderId
+      );
+      uploaded.push(result);
+      pocState.projectFiles.push(result);
+    }
+
+    if (uploaded.length > 0 && demoStub.documentId === 'DOC-001') {
+      demoStub.documentId = uploaded[0].name.replace(/\.[^.]+$/, '');
+    }
+
+    logStep(`${uploaded.length} file(s) uploaded to project`, 'success');
+    res.json({ success: true, uploaded, state: pocState });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 0c — Apply Custom Columns (optional / not used in UI)
+// -----------------------------------------------------------------------------
+app.post('/poc/apply-custom-columns', async (req, res) => {
+  try {
+    if (!pocState.customColumnsFileId) {
+      throw new Error('custom-columns.xml not uploaded — run setup-project first');
+    }
+    if (pocState.projectFiles.length === 0) {
+      throw new Error('No project files — run upload-to-project first');
+    }
+
+    logStep('Applying custom columns to project files...', 'info');
+    const accessToken = await tokenManager.getValidAccessToken();
+    const results = [];
+
+    for (const pf of pocState.projectFiles) {
+      logStep(`Submitting importcustomcolumns job for "${pf.name}"...`, 'info');
+
+      const jobResp = await fetch(
+        `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/jobs/importcustomcolumns`,
+        {
+          method: 'POST',
+          headers: authHeaders(accessToken),
+          body: JSON.stringify({
+            CurrentPassword: '',
+            CustomColumnsFileID: parseInt(pocState.customColumnsFileId, 10),
+            OutputFileName: pf.name,
+            OutputPath: FOLDER_REVIEW_DOCS,
+            Priority: 0
+          })
+        }
+      );
+
+      if (!jobResp.ok) {
+        const err = await jobResp.text();
+        logStep(`importcustomcolumns submission failed for "${pf.name}": ${jobResp.status} - ${err}`, 'warn');
+        results.push({ name: pf.name, success: false, error: err });
+        continue;
+      }
+
+      const { Id: jobId } = await jobResp.json();
+      logStep(`Job submitted: jobId=${jobId} — polling...`, 'success');
+
+      const pollUrl = `${API_V1}/jobs/${jobId}`;
+      await pollJob(pollUrl, authHeaders(accessToken));
+
+      logStep(`Custom columns applied to "${pf.name}"`, 'success');
+      results.push({ name: pf.name, success: true, jobId });
+    }
+
+    res.json({ success: true, results, state: pocState });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 1 — Trigger
+// -----------------------------------------------------------------------------
+app.post('/poc/trigger', (req, res) => {
+  pocState.status = 'triggered';
+  pocState.log = [];
+
+  logStep(`Workflow event received — document: ${demoStub.documentId}`, 'info');
+  logStep(`Files: ${pocState.projectFiles.map(f => f.name).join(', ') || '(none)'}`, 'info');
+  logStep(`Description: ${demoStub.description}`, 'info');
+  logStep(`Reviewers: ${demoStub.reviewers.map(r => r.email).join(', ')}`, 'info');
+  logStep(`Session end date: ${new Date(demoStub.sessionEndDate).toLocaleDateString()}`, 'info');
+
+  res.json({ success: true, state: pocState });
+});
+
+// -----------------------------------------------------------------------------
+// STEP 2 — Create Session
+// -----------------------------------------------------------------------------
+app.post('/poc/create-session', async (req, res) => {
+  try {
+    pocState.status = 'creating';
+    logStep('Creating Bluebeam Studio Session...', 'info');
+
+    const accessToken = await tokenManager.getValidAccessToken();
+    const sessionName = `${demoStub.documentId}_Review_${new Date().toISOString().slice(0, 10)}`;
+
+    const resp = await fetch(`${API_V1}/sessions`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({
+        Name: sessionName,
+        Notification: true,
+        Restricted: true,
+        SessionEndDate: demoStub.sessionEndDate,
+        DefaultPermissions: [
+          { Type: 'Markup', Allow: 'Allow' },
+          { Type: 'SaveCopy', Allow: 'Allow' },
+          { Type: 'PrintCopy', Allow: 'Allow' },
+          { Type: 'MarkupAlert', Allow: 'Allow' },
+          { Type: 'AddDocuments', Allow: 'Deny' }
+        ]
+      })
+    });
+
+    if (!resp.ok) {
+      throw new Error(`Session creation failed: ${resp.status} - ${await resp.text()}`);
+    }
+
+    const data = await resp.json();
+    pocState.sessionId = data.Id;
+    pocState.createdAt = new Date().toISOString();
+
+    logStep(`Session created: ID=${pocState.sessionId}`, 'success');
+    logStep(`Session name: ${sessionName}`, 'info');
+    res.json({ success: true, sessionId: pocState.sessionId, state: pocState });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 3 — Register Webhook
+// -----------------------------------------------------------------------------
+app.post('/poc/register-webhook', async (req, res) => {
+  try {
+    if (!pocState.sessionId) {
+      throw new Error('No active session — run create-session first');
+    }
+
+    if (isLocalhost(WEBHOOK_CALLBACK_URL)) {
+      logStep('Webhook skipped — WEBHOOK_CALLBACK_URL is localhost (Bluebeam requires public HTTPS)', 'warn');
+      logStep('Set WEBHOOK_CALLBACK_URL to a public HTTPS URL (e.g. ngrok) to enable webhooks', 'warn');
+      return res.json({ success: true, skipped: true, state: pocState });
+    }
+
+    logStep(`Registering webhook for session ${pocState.sessionId}...`, 'info');
+    const accessToken = await tokenManager.getValidAccessToken();
+
+    const resp = await fetch(`${API_V2}/subscriptions`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({
+        sourceType: 'session',
+        resourceId: pocState.sessionId,
+        callbackURI: WEBHOOK_CALLBACK_URL
+      })
+    });
+
+    if (!resp.ok) {
+      throw new Error(`Webhook registration failed: ${resp.status} - ${await resp.text()}`);
+    }
+
+    const data = await resp.json();
+    pocState.subscriptionId = data.subscriptionId;
+
+    logStep(`Webhook registered: subscriptionId=${pocState.subscriptionId}`, 'success');
+    logStep(`Callback URL: ${WEBHOOK_CALLBACK_URL}`, 'info');
+    res.json({ success: true, subscriptionId: pocState.subscriptionId, state: pocState });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 4 — Checkout to Session
+// -----------------------------------------------------------------------------
+app.post('/poc/checkout-to-session', async (req, res) => {
+  try {
+    if (!pocState.sessionId) throw new Error('No active session — run create-session first');
+    if (pocState.projectFiles.length === 0) throw new Error('No project files — run upload-to-project first');
+
+    pocState.status = 'checking-out';
+    logStep(`Checking ${pocState.projectFiles.length} file(s) out to session ${pocState.sessionId}...`, 'info');
+
+    const accessToken = await tokenManager.getValidAccessToken();
+    const checked = [];
+
+    for (const pf of pocState.projectFiles) {
+      logStep(`Checking out "${pf.name}" (projectFileId=${pf.projectFileId})...`, 'info');
+
+      const resp = await fetch(
+        `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/checkout-to-session`,
+        {
+          method: 'POST',
+          headers: authHeaders(accessToken),
+          body: JSON.stringify({ SessionId: pocState.sessionId })
+        }
+      );
+
+      if (!resp.ok) {
+        const err = await resp.text();
+
+        if (resp.status === 409) {
+          logStep(`"${pf.name}" already checked out (409) — attempting to release and retry...`, 'warn');
+
+          const releaseResp = await fetch(
+            `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/checkout`,
+            { method: 'DELETE', headers: authHeaders(accessToken) }
+          );
+
+          if (releaseResp.ok) {
+            logStep(`Checkout released for "${pf.name}" — retrying...`, 'info');
+
+            const retry = await fetch(
+              `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/checkout-to-session`,
+              {
+                method: 'POST',
+                headers: authHeaders(accessToken),
+                body: JSON.stringify({ SessionId: pocState.sessionId })
+              }
+            );
+
+            if (!retry.ok) {
+              logStep(`Retry failed for "${pf.name}": ${retry.status}`, 'warn');
+              continue;
+            }
+          } else {
+            logStep(`Could not release checkout for "${pf.name}"`, 'warn');
+            continue;
+          }
+        } else {
+          logStep(`Checkout failed for "${pf.name}": ${resp.status} - ${err}`, 'warn');
+          continue;
+        }
+      }
+
+      await new Promise(r => setTimeout(r, 1000));
+
+      const sessionFilesResp = await fetch(
+        `${API_V1}/sessions/${pocState.sessionId}/files?includeDeleted=false`,
+        { headers: authHeaders(accessToken) }
+      );
+
+      if (!sessionFilesResp.ok) {
+        logStep(`Could not list session files after checkout: ${sessionFilesResp.status}`, 'warn');
+        continue;
+      }
+
+      const sessionFilesData = await sessionFilesResp.json();
+      const sessionFiles = sessionFilesData.SessionFiles || sessionFilesData.Files || [];
+
+      const match = sessionFiles.find(f =>
+        f.ProjectFileId === pf.projectFileId || f.Name === pf.name
+      );
+
+      if (!match) {
+        logStep(`Could not find session file entry for "${pf.name}" after checkout`, 'warn');
+        continue;
+      }
+
+      const entry = {
+        sessionFileId: match.Id,
+        projectFileId: pf.projectFileId,
+        name: pf.name
+      };
+
+      pocState.sessionFileIds.push(entry);
+      checked.push(entry);
+
+      logStep(`"${pf.name}" checked out to session (sessionFileId=${match.Id})`, 'success');
+    }
+
+    logStep(`${checked.length} file(s) checked out to session`, 'success');
+    res.json({ success: true, checked, state: pocState });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 5 — Invite Reviewers
+// -----------------------------------------------------------------------------
+app.post('/poc/invite-reviewers', async (req, res) => {
+  try {
+    if (!pocState.sessionId) throw new Error('No active session');
+
+    pocState.status = 'inviting';
+    logStep(`Inviting ${demoStub.reviewers.length} reviewer(s)...`, 'info');
+
+    const accessToken = await tokenManager.getValidAccessToken();
+    const results = [];
+
+    for (const reviewer of demoStub.reviewers) {
+      const endpoint = reviewer.hasStudioAccount
+        ? `${API_V1}/sessions/${pocState.sessionId}/users`
+        : `${API_V1}/sessions/${pocState.sessionId}/invite`;
+
+      logStep(
+        `Inviting ${reviewer.email} via ${reviewer.hasStudioAccount ? 'direct-add' : 'email-invite'}`,
+        'info'
+      );
+
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: authHeaders(accessToken),
+        body: JSON.stringify({
+          Email: reviewer.email,
+          Message: `You have been invited to review ${demoStub.documentId}: ${demoStub.description}`
+        })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.text();
+        logStep(`Failed to invite ${reviewer.email}: ${resp.status} - ${err}`, 'warn');
+        results.push({ email: reviewer.email, success: false, error: err });
+      } else {
+        logStep(`Invited: ${reviewer.email}`, 'success');
+        results.push({ email: reviewer.email, success: true });
+      }
+    }
+
+    pocState.status = 'active';
+    logStep('Session active — reviewers notified', 'success');
+    logStep(`Join in Bluebeam Revu with session ID: ${pocState.sessionId}`, 'info');
+    res.json({ success: true, results, state: pocState });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 7 — Check In
+// -----------------------------------------------------------------------------
+app.post('/poc/checkin', async (req, res) => {
+  try {
+    const accessToken = await tokenManager.getValidAccessToken();
+    const results = await performCheckin(accessToken);
+    res.json({ success: true, results, state: pocState });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 8 — Export Markups
+// -----------------------------------------------------------------------------
+app.post('/poc/export-markups', async (req, res) => {
+  try {
+    const accessToken = await tokenManager.getValidAccessToken();
+    const results = await performExportMarkups(accessToken);
+
+    res.json({
+      success: true,
+      results,
+      markupExports: pocState.markupExports,
+      state: pocState
+    });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 9 — Markup List Job
+// -----------------------------------------------------------------------------
+app.post('/poc/run-markuplist-job', async (req, res) => {
+  try {
+    const accessToken = await tokenManager.getValidAccessToken();
+    const markups = await performMarkupList(accessToken);
+
+    res.json({
+      success: true,
+      count: markups.length,
+      markups,
+      state: pocState
+    });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 9b — Combined Downstream Processing
+// -----------------------------------------------------------------------------
+app.post('/poc/downstream-process', async (req, res) => {
+  try {
+    if (!pocState.sessionId) throw new Error('No active session');
+    if (pocState.sessionFileIds.length === 0) throw new Error('No session files — run checkout-to-session first');
+
+    logStep('Starting downstream processing...', 'info');
+    const accessToken = await tokenManager.getValidAccessToken();
+
+    const checkinResults = await performCheckin(accessToken);
+    const exportResults = await performExportMarkups(accessToken);
+    const markups = await performMarkupList(accessToken);
+
+    logStep('Downstream processing complete', 'success');
+
+    res.json({
+      success: true,
+      checkinResults,
+      exportResults,
+      count: markups.length,
+      markups,
+      markupExports: pocState.markupExports,
+      state: pocState
+    });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 10 — Finalize Session
+// -----------------------------------------------------------------------------
+app.post('/poc/finalize', async (req, res) => {
+  try {
+    if (!pocState.sessionId) throw new Error('No active session');
+
+    pocState.status = 'finalizing';
+    logStep(`Setting session ${pocState.sessionId} to Finalizing...`, 'info');
+
+    const accessToken = await tokenManager.getValidAccessToken();
+    const resp = await fetch(`${API_V1}/sessions/${pocState.sessionId}`, {
+      method: 'PUT',
+      headers: authHeaders(accessToken),
+      body: JSON.stringify({
+        Name: `${demoStub.documentId}_Review_${new Date().toISOString().slice(0, 10)}`,
+        Restricted: true,
+        SessionEndDate: demoStub.sessionEndDate
+      })
+    });
+
+    if (!resp.ok) {
+      throw new Error(`Finalize failed: ${resp.status} - ${await resp.text()}`);
+    }
+
+    logStep('Session finalized', 'success');
+    res.json({ success: true, state: pocState });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 11 — Snapshot
+// -----------------------------------------------------------------------------
+app.post('/poc/snapshot', async (req, res) => {
+  try {
+    if (!pocState.sessionId || pocState.sessionFileIds.length === 0) {
+      throw new Error('No active session or no files');
+    }
+
+    pocState.status = 'snapshotting';
+    const accessToken = await tokenManager.getValidAccessToken();
+    const downloads = [];
+
+    for (const sf of pocState.sessionFileIds) {
+      logStep(`Requesting snapshot for "${sf.name}"...`, 'info');
+
+      const snapResp = await fetch(
+        `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/snapshot`,
+        { method: 'POST', headers: authHeaders(accessToken) }
+      );
+
+      if (!snapResp.ok) {
+        logStep(`Snapshot request failed for "${sf.name}": ${snapResp.status}`, 'warn');
+        continue;
+      }
+
+      let downloadUrl = null;
+
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+
+        const pollToken = await tokenManager.getValidAccessToken();
+        const pollResp = await fetch(
+          `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/snapshot`,
+          { headers: authHeaders(pollToken) }
+        );
+
+        if (!pollResp.ok) continue;
+
+        const d = await pollResp.json();
+        logStep(`Snapshot poll ${i + 1}: ${d.Status}`, 'info');
+
+        if (d.Status === 'Complete') {
+          downloadUrl = d.DownloadUrl;
+          break;
+        }
+        if (d.Status === 'Error') {
+          throw new Error(`Snapshot error: ${d.Message}`);
+        }
+      }
+
+      if (!downloadUrl) {
+        logStep(`Snapshot timed out for "${sf.name}"`, 'warn');
+        continue;
+      }
+
+      const dlResp = await fetch(downloadUrl);
+      if (!dlResp.ok) throw new Error(`Download failed: ${dlResp.status}`);
+
+      const pdfBuffer = await dlResp.buffer();
+
+      const publicDir = path.join(__dirname, 'public');
+      if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
+
+      const outFile = `${demoStub.documentId}_${sf.name.replace(/\.[^.]+$/, '')}_Reviewed.pdf`;
+      fs.writeFileSync(path.join(publicDir, outFile), pdfBuffer);
+
+      logStep(`PDF saved: ${outFile} (${pdfBuffer.length} bytes)`, 'success');
+      downloads.push({ name: outFile, path: `/${outFile}`, size: pdfBuffer.length });
+    }
+
+    pocState.status = 'complete';
+    logStep('Snapshots complete', 'success');
+    res.json({ success: true, downloads, state: pocState });
+  } catch (err) {
+    pocState.status = 'error';
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// STEP 12 — Cleanup
+// -----------------------------------------------------------------------------
+app.post('/poc/cleanup', async (req, res) => {
+  try {
+    if (!pocState.sessionId) throw new Error('No active session to clean up');
+
+    const accessToken = await tokenManager.getValidAccessToken();
+
+    if (pocState.subscriptionId) {
+      const subResp = await fetch(`${API_V2}/subscriptions/${pocState.subscriptionId}`, {
+        method: 'DELETE',
+        headers: authHeaders(accessToken)
+      });
+
+      logStep(
+        subResp.ok ? 'Webhook subscription deleted' : `Sub delete: ${subResp.status}`,
+        subResp.ok ? 'success' : 'warn'
+      );
+    }
+
+    const sessResp = await fetch(`${API_V1}/sessions/${pocState.sessionId}`, {
+      method: 'DELETE',
+      headers: authHeaders(accessToken)
+    });
+
+    logStep(
+      sessResp.ok ? 'Session deleted' : `Session delete: ${sessResp.status}`,
+      sessResp.ok ? 'success' : 'warn'
+    );
+
+    logStep('Cleanup complete', 'success');
+    pocState.sessionId = null;
+    pocState.subscriptionId = null;
+
+    res.json({ success: true, state: pocState });
+  } catch (err) {
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
+// WEBHOOK LISTENER
+// -----------------------------------------------------------------------------
+app.post('/webhook/studio-events', (req, res) => {
+  const p = req.body || {};
+  logStep(`Webhook: ${p.ResourceType || 'unknown'} / ${p.EventType || 'unknown'}`, 'webhook');
+  pocState.webhookEvents.push({ ...p, receivedAt: new Date().toISOString() });
+  res.sendStatus(200);
+});
+
+// -----------------------------------------------------------------------------
+// STANDALONE ENDPOINTS
+// -----------------------------------------------------------------------------
+app.get('/api/project-markups', (req, res) => {
+  if (!pocState.markups.length) {
+    return res.status(404).json({ error: 'No markup data. Run /poc/run-markuplist-job first.' });
+  }
+
+  res.json(
+    pocState.markups.map(m => ({
+      MarkupId: m.Id,
+      Author: m.Author,
+      Type: m.Type,
+      Subject: m.Subject,
+      Comment: m.Comment,
+      Status: m.Status,
+      Layer: m.Layer,
+      Page: m.Page,
+      DateCreated: m.DateCreated,
+      DateModified: m.DateModified,
+      Color: m.Color,
+      Checked: m.Checked,
+      Locked: m.Locked,
+      ExtendedProperties: m.ExtendedProperties || {},
+      SourceFile: m._sourceFile
+    }))
+  );
+});
+
+// -----------------------------------------------------------------------------
+// START
+// -----------------------------------------------------------------------------
+app.listen(PORT, () => {
+  console.log(`\nBluebeam Studio PoC  →  http://localhost:${PORT}`);
+  console.log(`Project: ${POC_PROJECT_ID}`);
+
+  if (isLocalhost(WEBHOOK_CALLBACK_URL)) {
+    console.log('⚠  Webhook will be skipped (localhost URL)');
+  }
+
+  console.log(`\nFLOW:`);
+  console.log(`  POST /poc/setup-project         — 0a: Create folders + upload custom-columns.xml`);
+  console.log(`  POST /poc/upload-to-project     — 0b: Upload PDFs from UI → project`);
+  console.log(`  POST /poc/apply-custom-columns  — 0c: Apply custom columns to project files (optional)`);
+  console.log(`  POST /poc/trigger               — 1:  Workflow event`);
+  console.log(`  POST /poc/create-session        — 2:  Create session`);
+  console.log(`  POST /poc/register-webhook      — 3:  Register webhook`);
+  console.log(`  POST /poc/checkout-to-session   — 4:  Check out files into session`);
+  console.log(`  POST /poc/invite-reviewers      — 5:  Invite reviewers`);
+  console.log(`       (6: Review in Revu)`);
+  console.log(`  POST /poc/checkin               — 7:  Check in session files`);
+  console.log(`  POST /poc/export-markups        — 8:  Export markups to XML`);
+  console.log(`  POST /poc/run-markuplist-job    — 9:  Extract markup metadata`);
+  console.log(`  POST /poc/downstream-process    — 9b: Check in + export + extract metadata`);
+  console.log(`  POST /poc/finalize              — 10: Finalize session`);
+  console.log(`  POST /poc/snapshot              — 11: Snapshot + download PDF`);
+  console.log(`  POST /poc/cleanup               — 12: Delete webhook + session\n`);
+});
