@@ -481,11 +481,11 @@ app.post('/poc/apply-custom-columns', async (req, res) => {
           method: 'POST',
           headers: authHeaders(accessToken),
           body: JSON.stringify({
-            CurrentPassword:    '',
-            CustomColumnsFileID: pocState.customColumnsFileId,
-            OutputFileName:     pf.name,
-            OutputPath:         FOLDER_REVIEW_DOCS,
-            Priority:           0
+            CurrentPassword:     '',
+            CustomColumnsFileID: parseInt(pocState.customColumnsFileId, 10),
+            OutputFileName:      pf.name,
+            OutputPath:          FOLDER_REVIEW_DOCS,
+            Priority:            0
           })
         }
       );
