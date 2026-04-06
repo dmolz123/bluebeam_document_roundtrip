@@ -2,12 +2,10 @@
  * Bluebeam Studio API — Document Roundtrip PoC
  * Proof-of-concept reference implementation. Not for production use.
  *
- * FINAL REVISIONS IN THIS VERSION:
+ * XML-FALLBACK VERSION:
  *   - Keeps working check-in to Project copy
  *   - Keeps working exportmarkups XML generation
- *   - Adds by-path readiness verification before markuplist
- *   - Tries multiple documented/defensive markuplist payload variants
- *   - Re-resolves the current project file by path before markuplist
+ *   - Replaces markuplist dependency with exported XML download + parse
  *   - Preserves existing flow/endpoints/UI compatibility
  *
  * Roundtrip flow:
@@ -22,8 +20,8 @@
  *   6.  (Review in Bluebeam Revu — no API step)
  *   7.  /poc/checkin                — Check session file(s) back into project
  *   8.  /poc/export-markups         — Run exportmarkups job → XML in project
- *   9.  /poc/run-markuplist-job     — Run markuplist job → structured markup data
- *   9b. /poc/downstream-process     — Combined downstream step: checkin + export + markuplist
+ *   9.  /poc/run-markuplist-job     — Compatibility route; now extracts structured data from exported XML
+ *   9b. /poc/downstream-process     — Combined downstream step: checkin + export + XML parse
  *   10. /poc/finalize               — Finalize session
  *   11. /poc/snapshot               — Snapshot + download marked-up PDF
  *   12. /poc/cleanup                — Delete webhook + session
@@ -35,6 +33,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { parseStringPromise } = require('xml2js');
 const TokenManager = require('./tokenManager');
 
 const app = express();
@@ -364,6 +363,165 @@ async function waitForProjectFileReadyByPath(accessToken, filePath, expectedRevi
 }
 
 // -----------------------------------------------------------------------------
+// XML PARSING HELPERS
+// -----------------------------------------------------------------------------
+function lowerKeyMap(obj) {
+  const out = {};
+  for (const [k, v] of Object.entries(obj || {})) out[k.toLowerCase()] = v;
+  return out;
+}
+
+function firstDefined(obj, keys) {
+  const map = lowerKeyMap(obj);
+  for (const key of keys) {
+    if (typeof map[key.toLowerCase()] !== 'undefined') return map[key.toLowerCase()];
+  }
+  return undefined;
+}
+
+function scalar(val) {
+  if (Array.isArray(val)) return scalar(val[0]);
+  if (val && typeof val === 'object') {
+    if (typeof val._ !== 'undefined') return val._;
+    return '';
+  }
+  return val;
+}
+
+function normalizeMarkupRecord(record, sourceFile) {
+  const mapped = lowerKeyMap(record);
+
+  const known = {
+    Id: scalar(firstDefined(mapped, ['id', 'markupid', 'markup_id'])),
+    Author: scalar(firstDefined(mapped, ['author', 'createdby', 'user', 'username'])),
+    Type: scalar(firstDefined(mapped, ['type', 'markuptype'])),
+    Subject: scalar(firstDefined(mapped, ['subject', 'label', 'title'])),
+    Comment: scalar(firstDefined(mapped, ['comment', 'comments', 'note', 'message', 'reply'])),
+    Status: scalar(firstDefined(mapped, ['status', 'state'])),
+    Layer: scalar(firstDefined(mapped, ['layer'])),
+    Page: scalar(firstDefined(mapped, ['page', 'pagenumber', 'pageindex'])),
+    DateCreated: scalar(firstDefined(mapped, ['datecreated', 'created', 'createddate'])),
+    DateModified: scalar(firstDefined(mapped, ['datemodified', 'modified', 'modifieddate'])),
+    Color: scalar(firstDefined(mapped, ['color'])),
+    Checked: scalar(firstDefined(mapped, ['checked'])),
+    Locked: scalar(firstDefined(mapped, ['locked']))
+  };
+
+  const skip = new Set([
+    'id', 'markupid', 'markup_id',
+    'author', 'createdby', 'user', 'username',
+    'type', 'markuptype',
+    'subject', 'label', 'title',
+    'comment', 'comments', 'note', 'message', 'reply',
+    'status', 'state',
+    'layer',
+    'page', 'pagenumber', 'pageindex',
+    'datecreated', 'created', 'createddate',
+    'datemodified', 'modified', 'modifieddate',
+    'color',
+    'checked',
+    'locked'
+  ]);
+
+  const extended = {};
+  for (const [k, v] of Object.entries(mapped)) {
+    if (!skip.has(k)) {
+      const sv = scalar(v);
+      if (typeof sv !== 'undefined' && sv !== null && String(sv) !== '') {
+        extended[k] = sv;
+      }
+    }
+  }
+
+  return {
+    ...known,
+    ExtendedProperties: extended,
+    _sourceFile: sourceFile
+  };
+}
+
+function looksLikeMarkupRecord(obj) {
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+
+  const keys = Object.keys(lowerKeyMap(obj));
+  const hits = [
+    'author', 'subject', 'comment', 'status', 'page', 'layer', 'type',
+    'markupid', 'id', 'markuptype'
+  ].filter(k => keys.includes(k)).length;
+
+  return hits >= 2;
+}
+
+function extractMarkupCandidates(node, sourceFile, results = []) {
+  if (Array.isArray(node)) {
+    for (const item of node) extractMarkupCandidates(item, sourceFile, results);
+    return results;
+  }
+
+  if (!node || typeof node !== 'object') return results;
+
+  if (looksLikeMarkupRecord(node)) {
+    results.push(normalizeMarkupRecord(node, sourceFile));
+  }
+
+  for (const value of Object.values(node)) {
+    extractMarkupCandidates(value, sourceFile, results);
+  }
+
+  return results;
+}
+
+async function downloadExportedMarkupXml(accessToken, exportFileName) {
+  const xmlPath = `/${FOLDER_MARKUP_EXPORTS}/${exportFileName}`;
+  const fileMeta = await getProjectFileByPath(accessToken, xmlPath);
+
+  if (!fileMeta.DownloadUrl) {
+    throw new Error(`DownloadUrl missing for exported XML: ${xmlPath}`);
+  }
+
+  logStep(`Downloading exported XML from path=${xmlPath} (fileId=${fileMeta.Id})...`, 'info');
+
+  const xmlResp = await fetch(fileMeta.DownloadUrl);
+  if (!xmlResp.ok) {
+    throw new Error(`Failed to download exported XML "${exportFileName}": ${xmlResp.status}`);
+  }
+
+  return xmlResp.text();
+}
+
+async function parseBluebeamExportXml(xmlText, sourceFile) {
+  const parsed = await parseStringPromise(xmlText, {
+    explicitArray: false,
+    mergeAttrs: true,
+    trim: true
+  });
+
+  const candidates = extractMarkupCandidates(parsed, sourceFile);
+
+  // De-duplicate similar rows
+  const seen = new Set();
+  const unique = [];
+
+  for (const item of candidates) {
+    const key = [
+      item.Id || '',
+      item.Author || '',
+      item.Subject || '',
+      item.Comment || '',
+      item.Page || '',
+      item.DateCreated || ''
+    ].join('|');
+
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(item);
+    }
+  }
+
+  return unique;
+}
+
+// -----------------------------------------------------------------------------
 // DOWNSTREAM HELPERS
 // -----------------------------------------------------------------------------
 async function performCheckin(accessToken) {
@@ -458,26 +616,33 @@ async function performExportMarkups(accessToken) {
     logStep('Allowing exported markup artifacts to settle for 5s...', 'info');
     await sleep(5000);
 
-    pocState.markupExports.push({
+    // upsert-style update
+    const existingIndex = pocState.markupExports.findIndex(m => m.exportFileName === exportFileName);
+    const exportRecord = {
       name: sf.name,
       exportFileName,
       projectPath: FOLDER_MARKUP_EXPORTS
-    });
+    };
+
+    if (existingIndex >= 0) {
+      pocState.markupExports[existingIndex] = exportRecord;
+    } else {
+      pocState.markupExports.push(exportRecord);
+    }
+
     results.push({ name: sf.name, success: true, exportFileName });
   }
 
   return results;
 }
 
-async function performMarkupList(accessToken) {
-  if (pocState.sessionFileIds.length === 0) {
+async function performMarkupExtractionFromXml(accessToken) {
+  if (!pocState.sessionFileIds.length) {
     throw new Error('No session files — run checkout-to-session first');
   }
 
   pocState.status = 'extracting-markups';
   pocState.markups = [];
-
-  const hdrs = authHeaders(accessToken);
 
   for (const sf of pocState.sessionFileIds) {
     const projectFile = pocState.projectFiles.find(
@@ -489,119 +654,26 @@ async function performMarkupList(accessToken) {
     }
 
     const reviewPath = `/${FOLDER_REVIEW_DOCS}/${projectFile.name}`;
-
-    // Re-resolve current file object by path right before markuplist
     const currentFile = await waitForProjectFileReadyByPath(accessToken, reviewPath);
-    const effectiveFileId = sf.projectFileId;
 
-logStep(
-  `Resolved project readiness by path=${reviewPath}, byPathFileId=${currentFile?.Id}, usingCheckedInProjectFileId=${effectiveFileId}, revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
-  'info'
-);
+    logStep(
+      `Resolved project readiness by path=${reviewPath}, byPathFileId=${currentFile?.Id}, usingCheckedInProjectFileId=${sf.projectFileId}, revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
+      'info'
+    );
 
-    const payloadVariants = [
-      {
-        label: 'blank-page-range',
-        body: {
-          CurrentPassword: '',
-          PageRange: '',
-          Priority: 0
-        }
-      },
-      {
-        label: 'all-pages-dash-1',
-        body: {
-          CurrentPassword: '',
-          PageRange: '-1',
-          Priority: 0
-        }
-      },
-      {
-        label: 'all-pages-1-plus',
-        body: {
-          CurrentPassword: '',
-          PageRange: '1-',
-          Priority: 0
-        }
-      },
-      {
-        label: 'priority-only',
-        body: {
-          Priority: 0
-        }
-      }
-    ];
+    const exportFileName = `Markups-${sf.projectFileId}.xml`;
 
-    let extractedForFile = null;
-    let lastError = null;
+    logStep(`Downloading and parsing exported XML for "${sf.name}" via ${exportFileName}...`, 'info');
 
-    for (const variant of payloadVariants) {
-      try {
-        logStep(
-          `Submitting markuplist job for "${sf.name}" using payload variant "${variant.label}" (projectFileId=${effectiveFileId})...`,
-          'info'
-        );
+    const xmlText = await downloadExportedMarkupXml(accessToken, exportFileName);
+    const fileMarkups = await parseBluebeamExportXml(xmlText, sf.name);
 
-        const submitResp = await fetch(
-          `${API_V1}/projects/${POC_PROJECT_ID}/files/${effectiveFileId}/jobs/markuplist`,
-          {
-            method: 'POST',
-            headers: hdrs,
-            body: JSON.stringify(variant.body)
-          }
-        );
-
-        if (!submitResp.ok) {
-          const err = await submitResp.text();
-          throw new Error(`submission failed: ${submitResp.status} - ${err}`);
-        }
-
-        const { Id: jobId } = await submitResp.json();
-        pocState.markupJobId = jobId;
-
-        logStep(
-          `markuplist job submitted: jobId=${jobId} — variant="${variant.label}" — polling per-file endpoint...`,
-          'success'
-        );
-
-        const pollUrl = `${API_V1}/projects/${POC_PROJECT_ID}/files/${effectiveFileId}/jobs/markuplist/${jobId}`;
-        const result = await pollJob(pollUrl, hdrs, 12, 4000);
-
-        const jobStatus = result.JobStatus ?? result.Status;
-        const jobMessage = result.JobStatusMessage ?? result.StatusMessage ?? '';
-
-        if (jobStatus !== 200) {
-          throw new Error(`job completed with non-success status: ${jobStatus} ${jobMessage}`);
-        }
-
-        const fileMarkups = (result.Markups || []).map(m => ({ ...m, _sourceFile: sf.name }));
-        pocState.markups.push(...fileMarkups);
-        extractedForFile = fileMarkups;
-
-        logStep(
-          `"${sf.name}" — ${fileMarkups.length} markup(s) extracted using variant "${variant.label}"`,
-          'success'
-        );
-
-        break;
-      } catch (err) {
-        lastError = err;
-        logStep(
-          `markuplist variant "${variant.label}" failed for "${sf.name}": ${err.message}`,
-          'warn'
-        );
-      }
-    }
-
-    if (!extractedForFile) {
-      throw new Error(
-        `All markuplist payload variants failed for "${sf.name}". Last error: ${lastError?.message || 'Unknown error'}`
-      );
-    }
+    pocState.markups.push(...fileMarkups);
+    logStep(`"${sf.name}" — ${fileMarkups.length} markup(s) extracted from exported XML`, 'success');
   }
 
   pocState.status = 'active';
-  logStep(`Markuplist complete — ${pocState.markups.length} total markup(s)`, 'success');
+  logStep(`XML extraction complete — ${pocState.markups.length} total markup(s)`, 'success');
   return pocState.markups;
 }
 
@@ -1137,17 +1209,24 @@ app.post('/poc/export-markups', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 9 — Markup List Job
+// STEP 9 — Compatibility Route (now XML-backed extraction)
 // -----------------------------------------------------------------------------
 app.post('/poc/run-markuplist-job', async (req, res) => {
   try {
     const accessToken = await tokenManager.getValidAccessToken();
-    const markups = await performMarkupList(accessToken);
+
+    if (!pocState.markupExports.length) {
+      logStep('No exported XML tracked yet — running export-markups first...', 'info');
+      await performExportMarkups(accessToken);
+    }
+
+    const markups = await performMarkupExtractionFromXml(accessToken);
 
     res.json({
       success: true,
       count: markups.length,
       markups,
+      extractionMode: 'exportmarkups-xml',
       state: pocState
     });
   } catch (err) {
@@ -1178,7 +1257,7 @@ app.post('/poc/downstream-process', async (req, res) => {
     logStep('Global post-export settle delay: 5s...', 'info');
     await sleep(5000);
 
-    const markups = await performMarkupList(accessToken);
+    const markups = await performMarkupExtractionFromXml(accessToken);
 
     logStep('Downstream processing complete', 'success');
 
@@ -1188,6 +1267,7 @@ app.post('/poc/downstream-process', async (req, res) => {
       exportResults,
       count: markups.length,
       markups,
+      extractionMode: 'exportmarkups-xml',
       markupExports: pocState.markupExports,
       state: pocState
     });
@@ -1370,7 +1450,7 @@ app.post('/webhook/studio-events', (req, res) => {
 // -----------------------------------------------------------------------------
 app.get('/api/project-markups', (req, res) => {
   if (!pocState.markups.length) {
-    return res.status(404).json({ error: 'No markup data. Run /poc/run-markuplist-job first.' });
+    return res.status(404).json({ error: 'No markup data. Run downstream processing first.' });
   }
 
   res.json(
@@ -1417,8 +1497,8 @@ app.listen(PORT, () => {
   console.log(`       (6: Review in Revu)`);
   console.log(`  POST /poc/checkin               — 7:  Check in session files`);
   console.log(`  POST /poc/export-markups        — 8:  Export markups to XML`);
-  console.log(`  POST /poc/run-markuplist-job    — 9:  Extract markup metadata`);
-  console.log(`  POST /poc/downstream-process    — 9b: Check in + export + extract metadata`);
+  console.log(`  POST /poc/run-markuplist-job    — 9:  Compatibility route, XML-backed extraction`);
+  console.log(`  POST /poc/downstream-process    — 9b: Check in + export + XML extract`);
   console.log(`  POST /poc/finalize              — 10: Finalize session`);
   console.log(`  POST /poc/snapshot              — 11: Snapshot + download PDF`);
   console.log(`  POST /poc/cleanup               — 12: Delete webhook + session\n`);
