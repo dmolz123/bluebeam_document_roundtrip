@@ -3,8 +3,8 @@
  * Proof-of-concept reference implementation. Not for production use.
  *
  * KEY FIXES vs. previous version (cross-referenced against developer guide):
- *   - Auth endpoint: authserver.bluebeam.com (not api.bluebeam.com)
- *   - Header: "clientid" not "client_id" on all API calls
+ *   - Auth endpoint: api.bluebeam.com/oauth2/token (new Developer Portal)
+ *   - Header: "client_id" (with underscore) on all API calls
  *   - Checkout-to-session: uses correct dedicated endpoint
  *   - Check-in: uses /checkin endpoint with Comment body
  *   - Job polling: correct status codes (100/130/150 = in-progress, 200 = success)
@@ -47,8 +47,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // -----------------------------------------------------------------------------
 // API CONFIGURATION
-// Per developer guide: token endpoint is authserver.bluebeam.com
-// Header is "clientid" (no underscore) on all API calls
+// Token endpoint: api.bluebeam.com/oauth2/token (new Developer Portal)
+// Header is "client_id" (with underscore) on all API calls
 // -----------------------------------------------------------------------------
 const API_V1   = 'https://api.bluebeam.com/publicapi/v1';
 const API_V2   = 'https://api.bluebeam.com/publicapi/v2';
@@ -148,13 +148,13 @@ function isLocalhost(url) {
 
 /**
  * Build standard auth headers for Bluebeam API calls.
- * IMPORTANT: header is "clientid" (no underscore) per developer guide.
+ * IMPORTANT: header is "client_id" (with underscore) per new Developer Portal docs.
  * Do NOT include these on S3 PUT requests.
  */
 function authHeaders(accessToken, extra = {}) {
   return {
     Authorization:  `Bearer ${accessToken}`,
-    clientid:       CLIENT_ID,
+    'client_id':    CLIENT_ID,
     'Content-Type': 'application/json',
     Accept:         'application/json',
     ...extra
