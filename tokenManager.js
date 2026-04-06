@@ -1,5 +1,7 @@
 // tokenManager.js
-// Per Bluebeam developer guide: token endpoint is authserver.bluebeam.com
+// Bluebeam new Developer Portal (developers.bluebeam.com)
+// Token endpoint: https://api.bluebeam.com/oauth2/token
+// Auth method: Basic (base64 client_id:client_secret in header)
 // Required scopes: jobs full_user offline_access
 // Do NOT request full_prime scope
 
@@ -27,9 +29,10 @@ class TokenManager {
       throw new Error('❌ Missing BB_CLIENT_ID or BB_CLIENT_SECRET');
     }
 
-    // Per developer guide: token endpoint is authserver.bluebeam.com — NOT api.bluebeam.com
-    // This was the root cause of the 401 errors on Render.
-    this.TOKEN_URL = 'https://authserver.bluebeam.com/auth/token';
+    // New Developer Portal endpoint (developers.bluebeam.com apps).
+    // Legacy Developer Network apps used authserver.bluebeam.com/auth/token —
+    // that endpoint returns Cloudflare 403 from Render's IP range.
+    this.TOKEN_URL = 'https://api.bluebeam.com/oauth2/token';
 
     this.db          = null;
     this.initPromise = this._initDb();
@@ -110,23 +113,32 @@ class TokenManager {
 
   // ---------------------------------------------------------------------------
   // Refresh via refresh_token grant
-  // Per developer guide: POST to authserver.bluebeam.com/auth/token
+  //
+  // New portal requires credentials in a Basic Authorization header
+  // (base64 of "client_id:client_secret"), NOT in the request body.
+  // Sending credentials in the body causes 401/403 on the new platform.
   // ---------------------------------------------------------------------------
   async refreshAccessToken(refreshToken) {
     console.log(`🔄 Refreshing token via ${this.TOKEN_URL}`);
 
-    const payload = {
-      grant_type:    'refresh_token',
-      refresh_token: refreshToken,
-      client_id:     this.clientId,
-      client_secret: this.clientSecret
-    };
+    // Base64-encode "client_id:client_secret" for Basic auth
+    const credentials = Buffer
+      .from(`${this.clientId}:${this.clientSecret}`)
+      .toString('base64');
 
     const fetchFn  = await this.fetch;
     const response = await fetchFn(this.TOKEN_URL, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    qs.stringify(payload)
+      headers: {
+        'Content-Type':  'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${credentials}`
+        // Do NOT include client_id / client_secret in the body —
+        // credentials belong in the Basic header only.
+      },
+      body: qs.stringify({
+        grant_type:    'refresh_token',
+        refresh_token: refreshToken
+      })
     });
 
     const text = await response.text();
@@ -134,8 +146,8 @@ class TokenManager {
     if (!response.ok) {
       console.error('❌ Token refresh failed');
       console.error('   Status:', response.status);
-      console.error('   Body:',   text);
-      throw new Error(`Token refresh failed: ${response.status} - ${text}`);
+      console.error('   Body:',   text.slice(0, 400)); // truncate HTML error pages
+      throw new Error(`Token refresh failed: ${response.status} - ${text.slice(0, 200)}`);
     }
 
     const data = JSON.parse(text);
@@ -160,7 +172,11 @@ class TokenManager {
         throw new Error('❌ No stored tokens and BB_REFRESH_TOKEN not set in env');
 
       const newTokens = await this.refreshAccessToken(initialRefresh);
-      await this.saveTokens(newTokens.access_token, newTokens.refresh_token, newTokens.expires_in);
+      await this.saveTokens(
+        newTokens.access_token,
+        newTokens.refresh_token,
+        newTokens.expires_in
+      );
       console.log('🔐 Tokens bootstrapped');
       return newTokens.access_token;
     }
@@ -175,21 +191,30 @@ class TokenManager {
     console.log('⏳ Access token expired — refreshing...');
     try {
       const newTokens = await this.refreshAccessToken(tokens.refresh_token);
-      await this.saveTokens(newTokens.access_token, newTokens.refresh_token, newTokens.expires_in);
+      await this.saveTokens(
+        newTokens.access_token,
+        newTokens.refresh_token,
+        newTokens.expires_in
+      );
       console.log('🔐 Token refreshed from stored refresh token');
       return newTokens.access_token;
 
     } catch (err) {
       // Case 4: Stored refresh token failed — fall back to BB_REFRESH_TOKEN env var
+      // This happens when a deploy wipes /tmp/tokens.db and the stored token rotated
       console.error('❌ Stored refresh token failed:', err.message);
       console.log('🔁 Attempting fallback to BB_REFRESH_TOKEN env var...');
 
       const fallbackRefresh = process.env.BB_REFRESH_TOKEN;
       if (!fallbackRefresh)
-        throw new Error('❌ Refresh failed and no BB_REFRESH_TOKEN available for fallback');
+        throw new Error('❌ Refresh failed and BB_REFRESH_TOKEN not available for fallback');
 
       const newTokens = await this.refreshAccessToken(fallbackRefresh);
-      await this.saveTokens(newTokens.access_token, newTokens.refresh_token, newTokens.expires_in);
+      await this.saveTokens(
+        newTokens.access_token,
+        newTokens.refresh_token,
+        newTokens.expires_in
+      );
       console.log('🔐 Recovered using fallback refresh token');
       return newTokens.access_token;
     }
