@@ -227,7 +227,7 @@ async function uploadFileToProject(fileBuffer, fileName, accessToken, folderId =
   const metaBody = {
     Name: fileName,
     Size: fileBuffer.length,
-    CRC:  0
+    CRC:  '0'
   };
   if (folderId) metaBody.ParentFolderId = folderId;
 
