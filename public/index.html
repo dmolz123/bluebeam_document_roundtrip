@@ -858,8 +858,9 @@ async function rwStart(){
     }],
     ['session',async()=>{
       await api('trigger');
+      const sessionResult = await api('create-session');
       await api('register-webhook');
-      return api('create-session');
+      return sessionResult;
     }],
     ['checkout',()=>api('checkout-to-session')],
     ['invite',()=>api('invite-reviewers')]
