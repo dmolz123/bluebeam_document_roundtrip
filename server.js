@@ -2,11 +2,14 @@
  * Bluebeam Studio API — Document Roundtrip PoC
  * Proof-of-concept reference implementation. Not for production use.
  *
- * REVISED IMPROVEMENTS IN THIS VERSION:
- *   - Adds explicit post-checkin settle / verification before downstream jobs
- *   - Adds longer polling window for markuplist jobs
- *   - Adds small settle delay after exportmarkups before markuplist
- *   - Adds helper logging around project file re-query after checkin
+ * FINAL REVISIONS IN THIS VERSION:
+ *   - Keeps working check-in to Project copy
+ *   - Keeps working exportmarkups XML generation
+ *   - Adds by-path readiness verification before markuplist
+ *   - Uses documented markuplist request body:
+ *       { CurrentPassword: '', PageRange: '-1', Priority: 0 }
+ *   - Polls the documented per-file markuplist endpoint
+ *   - Adds explicit JobStatus / JobStatusMessage handling
  *   - Preserves existing flow/endpoints/UI compatibility
  *
  * Roundtrip flow:
@@ -262,6 +265,19 @@ async function listProjectFiles(accessToken) {
   return data.ProjectFiles || [];
 }
 
+async function getProjectFileByPath(accessToken, filePath) {
+  const url = `${API_V1}/projects/${POC_PROJECT_ID}/files/by-path?path=${encodeURIComponent(filePath)}`;
+  const resp = await fetch(url, {
+    headers: authHeaders(accessToken)
+  });
+
+  if (!resp.ok) {
+    throw new Error(`Failed to get file by path: ${resp.status} - ${await resp.text()}`);
+  }
+
+  return resp.json();
+}
+
 async function waitForProjectFileSettlement(accessToken, projectFileId, fileName, options = {}) {
   const {
     attempts = 6,
@@ -295,7 +311,6 @@ async function waitForProjectFileSettlement(accessToken, projectFileId, fileName
         'info'
       );
 
-      // If API exposes checked-out flags, wait until it is no longer checked out.
       const checkedOutFlags = [match.IsCheckedOut, match.CheckedOut].filter(v => typeof v !== 'undefined');
       const explicitlyCheckedOut = checkedOutFlags.some(v => v === true || String(v).toLowerCase() === 'true');
 
@@ -325,6 +340,29 @@ async function waitForProjectFileSettlement(accessToken, projectFileId, fileName
   }
 
   return lastSeen;
+}
+
+async function waitForProjectFileReadyByPath(accessToken, filePath, expectedRevisionId = null) {
+  for (let attempt = 1; attempt <= 8; attempt++) {
+    const file = await getProjectFileByPath(accessToken, filePath);
+
+    logStep(
+      `by-path re-query ${attempt}/8: revision=${file.RevisionID}, inSession=${file.InSession}, isLocked=${file.IsLocked}`,
+      'info'
+    );
+
+    const revisionOk = expectedRevisionId == null || Number(file.RevisionID) >= Number(expectedRevisionId);
+    const ready = revisionOk && !file.InSession && !file.IsLocked;
+
+    if (ready) {
+      await sleep(3000);
+      return file;
+    }
+
+    await sleep(4000);
+  }
+
+  throw new Error(`Project file did not become ready by path: ${filePath}`);
 }
 
 // -----------------------------------------------------------------------------
@@ -358,7 +396,6 @@ async function performCheckin(accessToken) {
 
     logStep(`"${sf.name}" checked in to project`, 'success');
 
-    // New: give the Project copy time to settle and re-query the project file
     await waitForProjectFileSettlement(accessToken, sf.projectFileId, sf.name, {
       attempts: 6,
       intervalMs: 5000,
@@ -420,8 +457,6 @@ async function performExportMarkups(accessToken) {
     await pollJob(pollUrl, authHeaders(accessToken), 15, 15000);
 
     logStep(`Markup XML exported: ${exportFileName}`, 'success');
-
-    // New: let Bluebeam settle exported artifacts a bit before markuplist
     logStep('Allowing exported markup artifacts to settle for 5s...', 'info');
     await sleep(5000);
 
@@ -447,11 +482,31 @@ async function performMarkupList(accessToken) {
   const hdrs = authHeaders(accessToken);
 
   for (const sf of pocState.sessionFileIds) {
+    const projectFile = pocState.projectFiles.find(
+      pf => String(pf.projectFileId) === String(sf.projectFileId)
+    );
+
+    if (!projectFile) {
+      throw new Error(`Could not find project file metadata for ${sf.name}`);
+    }
+
+    const reviewPath = `/${FOLDER_REVIEW_DOCS}/${projectFile.name}`;
+
+    await waitForProjectFileReadyByPath(accessToken, reviewPath);
+
     logStep(`Submitting markuplist job for "${sf.name}" (projectFileId=${sf.projectFileId})...`, 'info');
 
     const submitResp = await fetch(
       `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist`,
-      { method: 'POST', headers: hdrs, body: '{}' }
+      {
+        method: 'POST',
+        headers: hdrs,
+        body: JSON.stringify({
+          CurrentPassword: '',
+          PageRange: '-1',
+          Priority: 0
+        })
+      }
     );
 
     if (!submitResp.ok) {
@@ -462,12 +517,17 @@ async function performMarkupList(accessToken) {
 
     const { Id: jobId } = await submitResp.json();
     pocState.markupJobId = jobId;
-    logStep(`markuplist job submitted: jobId=${jobId} — polling with extended window...`, 'success');
+    logStep(`markuplist job submitted: jobId=${jobId} — polling per-file endpoint...`, 'success');
 
     const pollUrl = `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/markuplist/${jobId}`;
-
-    // Revised: much longer polling window for larger/complex files
     const result = await pollJob(pollUrl, hdrs, 60, 5000);
+
+    const jobStatus = result.JobStatus ?? result.Status;
+    const jobMessage = result.JobStatusMessage ?? result.StatusMessage ?? '';
+
+    if (jobStatus !== 200) {
+      throw new Error(`markuplist failed for "${sf.name}": ${jobMessage}`);
+    }
 
     const fileMarkups = (result.Markups || []).map(m => ({ ...m, _sourceFile: sf.name }));
     pocState.markups.push(...fileMarkups);
@@ -1044,13 +1104,11 @@ app.post('/poc/downstream-process', async (req, res) => {
 
     const checkinResults = await performCheckin(accessToken);
 
-    // Extra global settle cushion after all check-ins
     logStep('Global post-checkin settle delay: 5s...', 'info');
     await sleep(5000);
 
     const exportResults = await performExportMarkups(accessToken);
 
-    // Extra cushion between export and markuplist
     logStep('Global post-export settle delay: 5s...', 'info');
     await sleep(5000);
 
