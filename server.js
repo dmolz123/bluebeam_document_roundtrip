@@ -492,12 +492,12 @@ async function performMarkupList(accessToken) {
 
     // Re-resolve current file object by path right before markuplist
     const currentFile = await waitForProjectFileReadyByPath(accessToken, reviewPath);
-    const effectiveFileId = currentFile?.Id || sf.projectFileId;
+    const effectiveFileId = sf.projectFileId;
 
-    logStep(
-      `Resolved current project file before markuplist: path=${reviewPath}, fileId=${effectiveFileId}, revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
-      'info'
-    );
+logStep(
+  `Resolved project readiness by path=${reviewPath}, byPathFileId=${currentFile?.Id}, usingCheckedInProjectFileId=${effectiveFileId}, revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
+  'info'
+);
 
     const payloadVariants = [
       {
