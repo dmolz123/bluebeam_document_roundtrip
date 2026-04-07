@@ -161,7 +161,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .bd-bar{height:100%;border-radius:4px;background:var(--accent);transition:width 0.6s ease;}
 .bd-count{font-family:var(--mono);font-size:11px;color:var(--text-3);width:20px;text-align:right;flex-shrink:0;}
 
-
 /* Pie charts */
 .pie-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center;}
 .pie-wrap{display:flex;justify-content:center;align-items:center;min-height:240px;}
@@ -905,14 +904,27 @@ Creates or verifies the working Studio Project structure used by the rest of the
 <script>
 // ── helpers ──────────────────────────────────────────────────────────────────
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
 async function api(path,method='POST',body=null){
   const opts={method,headers:{'Content-Type':'application/json'}};
   if(body)opts.body=JSON.stringify(body);
+
   const r=await fetch(`/poc/${path}`,opts);
-  const d=await r.json();
-  if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);
-  return d;
+
+  let d=null;
+  try{
+    d=await r.json();
+  }catch(_err){
+    d=null;
+  }
+
+  if(!r.ok){
+    throw new Error((d&&d.error)||`HTTP ${r.status}`);
+  }
+
+  return d||{};
 }
+
 function switchTab(t){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='rw')||(i===1&&t==='dev')));
   document.getElementById('tab-rw').classList.toggle('active',t==='rw');
@@ -973,7 +985,7 @@ function rwChipKey(e){
     const chips=[...document.querySelectorAll('#rwChipBox .chip:not(.primary)')];
     if(chips.length){
       const last=chips[chips.length-1];
-      api('remove-reviewer',undefined,{email:last.dataset.email});
+      api('remove-reviewer',undefined,{email:last.dataset.email}).catch(()=>{});
       last.remove();
     }
   }
@@ -986,11 +998,11 @@ function rwAddChip(email){
   c.dataset.email=email;
   c.innerHTML=`${esc(email)} <button class="chip-x" onclick="rwRemoveChip(this,'${esc(email)}')">×</button>`;
   document.getElementById('rwChipBox').insertBefore(c,document.getElementById('rwChipInput'));
-  api('configure',undefined,{reviewerEmail:email});
+  api('configure',undefined,{reviewerEmail:email}).catch(()=>{});
 }
 function rwRemoveChip(btn,email){
   btn.closest('.chip').remove();
-  api('remove-reviewer',undefined,{email});
+  api('remove-reviewer',undefined,{email}).catch(()=>{});
 }
 async function rwImportCsv(e){
   const f=e.target.files[0];
@@ -1078,6 +1090,7 @@ async function rwStart(){
     btn.disabled=false;
     btn.textContent='Start Review';
     document.getElementById('rwActions').style.display='flex';
+    alert(`Review setup failed:\n\n${err.message}`);
     console.error(err);
   }
 }
@@ -1113,18 +1126,25 @@ async function rwRunDownstream(){
     btn.textContent='✓ Project Updated & Metadata Pulled';
     btn.classList.remove('loading');
     rwRenderResults();
+
+    try{ await devRefreshLog(); }catch(_err){}
   }catch(err){
     ['checkin','export','mlist'].forEach(id=>{
       const dot=document.getElementById('sd-'+id);
+      const lbl=document.getElementById('sl-'+id);
       if(dot?.className.includes('running')){
         dot.className='step-dot error';
         dot.textContent='✗';
       }
+      if(lbl)lbl.className='step-row-label';
     });
     btn.disabled=false;
     btn.classList.remove('loading');
     btn.textContent='Update Project Copy & Pull Metadata';
+    alert(`Downstream processing failed:\n\n${err.message}`);
     console.error(err);
+
+    try{ await devRefreshLog(); }catch(_err){}
   }
 }
 
@@ -1187,7 +1207,6 @@ function rwRenderResults(){
   });
 
   const statuses=rwMarkups.map(m=>m._status||m._stage).filter(Boolean);
-  const stages=rwMarkups.map(m=>m._stage).filter(Boolean);
   const responsibilities=rwMarkups.map(m=>m._responsibility).filter(Boolean);
   const prios=rwMarkups.map(m=>m._priority).filter(Boolean);
   const withAction=rwMarkups.filter(m=>m._action).length;
@@ -1308,7 +1327,7 @@ function rwReset(){
     if(l)l.className='step-row-label muted';
   });
 
-  api('reset');
+  api('reset').catch(()=>{});
 }
 
 // ── DEVELOPER CONSOLE ─────────────────────────────────────────────────────────
@@ -1319,6 +1338,7 @@ let devSortDir='asc';
 let devView='table';
 let devLastState=null;
 let devCurrentSnippet='setup-project';
+let devSnippetLocked=false;
 
 const DEV_SNIPPETS={
   'setup-project':{
@@ -1606,7 +1626,7 @@ function devChipKey(e){
     const chips=[...document.querySelectorAll('#devChipBox .chip:not(.primary)')];
     if(chips.length){
       const last=chips[chips.length-1];
-      api('remove-reviewer',undefined,{email:last.dataset.email});
+      api('remove-reviewer',undefined,{email:last.dataset.email}).catch(()=>{});
       last.remove();
     }
   }
@@ -1620,11 +1640,11 @@ function devAddChip(email){
   c.style.fontSize='11px';
   c.innerHTML=`${esc(email)} <button class="chip-x" onclick="devRemoveChip(this,'${esc(email)}')">×</button>`;
   document.getElementById('devChipBox').insertBefore(c,document.getElementById('devChipInput'));
-  api('configure',undefined,{reviewerEmail:email});
+  api('configure',undefined,{reviewerEmail:email}).catch(()=>{});
 }
 function devRemoveChip(btn,email){
   btn.closest('.chip').remove();
-  api('remove-reviewer',undefined,{email});
+  api('remove-reviewer',undefined,{email}).catch(()=>{});
 }
 function devConfig(){
   const docId=document.getElementById('devDocId').value.trim();
@@ -1632,7 +1652,7 @@ function devConfig(){
   const body={};
   if(docId)body.documentId=docId;
   if(desc)body.description=desc;
-  if(Object.keys(body).length)api('configure',undefined,body);
+  if(Object.keys(body).length)api('configure',undefined,body).catch(()=>{});
 }
 
 function devSetNode(endpoint,state){
@@ -1651,7 +1671,12 @@ function devSetNode(endpoint,state){
   const btn=node.querySelector('.fc-node-btn');
   if(btn&&state==='done'){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
   if(btn&&state==='running'){btn.disabled=true;btn.textContent='Running...';}
-  if(btn&&state!=='running'&&state!=='done'){btn.disabled=false;btn.textContent='Run';}
+  if(btn&&state!=='running'&&state!=='done'){
+    btn.disabled=false;
+    btn.textContent=node.classList.contains('manual')?'Mark Done':'Run';
+    if(node.classList.contains('manual'))btn.className='fc-node-btn manual-btn';
+    else btn.className='fc-node-btn';
+  }
 }
 
 async function devFire(endpoint){
@@ -1676,6 +1701,7 @@ async function devFire(endpoint){
   }catch(err){
     devSetNode(endpoint,'error');
     await devRefreshLog();
+    alert(`${endpoint} failed:\n\n${err.message}`);
     console.error(err);
   }
 }
@@ -1706,6 +1732,7 @@ async function devUpload(){
     devRenderFiles();
     devSetNode('upload-to-project','error');
     await devRefreshLog();
+    alert(`upload-to-project failed:\n\n${err.message}`);
     console.error(err);
   }
 }
@@ -1811,7 +1838,6 @@ async function devCopyLogs(){
   if(!rows)return;
   try{await navigator.clipboard.writeText(rows);}catch{}
 }
-
 
 async function devCopyWorkflowSummary(){
   const summary=`Bluebeam Studio Roundtrip Reference App
@@ -1947,9 +1973,12 @@ async function devReset(){
     if(b){b.className='fc-node-btn manual-btn';b.textContent='Mark Done';}
   }
 
+  devSnippetLocked=false;
+  devCurrentSnippet='setup-project';
+  devShowSnippet('setup-project',true);
+
   document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';
 }
-
 
 devInitNodeHover();
 devShowSnippet('setup-project',true);
