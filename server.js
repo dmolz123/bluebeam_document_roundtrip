@@ -636,6 +636,9 @@ async function performExportMarkups(accessToken) {
   return results;
 }
 
+// --- ONLY SHOWING RELEVANT PATCHED SECTION ---
+// Replace your existing performMarkupExtractionFromXml with this
+
 async function performMarkupExtractionFromXml(accessToken) {
   if (!pocState.sessionFileIds.length) {
     throw new Error('No session files — run checkout-to-session first');
@@ -645,35 +648,67 @@ async function performMarkupExtractionFromXml(accessToken) {
   pocState.markups = [];
 
   for (const sf of pocState.sessionFileIds) {
+
+    // OPTIONAL: best-effort readiness check (non-blocking)
     const projectFile = pocState.projectFiles.find(
       pf => String(pf.projectFileId) === String(sf.projectFileId)
     );
 
-    if (!projectFile) {
-      throw new Error(`Could not find project file metadata for ${sf.name}`);
+    if (projectFile) {
+      const reviewPath = `/${FOLDER_REVIEW_DOCS}/${projectFile.name}`;
+
+      try {
+        const currentFile = await waitForProjectFileReadyByPath(
+          accessToken,
+          reviewPath
+        );
+
+        logStep(
+          `Resolved readiness (best-effort): revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
+          'info'
+        );
+
+      } catch (err) {
+        logStep(
+          `File still locked — proceeding anyway (expected behavior): ${err.message}`,
+          'warn'
+        );
+      }
     }
 
-    const reviewPath = `/${FOLDER_REVIEW_DOCS}/${projectFile.name}`;
-    const currentFile = await waitForProjectFileReadyByPath(accessToken, reviewPath);
+    // ✅ SOURCE OF TRUTH = EXPORTED XML
+    const exportFileName = `Markups-${sf.projectFileId}.xml`;
 
     logStep(
-      `Resolved project readiness by path=${reviewPath}, byPathFileId=${currentFile?.Id}, usingCheckedInProjectFileId=${sf.projectFileId}, revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
+      `Parsing XML: ${exportFileName}`,
       'info'
     );
 
-    const exportFileName = `Markups-${sf.projectFileId}.xml`;
+    const xmlText = await downloadExportedMarkupXml(
+      accessToken,
+      exportFileName
+    );
 
-    logStep(`Downloading and parsing exported XML for "${sf.name}" via ${exportFileName}...`, 'info');
-
-    const xmlText = await downloadExportedMarkupXml(accessToken, exportFileName);
-    const fileMarkups = await parseBluebeamExportXml(xmlText, sf.name);
+    const fileMarkups = await parseBluebeamExportXml(
+      xmlText,
+      sf.name
+    );
 
     pocState.markups.push(...fileMarkups);
-    logStep(`"${sf.name}" — ${fileMarkups.length} markup(s) extracted from exported XML`, 'success');
+
+    logStep(
+      `"${sf.name}" — ${fileMarkups.length} markups extracted`,
+      'success'
+    );
   }
 
   pocState.status = 'active';
-  logStep(`XML extraction complete — ${pocState.markups.length} total markup(s)`, 'success');
+
+  logStep(
+    `Extraction complete — total ${pocState.markups.length} markups`,
+    'success'
+  );
+
   return pocState.markups;
 }
 
