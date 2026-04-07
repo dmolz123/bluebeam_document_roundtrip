@@ -63,17 +63,17 @@ header{background:var(--white);border-bottom:1px solid var(--border);padding:0 3
 /* Form elements */
 .field{display:flex;flex-direction:column;gap:6px;}
 .field + .field{margin-top:16px;}
-.field-row{display:grid;gap:16px;}
+.field-row{display:grid;gap:16px;align-items:end;}
 .field-row.cols-2{grid-template-columns:1fr 1fr;}
 .field-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
 label{font-size:12px;font-weight:500;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;}
 input[type="text"],input[type="email"],input[type="date"],select,textarea{
-  width:100%;padding:10px 14px;border:1px solid var(--border-2);border-radius:8px;
+  width:100%;padding:10px 14px;border:1px solid var(--border-2);border-radius:8px;min-height:44px;
   font-family:var(--sans);font-size:14px;color:var(--text);background:var(--white);
   transition:border-color 0.15s,box-shadow 0.15s;outline:none;
 }
 input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,90,255,0.1);}
-select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
 textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
 /* Drop zone */
@@ -198,18 +198,19 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 /* ═══════════════════════════════════════
    DEVELOPER CONSOLE TAB
 ═══════════════════════════════════════ */
-.dev-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.dev-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
 
 /* Config bar at top */
 .dev-config-bar{background:var(--white);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;}
-.dev-config-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px;}
+.dev-config-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px;justify-content:flex-end;}
 .dev-config-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);}
-.dev-input{padding:7px 11px;border:1px solid var(--border-2);border-radius:7px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);outline:none;width:100%;transition:border-color 0.15s;}
+.dev-config-sub{font-size:11px;color:var(--text-3);margin-top:2px;}
+.dev-input{padding:10px 11px;border:1px solid var(--border-2);border-radius:8px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);outline:none;width:100%;transition:border-color 0.15s;min-height:44px;}
 .dev-input:focus{border-color:var(--accent);}
-.dev-chip-box{border:1px solid var(--border-2);border-radius:7px;padding:4px 8px;display:flex;flex-wrap:wrap;gap:4px;min-height:36px;cursor:text;background:var(--white);min-width:220px;transition:border-color 0.15s;}
+.dev-chip-box{border:1px solid var(--border-2);border-radius:8px;padding:7px 8px;display:flex;flex-wrap:wrap;gap:4px;min-height:44px;cursor:text;background:var(--white);min-width:220px;transition:border-color 0.15s;align-items:center;}
 .dev-chip-box:focus-within{border-color:var(--accent);}
 .dev-chip-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);flex:1;min-width:120px;padding:1px 0;}
-.dev-upload-zone{border:1px dashed var(--border-2);border-radius:7px;padding:8px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;position:relative;background:var(--bg);min-width:160px;transition:all 0.15s;}
+.dev-upload-zone{border:1px dashed var(--border-2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;position:relative;background:var(--bg);min-width:160px;transition:all 0.15s;min-height:44px;}
 .dev-upload-zone:hover{border-color:var(--accent);background:var(--accent-l);}
 .dev-upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
 .dev-upload-zone-text{font-size:12px;color:var(--text-2);}
@@ -218,16 +219,59 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-staged-ok{color:var(--green);}
 .dev-staged-err{color:var(--error);}
 .dev-action-btns{display:flex;gap:8px;align-self:flex-end;}
-.dev-btn{padding:8px 16px;border-radius:7px;font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;border:none;white-space:nowrap;}
+.dev-btn{padding:10px 16px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;border:none;white-space:nowrap;min-height:44px;}
 .dev-btn-primary{background:var(--accent);color:white;}
 .dev-btn-primary:hover:not(:disabled){background:var(--accent-h);}
 .dev-btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
 .dev-btn-ghost{background:var(--white);color:var(--text-2);border:1px solid var(--border);}
 .dev-btn-ghost:hover{border-color:var(--error);color:var(--error);}
 
+.dev-shell{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;}
+.dev-main{min-width:0;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:18px;padding:20px 24px 24px 24px;}
+.dev-sidebar{background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0;position:sticky;top:0;height:calc(100vh - 113px);}
+.dev-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;}
+.dev-panel-title{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.dev-panel-hint{font-size:12px;color:var(--text-3);line-height:1.5;}
+
+.dev-collapsible{background:var(--white);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+.dev-collapsible summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);}
+.dev-collapsible summary::-webkit-details-marker{display:none;}
+.dev-collapsible summary .dev-summary-meta{font-size:12px;font-weight:500;color:var(--text-3);}
+.dev-collapsible[open] summary{border-bottom:1px solid var(--border);background:linear-gradient(180deg,#ffffff 0%,#fafcff 100%);}
+.dev-readme-body{padding:18px;display:flex;flex-direction:column;gap:18px;}
+.dev-readme-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+.dev-readme-card{border:1px solid var(--border);border-radius:12px;padding:14px;background:var(--bg);}
+.dev-readme-card h4{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;}
+.dev-readme-card p,.dev-readme-card li{font-size:13px;color:var(--text-2);line-height:1.55;}
+.dev-readme-card ul{padding-left:18px;display:flex;flex-direction:column;gap:6px;}
+.dev-readme-note{padding:12px 14px;border-radius:12px;background:var(--accent-l);color:var(--accent);font-size:13px;line-height:1.55;border:1px solid rgba(26,90,255,0.12);}
+.dev-link-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
+.dev-link-card{display:flex;flex-direction:column;gap:6px;padding:14px;border:1px solid var(--border);border-radius:12px;text-decoration:none;background:var(--white);transition:all 0.18s;}
+.dev-link-card:hover{border-color:var(--accent);box-shadow:0 8px 20px rgba(26,90,255,0.10);transform:translateY(-1px);}
+.dev-link-title{font-size:13px;font-weight:700;color:var(--text);}
+.dev-link-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+.dev-link-meta{font-size:11px;color:var(--accent);font-family:var(--mono);}
+.dev-quick-actions{display:flex;flex-wrap:wrap;gap:10px;}
+.dev-qa-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--white);font-size:12px;color:var(--text);cursor:pointer;}
+.dev-qa-btn:hover{border-color:var(--accent);color:var(--accent);}
+@media (max-width: 1200px){.dev-shell{grid-template-columns:minmax(0,1fr);} .dev-sidebar{position:relative;height:auto;border-left:none;border-top:1px solid var(--border);} .dev-readme-grid,.dev-link-grid{grid-template-columns:1fr;} }
+.dev-state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+.dev-state-card{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg);}
+.dev-state-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+.dev-state-value{font-size:13px;font-weight:600;color:var(--text);word-break:break-word;}
+.dev-state-value.mono{font-family:var(--mono);font-size:12px;}
+.dev-state-card.wide{grid-column:1 / -1;}
+.dev-state-empty{font-size:12px;color:var(--text-3);}
+.dev-snippet-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+.dev-snippet-endpoint{font-family:var(--mono);font-size:11px;color:var(--accent);background:var(--accent-l);padding:3px 8px;border-radius:999px;display:inline-flex;align-items:center;}
+.dev-snippet-desc{font-size:12px;color:var(--text-2);line-height:1.5;margin-bottom:10px;}
+.dev-code{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:14px;overflow:auto;font-family:var(--mono);font-size:11px;line-height:1.65;border:1px solid #1e293b;white-space:pre-wrap;word-break:break-word;}
+.dev-copy-snippet{padding:6px 10px;border:1px solid var(--border);background:var(--white);border-radius:8px;font-size:12px;color:var(--text-2);cursor:pointer;}
+.dev-copy-snippet:hover{border-color:var(--accent);color:var(--accent);}
+
 /* Flowchart canvas */
-.dev-canvas{flex:1;overflow:auto;padding:32px;}
-.dev-canvas-inner{display:flex;flex-direction:column;gap:32px;max-width:900px;margin:0 auto;}
+.dev-canvas{background:var(--white);border:1px solid var(--border);border-radius:14px;overflow:auto;padding:24px;}
+.dev-canvas-inner{display:flex;flex-direction:column;gap:32px;max-width:980px;margin:0 auto;}
 
 /* Phase group */
 .phase{display:flex;flex-direction:column;gap:0;}
@@ -245,13 +289,13 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .phase-arrow{display:flex;justify-content:center;align-items:center;padding:8px 0;color:var(--text-3);font-size:18px;}
 
 /* Individual node */
-.fc-node{background:var(--white);border:2px solid var(--border);border-radius:10px;padding:14px 16px;min-width:180px;max-width:220px;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;}
-.fc-node:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(26,90,255,0.12);}
+.fc-node{background:var(--white);border:2px solid var(--border);border-radius:12px;padding:14px 16px;min-width:180px;max-width:220px;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;}
+.fc-node:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(26,90,255,0.12);transform:translateY(-1px);}
 .fc-node.running{border-color:var(--warn);background:#fffbeb;box-shadow:0 0 0 3px rgba(217,119,6,0.15);}
 .fc-node.done{border-color:var(--green);background:var(--green-l);}
 .fc-node.error{border-color:var(--error);background:var(--error-l);}
 .fc-node.manual{border-style:dashed;cursor:default;}
-.fc-node.manual:hover{border-color:var(--border);box-shadow:none;}
+.fc-node.manual:hover{border-color:var(--border);box-shadow:none;transform:none;}
 .fc-node-status{position:absolute;top:10px;right:10px;width:18px;height:18px;border-radius:50%;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700;}
 .fc-node-status.idle{background:var(--bg);border:1px solid var(--border);color:var(--text-3);}
 .fc-node-status.running{background:var(--warn);color:white;animation:pulse-node 1s ease infinite;}
@@ -274,9 +318,11 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .node-arrow{display:flex;align-items:center;color:var(--border-2);font-size:16px;padding:0 4px;align-self:center;}
 
 /* Dev log */
-.dev-log-bar{background:var(--white);border-top:1px solid var(--border);max-height:160px;overflow-y:auto;padding:12px 32px;flex-shrink:0;}
-.dev-log-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3);margin-bottom:8px;}
-.dev-log-entry{display:grid;grid-template-columns:62px 1fr;gap:8px;padding:2px 0;font-family:var(--mono);font-size:11px;border-bottom:1px solid var(--border);padding-bottom:3px;margin-bottom:3px;}
+.dev-log-shell{display:flex;flex-direction:column;min-height:0;flex:1;border-top:1px solid var(--border);}
+.dev-log-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px 10px 16px;}
+.dev-log-bar{overflow-y:auto;padding:0 16px 16px 16px;flex:1;}
+.dev-log-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3);}
+.dev-log-entry{display:grid;grid-template-columns:62px 1fr;gap:8px;padding:6px 0;font-family:var(--mono);font-size:11px;border-bottom:1px solid var(--border);}
 .dev-log-entry:last-child{border-bottom:none;}
 .dev-log-time{color:var(--text-3);}
 .dev-log-msg{color:var(--text);}
@@ -286,7 +332,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-log-msg.webhook{color:var(--accent);}
 
 /* Dev markup section */
-.dev-markup-section{background:var(--white);border-top:1px solid var(--border);padding:20px 32px;flex-shrink:0;}
+.dev-markup-section{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;flex-shrink:0;}
 .dev-markup-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
 .dev-markup-count{font-size:12px;color:var(--text-2);margin-left:auto;font-family:var(--mono);}
 .dev-markup-count span{color:var(--green);font-weight:600;}
@@ -296,6 +342,18 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .json-view{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;overflow:auto;max-height:300px;font-family:var(--mono);font-size:11px;line-height:1.6;}
 .json-key{color:#1d4ed8;}.json-str{color:#059669;}.json-num{color:#d97706;}.json-bool{color:#7c3aed;}.json-null{color:var(--text-3);}
 .markup-empty{color:var(--text-3);font-size:13px;padding:16px 0;text-align:center;}
+
+@media (max-width: 1180px){
+  .dev-shell{grid-template-columns:1fr;}
+  .dev-sidebar{position:relative;height:auto;border-left:none;border-top:1px solid var(--border);}
+  .dev-state-grid{grid-template-columns:1fr;}
+}
+
+@media (max-width: 768px){
+  .dev-config-bar{padding:16px;}
+  .dev-main{padding:16px;}
+  .dev-canvas{padding:16px;}
+}
 </style>
 </head>
 <body>
@@ -524,13 +582,15 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
     </div>
 
     <div class="dev-config-field">
-      <div class="dev-config-label">Document ID</div>
+      <div class="dev-config-label">External Document ID</div>
       <input class="dev-input" id="devDocId" type="text" placeholder="DOC-001" onchange="devConfig()">
+      <div class="dev-config-sub">Reference value passed into configure()</div>
     </div>
 
     <div class="dev-config-field">
-      <div class="dev-config-label">Description</div>
+      <div class="dev-config-label">Session Description</div>
       <input class="dev-input" id="devDesc" type="text" placeholder="Design review" onchange="devConfig()">
+      <div class="dev-config-sub">Display/context field for the review flow</div>
     </div>
 
     <div class="dev-config-field" style="flex:1.5;min-width:240px;">
@@ -548,198 +608,293 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
   </div>
 
-  <div class="dev-canvas">
-  <div class="dev-canvas-inner">
+  <div class="dev-shell">
+    <div class="dev-main">
 
-    <!-- SETUP phase -->
-    <div class="phase">
-      <div class="phase-header">
-        <span class="phase-badge setup">Setup</span>
-        <div class="phase-line"></div>
+      <details class="dev-collapsible" id="devReadme">
+        <summary>
+          <span>How This Workflow Works</span>
+          <span class="dev-summary-meta">Setup → Session → Extraction + quick links</span>
+        </summary>
+        <div class="dev-readme-body">
+          <div class="dev-readme-note">
+            This reference app shows a Bluebeam Studio roundtrip pattern: seed the project, upload files, launch a Session for review, then run downstream extraction to pull structured outputs back into the UI. Placeholder values are included where a live environment has not yet returned an ID or link.
+          </div>
+
+          <div class="dev-readme-grid">
+            <div class="dev-readme-card">
+              <h4>Setup</h4>
+              <ul>
+                <li>Create or verify the target Studio Project structure.</li>
+                <li>Upload PDFs and seed any resources needed later.</li>
+                <li>Outputs typically include <strong>projectId</strong> and file references.</li>
+              </ul>
+            </div>
+            <div class="dev-readme-card">
+              <h4>Session</h4>
+              <ul>
+                <li>Create the Studio Session used for live review in Revu.</li>
+                <li>Register webhook coverage and invite reviewer emails.</li>
+                <li>Outputs typically include <strong>sessionId</strong> and subscription metadata.</li>
+              </ul>
+            </div>
+            <div class="dev-readme-card">
+              <h4>Extraction</h4>
+              <ul>
+                <li>Finalize the review handoff and generate a downstream artifact path.</li>
+                <li>Pull snapshot / structured markup outputs back into the dashboard.</li>
+                <li>Outputs can include <strong>downloads, markup JSON, CSV,</strong> and file metadata.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="dev-link-grid">
+            <a class="dev-link-card" href="https://developers.bluebeam.com/s/?language=en_US" target="_blank" rel="noopener noreferrer">
+              <div class="dev-link-title">Bluebeam Developer Portal</div>
+              <div class="dev-link-desc">Sign in, manage apps, review API references, and access the primary developer entry point.</div>
+              <div class="dev-link-meta">developers.bluebeam.com</div>
+            </a>
+            <a class="dev-link-card" href="https://support.bluebeam.com/developer/getting-started-dev-portal.html" target="_blank" rel="noopener noreferrer">
+              <div class="dev-link-title">Getting Started Guide</div>
+              <div class="dev-link-desc">Bluebeam's onboarding article for creating an account, app setup, and first steps in the dev portal.</div>
+              <div class="dev-link-meta">support.bluebeam.com</div>
+            </a>
+            <a class="dev-link-card" href="https://github.com/placeholder-org/bluebeam-roundtrip-reference" target="_blank" rel="noopener noreferrer">
+              <div class="dev-link-title">Reference GitHub Repo</div>
+              <div class="dev-link-desc">Placeholder repo link for sample code, deployment notes, request bodies, and future integration patterns.</div>
+              <div class="dev-link-meta">github.com/placeholder-org</div>
+            </a>
+          </div>
+
+          <div class="dev-quick-actions">
+            <button class="dev-qa-btn" onclick="window.open('https://developers.bluebeam.com/s/?language=en_US','_blank')">↗ Open Dev Portal</button>
+            <button class="dev-qa-btn" onclick="window.open('https://support.bluebeam.com/developer/getting-started-dev-portal.html','_blank')">📘 Open Getting Started</button>
+            <button class="dev-qa-btn" onclick="window.open('https://github.com/placeholder-org/bluebeam-roundtrip-reference','_blank')">💻 Open Repo</button>
+            <button class="dev-qa-btn" onclick="devCopyWorkflowSummary()">⎘ Copy Workflow Summary</button>
+          </div>
+        </div>
+      </details>
+
+      <div class="dev-panel" id="devStatePanel">
+        <div class="dev-panel-title">Runtime State <span class="dev-panel-hint">Live IDs, placeholders, and current object references</span></div>
+        <div class="dev-state-grid" id="devStateGrid">
+          <div class="dev-state-empty">Run a node to populate project, session, and file metadata.</div>
+        </div>
       </div>
-      <div class="node-grid">
-        <div class="fc-node" id="fn-setup-project">
-          <div class="fc-node-status idle" id="fs-setup-project">·</div>
-          <div class="fc-node-icon">🗂️</div>
-          <div class="fc-node-title">Setup Project</div>
-          <div class="fc-node-api">setup-project</div>
-          <button class="fc-node-btn" onclick="devFire('setup-project')">Run</button>
+
+      <div class="dev-canvas">
+      <div class="dev-canvas-inner">
+
+        <!-- SETUP phase -->
+        <div class="phase">
+          <div class="phase-header">
+            <span class="phase-badge setup">Setup</span>
+            <div class="phase-line"></div>
+          </div>
+          <div class="node-grid">
+            <div class="fc-node" id="fn-setup-project" data-endpoint="setup-project">
+              <div class="fc-node-status idle" id="fs-setup-project">·</div>
+              <div class="fc-node-icon">🗂️</div>
+              <div class="fc-node-title">Setup Project</div>
+              <div class="fc-node-api">setup-project</div>
+              <button class="fc-node-btn" onclick="devFire('setup-project')">Run</button>
+            </div>
+
+            <div class="node-arrow">→</div>
+
+            <div class="fc-node" id="fn-upload-to-project" data-endpoint="upload-to-project">
+              <div class="fc-node-status idle" id="fs-upload-to-project">·</div>
+              <div class="fc-node-icon">⬆️</div>
+              <div class="fc-node-title">Upload to Project</div>
+              <div class="fc-node-api">upload-to-project</div>
+              <button class="fc-node-btn" onclick="devUpload()">Run</button>
+            </div>
+          </div>
         </div>
 
-        <div class="node-arrow">→</div>
+        <div class="phase-arrow">↓</div>
 
-        <div class="fc-node" id="fn-upload-to-project">
-          <div class="fc-node-status idle" id="fs-upload-to-project">·</div>
-          <div class="fc-node-icon">⬆️</div>
-          <div class="fc-node-title">Upload to Project</div>
-          <div class="fc-node-api">upload-to-project</div>
-          <button class="fc-node-btn" onclick="devUpload()">Run</button>
+        <!-- SESSION phase -->
+        <div class="phase">
+          <div class="phase-header">
+            <span class="phase-badge session">Session</span>
+            <div class="phase-line"></div>
+          </div>
+          <div class="node-grid">
+            <div class="fc-node" id="fn-trigger" data-endpoint="trigger">
+              <div class="fc-node-status idle" id="fs-trigger">·</div>
+              <div class="fc-node-icon">⚡</div>
+              <div class="fc-node-title">Trigger Event</div>
+              <div class="fc-node-api">trigger</div>
+              <button class="fc-node-btn" onclick="devFire('trigger')">Run</button>
+            </div>
+
+            <div class="node-arrow">→</div>
+
+            <div class="fc-node" id="fn-create-session" data-endpoint="create-session">
+              <div class="fc-node-status idle" id="fs-create-session">·</div>
+              <div class="fc-node-icon">🏠</div>
+              <div class="fc-node-title">Create Session</div>
+              <div class="fc-node-api">create-session</div>
+              <button class="fc-node-btn" onclick="devFire('create-session')">Run</button>
+            </div>
+
+            <div class="node-arrow">→</div>
+
+            <div class="fc-node" id="fn-register-webhook" data-endpoint="register-webhook">
+              <div class="fc-node-status idle" id="fs-register-webhook">·</div>
+              <div class="fc-node-icon">🔔</div>
+              <div class="fc-node-title">Register Webhook</div>
+              <div class="fc-node-api">register-webhook</div>
+              <button class="fc-node-btn" onclick="devFire('register-webhook')">Run</button>
+            </div>
+
+            <div class="node-arrow">→</div>
+
+            <div class="fc-node" id="fn-checkout-to-session" data-endpoint="checkout-to-session">
+              <div class="fc-node-status idle" id="fs-checkout-to-session">·</div>
+              <div class="fc-node-icon">🔗</div>
+              <div class="fc-node-title">Checkout to Session</div>
+              <div class="fc-node-api">checkout-to-session</div>
+              <button class="fc-node-btn" onclick="devFire('checkout-to-session')">Run</button>
+            </div>
+
+            <div class="node-arrow">→</div>
+
+            <div class="fc-node" id="fn-invite-reviewers" data-endpoint="invite-reviewers">
+              <div class="fc-node-status idle" id="fs-invite-reviewers">·</div>
+              <div class="fc-node-icon">📧</div>
+              <div class="fc-node-title">Invite Reviewers</div>
+              <div class="fc-node-api">invite-reviewers</div>
+              <button class="fc-node-btn" onclick="devFire('invite-reviewers')">Run</button>
+            </div>
+
+            <div class="node-arrow">→</div>
+
+            <div class="fc-node manual" id="fn-review" data-endpoint="review">
+              <div class="fc-node-status idle" id="fs-review">·</div>
+              <div class="fc-node-icon">✏️</div>
+              <div class="fc-node-title">Review in Revu</div>
+              <div class="fc-node-api">non-API step</div>
+              <button class="fc-node-btn manual-btn" onclick="devMarkReviewDone()">Mark Done</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="phase-arrow">↓</div>
+
+        <!-- EXTRACTION phase -->
+        <div class="phase">
+          <div class="phase-header">
+            <span class="phase-badge extract">Extraction &amp; Close</span>
+            <div class="phase-line"></div>
+          </div>
+          <div class="node-grid">
+            <div class="fc-node" id="fn-downstream-process" data-endpoint="downstream-process">
+              <div class="fc-node-status idle" id="fs-downstream-process">·</div>
+              <div class="fc-node-icon">🔄</div>
+              <div class="fc-node-title">Downstream Process</div>
+              <div class="fc-node-api">downstream-process</div>
+              <button class="fc-node-btn" onclick="devFire('downstream-process')">Run</button>
+            </div>
+
+            <div class="node-arrow">→</div>
+
+            <div class="fc-node" id="fn-finalize" data-endpoint="finalize">
+              <div class="fc-node-status idle" id="fs-finalize">·</div>
+              <div class="fc-node-icon">🏁</div>
+              <div class="fc-node-title">Finalize Session</div>
+              <div class="fc-node-api">finalize</div>
+              <button class="fc-node-btn" onclick="devFire('finalize')">Run</button>
+            </div>
+
+            <div class="node-arrow">→</div>
+
+            <div class="fc-node" id="fn-snapshot" data-endpoint="snapshot">
+              <div class="fc-node-status idle" id="fs-snapshot">·</div>
+              <div class="fc-node-icon">📸</div>
+              <div class="fc-node-title">Snapshot PDF</div>
+              <div class="fc-node-api">snapshot</div>
+              <button class="fc-node-btn" onclick="devFire('snapshot')">Run</button>
+            </div>
+
+            <div class="node-arrow">→</div>
+
+            <div class="fc-node" id="fn-cleanup" data-endpoint="cleanup">
+              <div class="fc-node-status idle" id="fs-cleanup">·</div>
+              <div class="fc-node-icon">🗑️</div>
+              <div class="fc-node-title">Cleanup</div>
+              <div class="fc-node-api">cleanup</div>
+              <button class="fc-node-btn" onclick="devFire('cleanup')">Run</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="devDownloads" style="display:none;">
+          <div style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Output PDFs</div>
+          <div id="devDownloadLinks" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
+
+      </div>
+      </div>
+
+      <div class="dev-markup-section" id="devMarkupSection" style="display:none;">
+        <div class="dev-markup-toolbar">
+          <span style="font-size:13px;font-weight:600;color:var(--text);">Markup Metadata</span>
+          <div class="view-toggle">
+            <button id="devBtnTable" class="active" onclick="devSetView('table')">Table</button>
+            <button id="devBtnJson" onclick="devSetView('json')">JSON</button>
+          </div>
+          <button onclick="devCopyJson()" id="devCopyBtn" style="padding:5px 12px;background:var(--white);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;color:var(--text-2);">⎘ Copy JSON</button>
+          <div class="dev-markup-count" id="devMarkupCount"><span id="devMarkupNum">0</span> markups</div>
+        </div>
+        <div id="devTableView">
+          <div class="results-wrap">
+            <table class="results-table">
+              <thead><tr>
+                <th onclick="devSort('Page')">Pg</th>
+                <th onclick="devSort('Type')">Type</th>
+                <th onclick="devSort('Subject')">Subject</th>
+                <th onclick="devSort('Author')">Author</th>
+                <th onclick="devSort('Status')">Status</th>
+                <th onclick="devSort('Comment')">Comment</th>
+                <th onclick="devSort('Layer')">Layer</th>
+                <th onclick="devSort('_sourceFile')">File</th>
+                <th onclick="devSort('DateCreated')">Created</th>
+              </tr></thead>
+              <tbody id="devMarkupTbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="devJsonView" style="display:none;">
+          <div class="json-view" id="devJsonContent"></div>
         </div>
       </div>
+
     </div>
 
-    <div class="phase-arrow">↓</div>
+    <aside class="dev-sidebar">
+      <div class="dev-panel" style="border:none;border-radius:0;border-bottom:1px solid var(--border);">
+        <div class="dev-panel-title">Endpoint Reference <button class="dev-copy-snippet" id="devCopySnippetBtn" onclick="devCopySnippet()">⎘ Copy</button></div>
+        <div class="dev-snippet-meta">
+          <div class="dev-snippet-endpoint" id="devSnippetEndpoint">setup-project</div>
+        </div>
+        <div class="dev-snippet-desc" id="devSnippetDesc">Hover over any workflow tile to preview the request shape and what that step is responsible for.</div>
+        <pre class="dev-code" id="devSnippetCode">POST /poc/setup-project
 
-    <!-- SESSION phase -->
-    <div class="phase">
-      <div class="phase-header">
-        <span class="phase-badge session">Session</span>
-        <div class="phase-line"></div>
+Creates or verifies the working Studio Project structure used by the rest of the flow.</pre>
       </div>
-      <div class="node-grid">
-        <div class="fc-node" id="fn-trigger">
-          <div class="fc-node-status idle" id="fs-trigger">·</div>
-          <div class="fc-node-icon">⚡</div>
-          <div class="fc-node-title">Trigger Event</div>
-          <div class="fc-node-api">trigger</div>
-          <button class="fc-node-btn" onclick="devFire('trigger')">Run</button>
+
+      <div class="dev-log-shell">
+        <div class="dev-log-toolbar">
+          <div class="dev-log-title">Activity Log</div>
+          <button class="dev-copy-snippet" onclick="devCopyLogs()">⎘ Copy</button>
         </div>
-
-        <div class="node-arrow">→</div>
-
-        <div class="fc-node" id="fn-create-session">
-          <div class="fc-node-status idle" id="fs-create-session">·</div>
-          <div class="fc-node-icon">🏠</div>
-          <div class="fc-node-title">Create Session</div>
-          <div class="fc-node-api">create-session</div>
-          <button class="fc-node-btn" onclick="devFire('create-session')">Run</button>
-        </div>
-
-        <div class="node-arrow">→</div>
-
-        <div class="fc-node" id="fn-register-webhook">
-          <div class="fc-node-status idle" id="fs-register-webhook">·</div>
-          <div class="fc-node-icon">🔔</div>
-          <div class="fc-node-title">Register Webhook</div>
-          <div class="fc-node-api">register-webhook</div>
-          <button class="fc-node-btn" onclick="devFire('register-webhook')">Run</button>
-        </div>
-
-        <div class="node-arrow">→</div>
-
-        <div class="fc-node" id="fn-checkout-to-session">
-          <div class="fc-node-status idle" id="fs-checkout-to-session">·</div>
-          <div class="fc-node-icon">🔗</div>
-          <div class="fc-node-title">Checkout to Session</div>
-          <div class="fc-node-api">checkout-to-session</div>
-          <button class="fc-node-btn" onclick="devFire('checkout-to-session')">Run</button>
-        </div>
-
-        <div class="node-arrow">→</div>
-
-        <div class="fc-node" id="fn-invite-reviewers">
-          <div class="fc-node-status idle" id="fs-invite-reviewers">·</div>
-          <div class="fc-node-icon">📧</div>
-          <div class="fc-node-title">Invite Reviewers</div>
-          <div class="fc-node-api">invite-reviewers</div>
-          <button class="fc-node-btn" onclick="devFire('invite-reviewers')">Run</button>
-        </div>
-
-        <div class="node-arrow">→</div>
-
-        <div class="fc-node manual" id="fn-review">
-          <div class="fc-node-status idle" id="fs-review">·</div>
-          <div class="fc-node-icon">✏️</div>
-          <div class="fc-node-title">Review in Revu</div>
-          <div class="fc-node-api">non-API step</div>
-          <button class="fc-node-btn manual-btn" onclick="devMarkReviewDone()">Mark Done</button>
+        <div class="dev-log-bar" id="devLogBar">
+          <div id="devLogEntries"><div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div></div>
         </div>
       </div>
-    </div>
-
-    <div class="phase-arrow">↓</div>
-
-    <!-- EXTRACTION phase -->
-    <div class="phase">
-      <div class="phase-header">
-        <span class="phase-badge extract">Extraction &amp; Close</span>
-        <div class="phase-line"></div>
-      </div>
-      <div class="node-grid">
-        <div class="fc-node" id="fn-downstream-process">
-          <div class="fc-node-status idle" id="fs-downstream-process">·</div>
-          <div class="fc-node-icon">🔄</div>
-          <div class="fc-node-title">Downstream Process</div>
-          <div class="fc-node-api">downstream-process</div>
-          <button class="fc-node-btn" onclick="devFire('downstream-process')">Run</button>
-        </div>
-
-        <div class="node-arrow">→</div>
-
-        <div class="fc-node" id="fn-finalize">
-          <div class="fc-node-status idle" id="fs-finalize">·</div>
-          <div class="fc-node-icon">🏁</div>
-          <div class="fc-node-title">Finalize Session</div>
-          <div class="fc-node-api">finalize</div>
-          <button class="fc-node-btn" onclick="devFire('finalize')">Run</button>
-        </div>
-
-        <div class="node-arrow">→</div>
-
-        <div class="fc-node" id="fn-snapshot">
-          <div class="fc-node-status idle" id="fs-snapshot">·</div>
-          <div class="fc-node-icon">📸</div>
-          <div class="fc-node-title">Snapshot PDF</div>
-          <div class="fc-node-api">snapshot</div>
-          <button class="fc-node-btn" onclick="devFire('snapshot')">Run</button>
-        </div>
-
-        <div class="node-arrow">→</div>
-
-        <div class="fc-node" id="fn-cleanup">
-          <div class="fc-node-status idle" id="fs-cleanup">·</div>
-          <div class="fc-node-icon">🗑️</div>
-          <div class="fc-node-title">Cleanup</div>
-          <div class="fc-node-api">cleanup</div>
-          <button class="fc-node-btn" onclick="devFire('cleanup')">Run</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="devDownloads" style="display:none;">
-      <div style="font-size:12px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;">Output PDFs</div>
-      <div id="devDownloadLinks" style="display:flex;flex-direction:column;gap:6px;"></div>
-    </div>
-
-  </div>
-  </div>
-
-  <div class="dev-markup-section" id="devMarkupSection" style="display:none;">
-    <div class="dev-markup-toolbar">
-      <span style="font-size:13px;font-weight:600;color:var(--text);">Markup Metadata</span>
-      <div class="view-toggle">
-        <button id="devBtnTable" class="active" onclick="devSetView('table')">Table</button>
-        <button id="devBtnJson" onclick="devSetView('json')">JSON</button>
-      </div>
-      <button onclick="devCopyJson()" id="devCopyBtn" style="padding:5px 12px;background:var(--white);border:1px solid var(--border);border-radius:6px;font-size:12px;cursor:pointer;color:var(--text-2);">⎘ Copy JSON</button>
-      <div class="dev-markup-count" id="devMarkupCount"><span id="devMarkupNum">0</span> markups</div>
-    </div>
-    <div id="devTableView">
-      <div class="results-wrap">
-        <table class="results-table">
-          <thead><tr>
-            <th onclick="devSort('Page')">Pg</th>
-            <th onclick="devSort('Type')">Type</th>
-            <th onclick="devSort('Subject')">Subject</th>
-            <th onclick="devSort('Author')">Author</th>
-            <th onclick="devSort('Status')">Status</th>
-            <th onclick="devSort('Comment')">Comment</th>
-            <th onclick="devSort('Layer')">Layer</th>
-            <th onclick="devSort('_sourceFile')">File</th>
-            <th onclick="devSort('DateCreated')">Created</th>
-          </tr></thead>
-          <tbody id="devMarkupTbody"></tbody>
-        </table>
-      </div>
-    </div>
-    <div id="devJsonView" style="display:none;">
-      <div class="json-view" id="devJsonContent"></div>
-    </div>
-  </div>
-
-  <div class="dev-log-bar" id="devLogBar">
-    <div class="dev-log-title">Activity Log</div>
-    <div id="devLogEntries"><div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div></div>
+    </aside>
   </div>
 
 </div>
@@ -1160,6 +1315,120 @@ let devMarkups=[];
 let devSortKey='Page';
 let devSortDir='asc';
 let devView='table';
+let devLastState=null;
+let devCurrentSnippet='setup-project';
+
+const DEV_SNIPPETS={
+  'setup-project':{
+    endpoint:'setup-project',
+    desc:'Creates or verifies the Studio Project folders and seeds the reference resources used by later calls.',
+    code:`POST /poc/setup-project
+
+Response highlights:
+- projectId
+- review-documents folder
+- resources folder`
+  },
+  'upload-to-project':{
+    endpoint:'upload-to-project',
+    desc:'Uploads the staged PDFs into the target Studio Project so they can later be checked out into the Session.',
+    code:`POST /poc/upload-to-project
+Content-Type: multipart/form-data
+
+FormData:
+- files[]`
+  },
+  'trigger':{
+    endpoint:'trigger',
+    desc:'Kicks off the session orchestration sequence and prepares the state object for the active roundtrip run.',
+    code:`POST /poc/trigger
+
+Response highlights:
+- run state initialized
+- next step can create session`
+  },
+  'create-session':{
+    endpoint:'create-session',
+    desc:'Creates the Studio Session used for live review and returns the active session identifier.',
+    code:`POST /poc/create-session
+
+Response highlights:
+- sessionId
+- session name / description`
+  },
+  'register-webhook':{
+    endpoint:'register-webhook',
+    desc:'Registers a webhook/subscription so downstream events can be observed during the workflow.',
+    code:`POST /poc/register-webhook
+
+Response highlights:
+- webhookId or subscriptionId
+- callback registration status`
+  },
+  'checkout-to-session':{
+    endpoint:'checkout-to-session',
+    desc:'Moves the uploaded Project files into the active Session so reviewers can work in Revu.',
+    code:`POST /poc/checkout-to-session
+
+Response highlights:
+- session file ids
+- checkout confirmation`
+  },
+  'invite-reviewers':{
+    endpoint:'invite-reviewers',
+    desc:'Sends or adds reviewer access for the email list configured in the top input area.',
+    code:`POST /poc/invite-reviewers
+
+Payload source:
+- reviewer emails from chip input`
+  },
+  'review':{
+    endpoint:'manual review step',
+    desc:'Non-API handoff where reviewers work in Revu. Mark this step done once markup work is complete.',
+    code:`Manual step
+
+Actions:
+- reviewers join Session in Revu
+- add / update markups
+- return here and click Mark Done`
+  },
+  'downstream-process':{
+    endpoint:'downstream-process',
+    desc:'Runs the post-review extraction path and returns the structured markup payload used by the dashboard.',
+    code:`POST /poc/downstream-process
+
+Response highlights:
+- markups[]
+- file metadata
+- export artifacts`
+  },
+  'finalize':{
+    endpoint:'finalize',
+    desc:'Moves the Session toward closeout once the working review is complete.',
+    code:`POST /poc/finalize
+
+Response highlights:
+- finalization status`
+  },
+  'snapshot':{
+    endpoint:'snapshot',
+    desc:'Generates a merged snapshot PDF and returns the downloadable output artifacts.',
+    code:`POST /poc/snapshot
+
+Response highlights:
+- downloads[]
+- merged review PDF`
+  },
+  'cleanup':{
+    endpoint:'cleanup',
+    desc:'Clears the temporary run context and leaves the environment ready for another execution.',
+    code:`POST /poc/cleanup
+
+Response highlights:
+- temporary state removed
+- final cleanup status`
+  }
+};
 
 function devFileSelect(e){devAddFiles(Array.from(e.target.files));e.target.value='';}
 function devDrop(e){
@@ -1300,15 +1569,117 @@ function devMarkReviewDone(){
   if(status){status.className='fc-node-status done';status.textContent='✓';}
   const btn=node?.querySelector('.fc-node-btn');
   if(btn){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
+  devShowSnippet('review');
+}
+
+function devResolveStateValue(state,keys=[]){
+  for(const key of keys){
+    if(!key)continue;
+    const parts=key.split('.');
+    let cur=state;
+    let found=true;
+    for(const p of parts){
+      if(cur&&typeof cur==='object'&&p in cur)cur=cur[p];
+      else{found=false;break;}
+    }
+    if(found&&cur!==undefined&&cur!==null&&String(cur)!=='')return cur;
+  }
+  return '';
+}
+
+function devRenderStatePanel(state){
+  const cards=[
+    {label:'Project ID',value:devResolveStateValue(state,['projectId','project.id'])},
+    {label:'Session ID',value:devResolveStateValue(state,['sessionId','session.id'])},
+    {label:'Webhook ID',value:devResolveStateValue(state,['webhookId','subscriptionId','webhook.id','subscription.id'])},
+    {label:'Uploaded Files',value:devResolveStateValue(state,['fileIds.length','files.length'])||devFiles.filter(f=>f.status==='ok').length||''},
+    {label:'External Document ID',value:document.getElementById('devDocId').value.trim()||'DOC-001 (placeholder)',wide:true},
+    {label:'Session Description',value:document.getElementById('devDesc').value.trim()||'Design review (placeholder)',wide:true}
+  ];
+
+  const html=cards.map(card=>{
+    const value=(card.value===0||card.value)?String(card.value):'—';
+    return `<div class="dev-state-card ${card.wide?'wide':''}"><div class="dev-state-label">${esc(card.label)}</div><div class="dev-state-value mono">${esc(value)}</div></div>`;
+  }).join('');
+
+  document.getElementById('devStateGrid').innerHTML=html;
+}
+
+function devShowSnippet(endpoint){
+  devCurrentSnippet=endpoint;
+  const item=DEV_SNIPPETS[endpoint]||DEV_SNIPPETS['setup-project'];
+  document.getElementById('devSnippetEndpoint').textContent=item.endpoint;
+  document.getElementById('devSnippetDesc').textContent=item.desc;
+  document.getElementById('devSnippetCode').textContent=item.code;
+}
+
+async function devCopySnippet(){
+  const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];
+  try{
+    await navigator.clipboard.writeText(`${item.endpoint}
+
+${item.desc}
+
+${item.code}`);
+    const btn=document.getElementById('devCopySnippetBtn');
+    btn.textContent='✓ Copied';
+    setTimeout(()=>{btn.textContent='⎘ Copy';},1800);
+  }catch{}
+}
+
+async function devCopyLogs(){
+  const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')].map(r=>r.innerText.trim()).join('
+');
+  if(!rows)return;
+  try{await navigator.clipboard.writeText(rows);}catch{}
+}
+
+
+async function devCopyWorkflowSummary(){
+  const summary=`Bluebeam Studio Roundtrip Reference App
+
+Setup
+- Seed or verify Studio Project structure
+- Upload PDFs into the project
+
+Session
+- Trigger session orchestration
+- Create Session
+- Register webhook
+- Check out documents into the Session
+- Invite reviewers
+
+Extraction
+- Run downstream processing
+- Finalize and snapshot artifacts
+- Pull structured markup outputs back into the UI
+
+Resources
+- Dev Portal: https://developers.bluebeam.com/s/?language=en_US
+- Getting Started: https://support.bluebeam.com/developer/getting-started-dev-portal.html
+- GitHub Repo: https://github.com/placeholder-org/bluebeam-roundtrip-reference`;
+  try{
+    await navigator.clipboard.writeText(summary);
+  }catch{}
+}
+
+function devInitNodeHover(){
+  document.querySelectorAll('.fc-node[data-endpoint]').forEach(node=>{
+    node.addEventListener('mouseenter',()=>devShowSnippet(node.dataset.endpoint));
+  });
 }
 
 async function devRefreshLog(){
   const state=await fetch('/poc/state').then(r=>r.json());
+  devLastState=state;
+  devRenderStatePanel(state||{});
   if(state.log?.length){
-    document.getElementById('devLogEntries').innerHTML=[...state.log].reverse().slice(0,30).map(e=>{
+    document.getElementById('devLogEntries').innerHTML=[...state.log].reverse().slice(0,40).map(e=>{
       const t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});
       return`<div class="dev-log-entry"><span class="dev-log-time">${t}</span><span class="dev-log-msg ${e.type||'info'}">${esc(e.msg)}</span></div>`;
     }).join('');
+  }else{
+    document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';
   }
 }
 
