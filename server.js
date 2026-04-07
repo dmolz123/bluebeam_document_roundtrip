@@ -636,9 +636,6 @@ async function performExportMarkups(accessToken) {
   return results;
 }
 
-// --- ONLY SHOWING RELEVANT PATCHED SECTION ---
-// Replace your existing performMarkupExtractionFromXml with this
-
 async function performMarkupExtractionFromXml(accessToken) {
   if (!pocState.sessionFileIds.length) {
     throw new Error('No session files — run checkout-to-session first');
@@ -648,67 +645,42 @@ async function performMarkupExtractionFromXml(accessToken) {
   pocState.markups = [];
 
   for (const sf of pocState.sessionFileIds) {
-
-    // OPTIONAL: best-effort readiness check (non-blocking)
     const projectFile = pocState.projectFiles.find(
       pf => String(pf.projectFileId) === String(sf.projectFileId)
     );
 
+    // Best-effort only. Do not fail extraction if the original review PDF is still locked/in session.
     if (projectFile) {
       const reviewPath = `/${FOLDER_REVIEW_DOCS}/${projectFile.name}`;
 
       try {
-        const currentFile = await waitForProjectFileReadyByPath(
-          accessToken,
-          reviewPath
-        );
+        const currentFile = await waitForProjectFileReadyByPath(accessToken, reviewPath);
 
         logStep(
-          `Resolved readiness (best-effort): revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
+          `Resolved project readiness by path=${reviewPath}, byPathFileId=${currentFile?.Id}, usingCheckedInProjectFileId=${sf.projectFileId}, revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
           'info'
         );
-
       } catch (err) {
         logStep(
-          `File still locked — proceeding anyway (expected behavior): ${err.message}`,
+          `Project file not fully ready by path yet (${reviewPath}) — proceeding with XML parse anyway: ${err.message}`,
           'warn'
         );
       }
     }
 
-    // ✅ SOURCE OF TRUTH = EXPORTED XML
     const exportFileName = `Markups-${sf.projectFileId}.xml`;
 
-    logStep(
-      `Parsing XML: ${exportFileName}`,
-      'info'
-    );
+    logStep(`Downloading and parsing exported XML for "${sf.name}" via ${exportFileName}...`, 'info');
 
-    const xmlText = await downloadExportedMarkupXml(
-      accessToken,
-      exportFileName
-    );
-
-    const fileMarkups = await parseBluebeamExportXml(
-      xmlText,
-      sf.name
-    );
+    const xmlText = await downloadExportedMarkupXml(accessToken, exportFileName);
+    const fileMarkups = await parseBluebeamExportXml(xmlText, sf.name);
 
     pocState.markups.push(...fileMarkups);
-
-    logStep(
-      `"${sf.name}" — ${fileMarkups.length} markups extracted`,
-      'success'
-    );
+    logStep(`"${sf.name}" — ${fileMarkups.length} markup(s) extracted from exported XML`, 'success');
   }
 
   pocState.status = 'active';
-
-  logStep(
-    `Extraction complete — total ${pocState.markups.length} markups`,
-    'success'
-  );
-
+  logStep(`XML extraction complete — ${pocState.markups.length} total markup(s)`, 'success');
   return pocState.markups;
 }
 
@@ -1538,7 +1510,3 @@ app.listen(PORT, () => {
   console.log(`  POST /poc/snapshot              — 11: Snapshot + download PDF`);
   console.log(`  POST /poc/cleanup               — 12: Delete webhook + session\n`);
 });
-
-
-
-
