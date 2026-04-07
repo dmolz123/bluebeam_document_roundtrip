@@ -201,11 +201,11 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
 
 /* Config bar at top */
-.dev-config-bar{background:var(--white);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;}
-.dev-config-field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px;justify-content:flex-end;}
+.dev-config-bar{background:var(--white);border-bottom:1px solid var(--border);padding:16px 32px;display:grid;grid-template-columns:minmax(180px,220px) minmax(180px,1fr) minmax(180px,1fr) minmax(240px,1.5fr) auto;gap:16px;align-items:stretch;}
+.dev-config-field{display:flex;flex-direction:column;gap:6px;min-width:0;justify-content:flex-start;align-self:stretch;}
 .dev-config-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);}
-.dev-config-sub{font-size:11px;color:var(--text-3);margin-top:2px;}
-.dev-input{padding:10px 11px;border:1px solid var(--border-2);border-radius:8px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);outline:none;width:100%;transition:border-color 0.15s;min-height:44px;}
+.dev-config-sub{font-size:11px;color:var(--text-3);margin-top:0;min-height:16px;line-height:1.35;}
+.dev-input{padding:10px 11px;border:1px solid var(--border-2);border-radius:8px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);outline:none;width:100%;transition:border-color 0.15s;min-height:44px;height:44px;}
 .dev-input:focus{border-color:var(--accent);}
 .dev-chip-box{border:1px solid var(--border-2);border-radius:8px;padding:7px 8px;display:flex;flex-wrap:wrap;gap:4px;min-height:44px;cursor:text;background:var(--white);min-width:220px;transition:border-color 0.15s;align-items:center;}
 .dev-chip-box:focus-within{border-color:var(--accent);}
@@ -218,7 +218,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-staged-file{font-size:11px;color:var(--text-2);font-family:var(--mono);display:flex;align-items:center;gap:6px;}
 .dev-staged-ok{color:var(--green);}
 .dev-staged-err{color:var(--error);}
-.dev-action-btns{display:flex;gap:8px;align-self:flex-end;}
+.dev-action-btns{display:flex;gap:8px;align-self:end;height:44px;}
 .dev-btn{padding:10px 16px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;border:none;white-space:nowrap;min-height:44px;}
 .dev-btn-primary{background:var(--accent);color:white;}
 .dev-btn-primary:hover:not(:disabled){background:var(--accent-h);}
@@ -875,7 +875,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
     <aside class="dev-sidebar">
       <div class="dev-panel" style="border:none;border-radius:0;border-bottom:1px solid var(--border);">
-        <div class="dev-panel-title">Endpoint Reference <button class="dev-copy-snippet" id="devCopySnippetBtn" onclick="devCopySnippet()">⎘ Copy</button></div>
+        <div class="dev-panel-title">Endpoint Reference <span style="display:flex;gap:8px;"><button class="dev-copy-snippet" id="devCopySnippetBtn" onclick="devCopySnippet()">⎘ Copy</button><button class="dev-copy-snippet" id="devDownloadSnippetBtn" onclick="devDownloadSnippet()">⇩ Download</button></span></div>
         <div class="dev-snippet-meta">
           <div class="dev-snippet-endpoint" id="devSnippetEndpoint">setup-project</div>
         </div>
@@ -1627,9 +1627,27 @@ ${item.code}`);
   }catch{}
 }
 
+function devDownloadSnippet(){
+  const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];
+  const content=`${item.endpoint}
+
+${item.desc}
+
+${item.code}`;
+  const blob=new Blob([content],{type:'text/plain;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const safe=(item.endpoint||'bluebeam-endpoint').replace(/[^a-z0-9-_]+/gi,'-').toLowerCase();
+  a.href=url;
+  a.download=`${safe}-reference.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
 async function devCopyLogs(){
-  const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')].map(r=>r.innerText.trim()).join('
-');
+  const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')].map(r=>r.innerText.trim()).join('\n');
   if(!rows)return;
   try{await navigator.clipboard.writeText(rows);}catch{}
 }
@@ -1666,6 +1684,8 @@ Resources
 function devInitNodeHover(){
   document.querySelectorAll('.fc-node[data-endpoint]').forEach(node=>{
     node.addEventListener('mouseenter',()=>devShowSnippet(node.dataset.endpoint));
+    node.addEventListener('focusin',()=>devShowSnippet(node.dataset.endpoint));
+    node.addEventListener('click',()=>devShowSnippet(node.dataset.endpoint));
   });
 }
 
@@ -1759,6 +1779,11 @@ async function devReset(){
 
   document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';
 }
+
+
+devInitNodeHover();
+devShowSnippet('setup-project');
+devRenderStatePanel({});
 </script>
 </body>
 </html>
