@@ -427,6 +427,11 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       </div>
 
       <div class="card">
+        <div class="card-title"><div class="card-title-icon">📌</div>Status Distribution</div>
+        <div class="breakdown" id="rwStatusBreakdown"></div>
+      </div>
+
+      <div class="card">
         <div class="card-title"><div class="card-title-icon">📈</div>Breakdown by Review Stage</div>
         <div class="breakdown" id="rwStageBreakdown"></div>
       </div>
@@ -446,6 +451,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <th onclick="rwSort('Author')">Author</th>
               <th onclick="rwSort('_stage')">Review Stage</th>
               <th onclick="rwSort('_discipline')">Discipline</th>
+              <th onclick="rwSort('_responsibility')">Responsibility</th>
               <th onclick="rwSort('_priority')">Priority</th>
               <th onclick="rwSort('_action')">Action Required</th>
               <th onclick="rwSort('Comment')">Comment</th>
@@ -938,15 +944,23 @@ async function rwRunDownstream(){
 function rwRenderResults(){
   document.getElementById('rwResults').style.display='flex';
 
+  const getEP=(e,key)=>{
+    if(!e)return'';
+    const direct=e[key];
+    if(typeof direct!=='undefined'&&direct!==null&&String(direct).trim()!=='')return String(direct);
+    const foundKey=Object.keys(e).find(k=>k.toLowerCase()===key.toLowerCase());
+    return foundKey?String(e[foundKey]??''):'';
+  };
+
   const ep=m=>{
     const e=m.ExtendedProperties||{};
     return{
-      stage:e['Review Stage']||'',
-      disc:e['Discipline']||'',
-      resp:e['Responsibility']||'',
-      prio:e['Priority']||'',
-      action:e['Action Required']||'',
-      due:e['Due Date']||''
+      stage:getEP(e,'Review Stage')||m.Status||'',
+      disc:getEP(e,'Discipline'),
+      resp:getEP(e,'Responsibility'),
+      prio:getEP(e,'Priority'),
+      action:getEP(e,'Action Required'),
+      due:getEP(e,'Due Date')
     };
   };
 
@@ -954,14 +968,17 @@ function rwRenderResults(){
     const p=ep(m);
     return{
       ...m,
+      _status:m.Status||p.stage||'',
       _stage:p.stage,
       _discipline:p.disc,
+      _responsibility:p.resp,
       _priority:p.prio,
       _action:p.action,
       _due:p.due
     };
   });
 
+  const statuses=rwMarkups.map(m=>m._status).filter(Boolean);
   const stages=rwMarkups.map(m=>m._stage).filter(Boolean);
   const prios=rwMarkups.map(m=>m._priority).filter(Boolean);
   const withAction=rwMarkups.filter(m=>m._action).length;
@@ -984,7 +1001,14 @@ function rwRenderResults(){
       .join('')||'<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No data available</div>';
   };
 
-  renderBreakdown('rwStageBreakdown',stages,()=>'');
+  renderBreakdown('rwStatusBreakdown',statuses,l=>{
+    if(/step 4/i.test(l)||/revision/i.test(l))return'background:var(--error)';
+    if(/step 3/i.test(l)||/agree/i.test(l))return'background:var(--green)';
+    if(/step 2/i.test(l)||/needed/i.test(l))return'background:var(--warn)';
+    return'';
+  });
+
+  renderBreakdown('rwStageBreakdown',stages,()=> '');
 
   renderBreakdown('rwPriorityBreakdown',prios,l=>{
     if(l.includes('Critical'))return'background:var(--error)';
@@ -1019,6 +1043,7 @@ function rwRenderTable(){
     <td>${esc(m.Author||'—')}</td>
     <td>${m._stage?`<span class="pill pill-blue" title="${esc(m._stage)}">${esc(m._stage.length>28?m._stage.slice(0,26)+'…':m._stage)}</span>`:'—'}</td>
     <td>${esc(m._discipline||'—')}</td>
+    <td>${esc(m._responsibility||'—')}</td>
     <td>${rwPrioPill(m._priority)}</td>
     <td title="${esc(m._action||'')}">${esc(m._action||'—')}</td>
     <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
