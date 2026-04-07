@@ -1805,8 +1805,9 @@ function devDownloadSnippet(){
 }
 
 async function devCopyLogs(){
-  const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')].map(r=>r.innerText.trim()).join('
-');
+  const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')]
+    .map(r=>r.innerText.trim())
+    .join('\n');
   if(!rows)return;
   try{await navigator.clipboard.writeText(rows);}catch{}
 }
