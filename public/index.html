@@ -59,6 +59,11 @@ header{background:var(--white);border-bottom:1px solid var(--border);padding:0 3
 .card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:28px;}
 .card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
 .card-title-icon{width:28px;height:28px;background:var(--accent-l);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.card-title-spread{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.card-title-actions{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.inline-btn{padding:7px 10px;border:1px solid var(--border);background:var(--white);border-radius:8px;font-size:12px;color:var(--text-2);cursor:pointer;font-weight:600;}
+.inline-btn:hover{border-color:var(--accent);color:var(--accent);}
+
 
 /* Form elements */
 .field{display:flex;flex-direction:column;gap:6px;}
@@ -207,9 +212,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-config-sub{font-size:11px;color:var(--text-3);margin-top:0;min-height:16px;line-height:1.35;}
 .dev-input{padding:10px 11px;border:1px solid var(--border-2);border-radius:8px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);outline:none;width:100%;transition:border-color 0.15s;min-height:44px;height:44px;}
 .dev-input:focus{border-color:var(--accent);}
-.dev-chip-box{border:1px solid var(--border-2);border-radius:8px;padding:7px 8px;display:flex;flex-wrap:wrap;gap:4px;min-height:44px;cursor:text;background:var(--white);min-width:220px;transition:border-color 0.15s;align-items:center;}
+.dev-chip-box{border:1px solid var(--border-2);border-radius:8px;padding:7px 8px;display:flex;flex-wrap:nowrap;gap:6px;min-height:44px;height:44px;cursor:text;background:var(--white);min-width:220px;transition:border-color 0.15s;align-items:center;overflow-x:auto;overflow-y:hidden;}
 .dev-chip-box:focus-within{border-color:var(--accent);}
-.dev-chip-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);flex:1;min-width:120px;padding:1px 0;}
+.dev-chip-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:13px;color:var(--text);flex:1;min-width:140px;padding:1px 0;}
 .dev-upload-zone{border:1px dashed var(--border-2);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;position:relative;background:var(--bg);min-width:160px;transition:all 0.15s;min-height:44px;}
 .dev-upload-zone:hover{border-color:var(--accent);background:var(--accent-l);}
 .dev-upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
@@ -218,7 +223,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-staged-file{font-size:11px;color:var(--text-2);font-family:var(--mono);display:flex;align-items:center;gap:6px;}
 .dev-staged-ok{color:var(--green);}
 .dev-staged-err{color:var(--error);}
-.dev-action-btns{display:flex;gap:8px;align-self:end;height:44px;}
+.dev-action-btns{display:flex;gap:8px;height:44px;align-items:center;}
 .dev-btn{padding:10px 16px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;border:none;white-space:nowrap;min-height:44px;}
 .dev-btn-primary{background:var(--accent);color:white;}
 .dev-btn-primary:hover:not(:disabled){background:var(--accent-h);}
@@ -226,9 +231,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-btn-ghost{background:var(--white);color:var(--text-2);border:1px solid var(--border);}
 .dev-btn-ghost:hover{border-color:var(--error);color:var(--error);}
 
-.dev-shell{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;align-items:start;}
+.dev-shell{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px;align-items:start;gap:0;}
 .dev-main{min-width:0;min-height:0;overflow:visible;display:flex;flex-direction:column;gap:18px;padding:20px 24px 24px 24px;}
-.dev-sidebar{background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0;position:sticky;top:72px;max-height:calc(100vh - 88px);overflow:hidden;}
+.dev-sidebar{background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0;position:sticky;align-self:start;top:16px;height:calc(100vh - 32px);overflow:hidden;}
 .dev-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;}
 .dev-panel-title{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .dev-panel-actions{display:flex;gap:8px;flex-wrap:wrap;}
@@ -255,7 +260,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-quick-actions{display:flex;flex-wrap:wrap;gap:10px;}
 .dev-qa-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--white);font-size:12px;color:var(--text);cursor:pointer;}
 .dev-qa-btn:hover{border-color:var(--accent);color:var(--accent);}
-@media (max-width: 1200px){.dev-shell{grid-template-columns:minmax(0,1fr);} .dev-sidebar{position:relative;top:auto;max-height:none;height:auto;border-left:none;border-top:1px solid var(--border);} .dev-readme-grid,.dev-link-grid{grid-template-columns:1fr;} }
+@media (max-width: 1200px){.dev-shell{grid-template-columns:minmax(0,1fr);} .dev-sidebar{position:relative;top:auto;height:auto;border-left:none;border-top:1px solid var(--border);} .dev-readme-grid,.dev-link-grid{grid-template-columns:1fr;} }
 .dev-state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
 .dev-state-card{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg);}
 .dev-state-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
@@ -320,9 +325,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .node-arrow{display:flex;align-items:center;color:var(--border-2);font-size:16px;padding:0 4px;align-self:center;}
 
 /* Dev log */
-.dev-log-shell{display:flex;flex-direction:column;min-height:0;flex:1;border-top:1px solid var(--border);}
+.dev-log-shell{display:flex;flex-direction:column;min-height:0;flex:1 1 auto;border-top:1px solid var(--border);}
 .dev-log-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px 10px 16px;}
-.dev-log-bar{overflow-y:auto;padding:0 16px 16px 16px;flex:1;}
+.dev-log-bar{overflow-y:auto;padding:0 16px 16px 16px;flex:1 1 auto;min-height:220px;}
 .dev-log-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3);}
 .dev-log-entry{display:grid;grid-template-columns:62px 1fr;gap:8px;padding:6px 0;font-family:var(--mono);font-size:11px;border-bottom:1px solid var(--border);}
 .dev-log-entry:last-child{border-bottom:none;}
@@ -347,7 +352,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
 @media (max-width: 1180px){
   .dev-shell{grid-template-columns:1fr;}
-  .dev-sidebar{position:relative;height:auto;border-left:none;border-top:1px solid var(--border);}
+  .dev-sidebar{position:relative;top:auto;height:auto;border-left:none;border-top:1px solid var(--border);}
   .dev-state-grid{grid-template-columns:1fr;}
 }
 
@@ -532,7 +537,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       -->
 
       <div class="card">
-        <div class="card-title"><div class="card-title-icon">📝</div>Markup Details</div>
+        <div class="card-title card-title-spread"><span style="display:flex;align-items:center;gap:8px;"><div class="card-title-icon">📝</div>Markup Details</span><span class="card-title-actions"><button class="inline-btn" onclick="rwDownloadCsv()">⇩ Download CSV</button></span></div>
         <div class="results-wrap">
           <table class="results-table">
             <thead><tr>
@@ -603,9 +608,13 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       </div>
     </div>
 
-    <div class="dev-action-btns">
-      <button class="dev-btn dev-btn-primary" id="devUploadBtn" onclick="devUpload()">⬆ Upload</button>
-      <button class="dev-btn dev-btn-ghost" onclick="devReset()">↺ Reset</button>
+    <div class="dev-config-field" style="min-width:190px;">
+      <div class="dev-config-label">Configuration</div>
+      <div class="dev-action-btns">
+        <button class="dev-btn dev-btn-primary" id="devSaveBtn" onclick="devSaveInputs()">💾 Save Inputs</button>
+        <button class="dev-btn dev-btn-ghost" onclick="devReset()">↺ Reset</button>
+      </div>
+      <div class="dev-config-sub">Workflow run buttons use the staged files and saved values above.</div>
     </div>
 
   </div>
@@ -881,7 +890,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
         <div class="dev-snippet-meta">
           <div class="dev-snippet-endpoint" id="devSnippetEndpoint">setup-project</div>
         </div>
-        <div class="dev-snippet-desc" id="devSnippetDesc">Hover over any workflow tile to preview the request shape and what that step is responsible for.</div>
+        <div class="dev-snippet-desc" id="devSnippetDesc">Hover to preview an endpoint. Click a tile to pin its server reference, payload shape, and expected response contract.</div>
         <pre class="dev-code" id="devSnippetCode">POST /poc/setup-project
 
 Creates or verifies the working Studio Project structure used by the rest of the flow.</pre>
@@ -1128,6 +1137,52 @@ async function rwRunDownstream(){
   }
 }
 
+function rwDeepValue(obj,key,maxDepth=6){
+  if(!obj||maxDepth<0)return '';
+  const target=String(key).toLowerCase();
+  const queue=[obj];
+  const seen=new Set();
+  while(queue.length){
+    const cur=queue.shift();
+    if(!cur||typeof cur!=='object'||seen.has(cur))continue;
+    seen.add(cur);
+    if(Array.isArray(cur)){
+      for(const item of cur)queue.push(item);
+      continue;
+    }
+    for(const [k,v] of Object.entries(cur)){
+      if(k==='Raw'||k==='raw'||k==='rawXml')continue;
+      if(String(k).toLowerCase()===target && v!==undefined && v!==null && String(v).trim()!=='')return String(v).trim();
+      if(v&&typeof v==='object'&&maxDepth>0)queue.push(v);
+    }
+  }
+  return '';
+}
+
+function rwNormalizeMarkups(markups){
+  const out=[];
+  for(const markup of (markups||[])){
+    if(!markup||typeof markup!=='object')continue;
+    const statusNodes = markup?.StatusHistory?.Status || markup?.statusHistory?.status || [];
+    const arr = Array.isArray(statusNodes) ? statusNodes : (statusNodes ? [statusNodes] : []);
+    if(arr.length){
+      arr.forEach((statusNode,idx)=>{
+        out.push({
+          ...markup,
+          ...statusNode,
+          _parentMarkup: markup,
+          _isStatusNode: true,
+          _statusIndex: idx,
+          Parent: statusNode?.Parent || statusNode?.parent || markup?.ID || markup?.Id || markup?.id || ''
+        });
+      });
+    }else{
+      out.push(markup);
+    }
+  }
+  return out;
+}
+
 function rwRenderResults(){
   document.getElementById('rwResults').style.display='flex';
 
@@ -1141,37 +1196,44 @@ function rwRenderResults(){
     return typeof val!=='undefined'&&val!==null?String(val).trim():'';
   };
 
+  const normalized = rwNormalizeMarkups(rwMarkups);
   const getId=m=>m?.ID||m?.Id||m?.id||'';
-  const byId=new Map(rwMarkups.map(m=>[getId(m),m]).filter(([id])=>id));
+  const byId=new Map(normalized.map(m=>[getId(m),m]).filter(([id])=>id));
 
   const getCustomValue=(m,key)=>{
     if(!m)return'';
     const selfVal=
+      getCI(m,key)||
       getCI(m.ExtendedProperties,key)||
       getCI(m.Custom,key)||
       getCI(m.CustomColumns,key)||
       getCI(m.Columns,key)||
-      getCI(m.Metadata,key);
+      getCI(m.Metadata,key)||
+      getCI(m._parentMarkup,key)||
+      rwDeepValue(m,key)||
+      rwDeepValue(m._parentMarkup,key);
     if(selfVal)return selfVal;
-    const parentId=m.Parent||m.parent||m.ParentID||m.parentId||'';
+    const parentId=m.Parent||m.parent||m.ParentID||m.parentId||getId(m._parentMarkup)||'';
     if(parentId&&byId.has(parentId)){
       const parent=byId.get(parentId);
       return (
+        getCI(parent,key)||
         getCI(parent.ExtendedProperties,key)||
         getCI(parent.Custom,key)||
         getCI(parent.CustomColumns,key)||
         getCI(parent.Columns,key)||
-        getCI(parent.Metadata,key)
+        getCI(parent.Metadata,key)||
+        rwDeepValue(parent,key)
       );
     }
     return'';
   };
 
   const getStage=m=>{
-    return getCustomValue(m,'Review Stage')||m.Status||m.State||'';
+    return getCustomValue(m,'Review Stage')||getCustomValue(m,'State')||getCustomValue(m,'Status')||m.Status||m.State||'';
   };
 
-  rwMarkups=rwMarkups.map(m=>{
+  rwMarkups=normalized.map(m=>{
     const stage=getStage(m);
     const responsibility=getCustomValue(m,'Responsibility');
     return{
@@ -1235,6 +1297,34 @@ function rwRenderResults(){
   renderPie('rwResponsibilityPie','rwResponsibilityLegend',responsibilities,'Assignments');
 
   rwRenderTable();
+}
+
+function rwDownloadCsv(){
+  if(!rwMarkups.length)return;
+  const headers=['Page','Subject','Author','Review Stage','Discipline','Responsibility','Priority','Action Required','Comment','Due Date'];
+  const rows=rwMarkups.map(m=>[
+    m.Page??'',
+    m.Subject??'',
+    m.Author??'',
+    m._stage??'',
+    m._discipline??'',
+    m._responsibility??'',
+    m._priority??'',
+    m._action??'',
+    m.Comment??'',
+    m._due??''
+  ]);
+  const escCsv=v=>`"${String(v??'').replace(/"/g,'""')}"`;
+  const csv=[headers.map(escCsv).join(','),...rows.map(r=>r.map(escCsv).join(','))].join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='review-markup-details.csv';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 function rwPrioPill(p){
@@ -1319,6 +1409,7 @@ let devSortDir='asc';
 let devView='table';
 let devLastState=null;
 let devCurrentSnippet='setup-project';
+let devSnippetLocked=false;
 
 const DEV_SNIPPETS={
   'setup-project':{
@@ -1364,6 +1455,16 @@ CONTENT-TYPE: multipart/form-data
 WHY THIS STEP EXISTS
 - Sends selected PDFs from the UI into the Studio Project.
 - Creates the file records that will later be used for checkout into the Session.
+
+CLIENT REQUEST
+- method: POST
+- path: /poc/upload-to-project
+- body: multipart/form-data with files[]
+
+SERVER HANDLER OUTLINE
+- streams staged PDFs to the backend
+- uploads the files into the Studio Project
+- stores project file ids for checkout
 
 EXPECTED INPUTS
 - files[] from the PDF upload zone
@@ -1518,6 +1619,17 @@ WHY THIS STEP EXISTS
 - Pulls review results back into your app after the Session work is complete.
 - Typically updates the Project copy, exports markup XML, and assembles structured metadata.
 
+CLIENT REQUEST
+- method: POST
+- path: /poc/downstream-process
+- body: implicit current run state on the server
+
+SERVER HANDLER OUTLINE
+- syncs the reviewed file back to the project copy
+- exports markup XML
+- parses XML and custom column values
+- returns markups[], file metadata, and artifact references
+
 TYPICAL RESPONSE HIGHLIGHTS
 - markups[]
 - file metadata
@@ -1626,6 +1738,26 @@ function devRemoveChip(btn,email){
   btn.closest('.chip').remove();
   api('remove-reviewer',undefined,{email});
 }
+function devSaveInputs(){
+  devConfig();
+  const btn=document.getElementById('devSaveBtn');
+  if(btn){
+    const prev=btn.textContent;
+    btn.textContent='✓ Saved';
+    setTimeout(()=>{btn.textContent=prev;},1600);
+  }
+  const msg=`Inputs saved — documentId: ${document.getElementById('devDocId').value.trim()||'DOC-001'}, description: ${document.getElementById('devDesc').value.trim()||'Design review'}, staged files: ${devFiles.length}`;
+  const entries=document.getElementById('devLogEntries');
+  if(entries){
+    const now=new Date().toLocaleTimeString('en-US',{hour12:false});
+    const row=document.createElement('div');
+    row.className='dev-log-entry';
+    row.innerHTML=`<span class="dev-log-time">${now}</span><span class="dev-log-msg webhook">${esc(msg)}</span>`;
+    entries.prepend(row);
+  }
+  devRenderStatePanel(devLastState||{});
+}
+
 function devConfig(){
   const docId=document.getElementById('devDocId').value.trim();
   const desc=document.getElementById('devDesc').value.trim();
@@ -1657,7 +1789,7 @@ function devSetNode(endpoint,state){
 async function devFire(endpoint){
   devSetNode(endpoint,'running');
   try{
-    const data=await api(endpoint);
+    const data = endpoint==='upload-to-project' ? await devUploadFromNode() : await api(endpoint);
     devSetNode(endpoint,'done');
 
     if((endpoint==='run-markuplist-job'||endpoint==='downstream-process')&&data.markups){
@@ -1673,6 +1805,7 @@ async function devFire(endpoint){
     }
 
     await devRefreshLog();
+    devShowSnippet(endpoint,true);
   }catch(err){
     devSetNode(endpoint,'error');
     await devRefreshLog();
@@ -1680,25 +1813,26 @@ async function devFire(endpoint){
   }
 }
 
-async function devUpload(){
+async function devUploadFromNode(){
   const pending=devFiles.filter(f=>f.status==='staged');
-  if(!pending.length){alert('No files staged.');return;}
-
-  devSetNode('upload-to-project','running');
+  if(!pending.length)throw new Error('No files staged.');
   const fd=new FormData();
   pending.forEach(f=>fd.append('files',f.file,f.name));
+  const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
+  const d=await r.json();
+  if(!r.ok)throw new Error(d.error||'Upload failed');
+  (d.uploaded||[]).forEach(u=>{
+    const sf=devFiles.find(f=>f.name===u.name);
+    if(sf)sf.status='ok';
+  });
+  devRenderFiles();
+  return d;
+}
 
+async function devUpload(){
   try{
-    const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
-    const d=await r.json();
-    if(!r.ok)throw new Error(d.error);
-
-    (d.uploaded||[]).forEach(u=>{
-      const sf=devFiles.find(f=>f.name===u.name);
-      if(sf)sf.status='ok';
-    });
-
-    devRenderFiles();
+    devSetNode('upload-to-project','running');
+    await devUploadFromNode();
     devSetNode('upload-to-project','done');
     await devRefreshLog();
   }catch(err){
@@ -1776,7 +1910,7 @@ function devShowSnippet(endpoint,lock=false){
   const active = lock ? endpoint : (devSnippetLocked ? devCurrentSnippet : endpoint);
   const item=DEV_SNIPPETS[active]||DEV_SNIPPETS['setup-project'];
   document.getElementById('devSnippetEndpoint').textContent=item.endpoint;
-  document.getElementById('devSnippetDesc').textContent=item.desc + (devSnippetLocked ? '  Click another tile to switch the pinned reference.' : '');
+  document.getElementById('devSnippetDesc').textContent=item.desc + (devSnippetLocked ? ' Click another tile to switch the pinned reference.' : '');
   document.getElementById('devSnippetCode').textContent=item.code;
 }
 
@@ -1864,7 +1998,7 @@ async function devRefreshLog(){
   devLastState=state;
   devRenderStatePanel(state||{});
   if(state.log?.length){
-    document.getElementById('devLogEntries').innerHTML=[...state.log].reverse().slice(0,40).map(e=>{
+    document.getElementById('devLogEntries').innerHTML=[...state.log].reverse().slice(0,120).map(e=>{
       const t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});
       return`<div class="dev-log-entry"><span class="dev-log-time">${t}</span><span class="dev-log-msg ${e.type||'info'}">${esc(e.msg)}</span></div>`;
     }).join('');
@@ -1948,6 +2082,9 @@ async function devReset(){
   }
 
   document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';
+  devSnippetLocked=true;
+  devShowSnippet('setup-project',true);
+  devRenderStatePanel({});
 }
 
 
