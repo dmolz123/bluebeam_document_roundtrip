@@ -226,11 +226,12 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-btn-ghost{background:var(--white);color:var(--text-2);border:1px solid var(--border);}
 .dev-btn-ghost:hover{border-color:var(--error);color:var(--error);}
 
-.dev-shell{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;}
-.dev-main{min-width:0;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:18px;padding:20px 24px 24px 24px;}
-.dev-sidebar{background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0;position:sticky;top:0;height:calc(100vh - 113px);}
+.dev-shell{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;align-items:start;}
+.dev-main{min-width:0;min-height:0;overflow:visible;display:flex;flex-direction:column;gap:18px;padding:20px 24px 24px 24px;}
+.dev-sidebar{background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0;position:sticky;top:72px;max-height:calc(100vh - 88px);overflow:hidden;}
 .dev-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:16px;}
 .dev-panel-title{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.dev-panel-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .dev-panel-hint{font-size:12px;color:var(--text-3);line-height:1.5;}
 
 .dev-collapsible{background:var(--white);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
@@ -254,7 +255,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-quick-actions{display:flex;flex-wrap:wrap;gap:10px;}
 .dev-qa-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--white);font-size:12px;color:var(--text);cursor:pointer;}
 .dev-qa-btn:hover{border-color:var(--accent);color:var(--accent);}
-@media (max-width: 1200px){.dev-shell{grid-template-columns:minmax(0,1fr);} .dev-sidebar{position:relative;height:auto;border-left:none;border-top:1px solid var(--border);} .dev-readme-grid,.dev-link-grid{grid-template-columns:1fr;} }
+@media (max-width: 1200px){.dev-shell{grid-template-columns:minmax(0,1fr);} .dev-sidebar{position:relative;top:auto;max-height:none;height:auto;border-left:none;border-top:1px solid var(--border);} .dev-readme-grid,.dev-link-grid{grid-template-columns:1fr;} }
 .dev-state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
 .dev-state-card{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg);}
 .dev-state-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
@@ -291,6 +292,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 /* Individual node */
 .fc-node{background:var(--white);border:2px solid var(--border);border-radius:12px;padding:14px 16px;min-width:180px;max-width:220px;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;}
 .fc-node:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(26,90,255,0.12);transform:translateY(-1px);}
+.fc-node.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,90,255,0.14),0 8px 22px rgba(26,90,255,0.14);}
 .fc-node.running{border-color:var(--warn);background:#fffbeb;box-shadow:0 0 0 3px rgba(217,119,6,0.15);}
 .fc-node.done{border-color:var(--green);background:var(--green-l);}
 .fc-node.error{border-color:var(--error);background:var(--error-l);}
@@ -875,7 +877,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
     <aside class="dev-sidebar">
       <div class="dev-panel" style="border:none;border-radius:0;border-bottom:1px solid var(--border);">
-        <div class="dev-panel-title">Endpoint Reference <span style="display:flex;gap:8px;"><button class="dev-copy-snippet" id="devCopySnippetBtn" onclick="devCopySnippet()">⎘ Copy</button><button class="dev-copy-snippet" id="devDownloadSnippetBtn" onclick="devDownloadSnippet()">⇩ Download</button></span></div>
+        <div class="dev-panel-title">Endpoint Reference <span class="dev-panel-actions"><button class="dev-copy-snippet" id="devCopySnippetBtn" onclick="devCopySnippet()">⎘ Copy</button><button class="dev-copy-snippet" id="devDownloadSnippetBtn" onclick="devDownloadSnippet()">⇩ Download</button></span></div>
         <div class="dev-snippet-meta">
           <div class="dev-snippet-endpoint" id="devSnippetEndpoint">setup-project</div>
         </div>
@@ -1321,112 +1323,258 @@ let devCurrentSnippet='setup-project';
 const DEV_SNIPPETS={
   'setup-project':{
     endpoint:'setup-project',
-    desc:'Creates or verifies the Studio Project folders and seeds the reference resources used by later calls.',
-    code:`POST /poc/setup-project
+    desc:'Creates or verifies the Studio Project structure, including the working folders and resources used by the rest of the roundtrip flow.',
+    code:`STEP: Setup Project
+METHOD: POST
+PATH: /poc/setup-project
 
-Response highlights:
+WHY THIS STEP EXISTS
+- Creates or verifies the base Studio Project structure.
+- Confirms the target project and the folders used later in the workflow.
+- Seeds reusable resources such as custom-columns.xml when your backend supports it.
+
+EXPECTED INPUTS
+- externalDocumentId: ${document.getElementById('devDocId')?.value || 'DOC-001'}
+- sessionDescription: ${document.getElementById('devDesc')?.value || 'Design review'}
+
+TYPICAL RESPONSE HIGHLIGHTS
 - projectId
-- review-documents folder
-- resources folder`
+- review-documents folder id
+- resources folder id
+- resource seed status
+
+REFERENCE EXAMPLE
+fetch('/poc/setup-project', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    externalDocumentId: 'DOC-001',
+    description: 'Design review'
+  })
+});`
   },
   'upload-to-project':{
     endpoint:'upload-to-project',
-    desc:'Uploads the staged PDFs into the target Studio Project so they can later be checked out into the Session.',
-    code:`POST /poc/upload-to-project
-Content-Type: multipart/form-data
+    desc:'Uploads the staged PDF files into the Studio Project so they can later be checked out into the active Session.',
+    code:`STEP: Upload to Project
+METHOD: POST
+PATH: /poc/upload-to-project
+CONTENT-TYPE: multipart/form-data
 
-FormData:
-- files[]`
+WHY THIS STEP EXISTS
+- Sends selected PDFs from the UI into the Studio Project.
+- Creates the file records that will later be used for checkout into the Session.
+
+EXPECTED INPUTS
+- files[] from the PDF upload zone
+
+TYPICAL RESPONSE HIGHLIGHTS
+- uploaded file names
+- project file ids
+- upload status per file
+
+REFERENCE EXAMPLE
+const fd = new FormData();
+files.forEach(file => fd.append('files', file, file.name));
+
+fetch('/poc/upload-to-project', {
+  method: 'POST',
+  body: fd
+});`
   },
   'trigger':{
     endpoint:'trigger',
-    desc:'Kicks off the session orchestration sequence and prepares the state object for the active roundtrip run.',
-    code:`POST /poc/trigger
+    desc:'Initializes the run state for the current roundtrip so later steps can read and update shared context.',
+    code:`STEP: Trigger Event
+METHOD: POST
+PATH: /poc/trigger
 
-Response highlights:
-- run state initialized
-- next step can create session`
+WHY THIS STEP EXISTS
+- Starts the orchestration state for the current run.
+- Useful when your backend stores the active project, files, and downstream IDs in memory or a temp store.
+
+TYPICAL RESPONSE HIGHLIGHTS
+- run initialized
+- state object created or refreshed
+- downstream steps unlocked`
   },
   'create-session':{
     endpoint:'create-session',
-    desc:'Creates the Studio Session used for live review and returns the active session identifier.',
-    code:`POST /poc/create-session
+    desc:'Creates the Studio Session used for live review and stores the returned session identifier in runtime state.',
+    code:`STEP: Create Session
+METHOD: POST
+PATH: /poc/create-session
 
-Response highlights:
+WHY THIS STEP EXISTS
+- Creates the live Studio Session where reviewers work in Revu.
+- Uses the configured external document id and description as reference context.
+
+EXPECTED INPUTS
+- externalDocumentId: ${document.getElementById('devDocId')?.value || 'DOC-001'}
+- sessionDescription: ${document.getElementById('devDesc')?.value || 'Design review'}
+
+TYPICAL RESPONSE HIGHLIGHTS
 - sessionId
-- session name / description`
+- session name
+- description
+- status
+
+REFERENCE EXAMPLE
+fetch('/poc/create-session', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    documentId: 'DOC-001',
+    description: 'Design review'
+  })
+});`
   },
   'register-webhook':{
     endpoint:'register-webhook',
-    desc:'Registers a webhook/subscription so downstream events can be observed during the workflow.',
-    code:`POST /poc/register-webhook
+    desc:'Registers a subscription or webhook callback so the app can observe review-related events during the workflow.',
+    code:`STEP: Register Webhook
+METHOD: POST
+PATH: /poc/register-webhook
 
-Response highlights:
+WHY THIS STEP EXISTS
+- Subscribes the app to callback events.
+- Helps demonstrate the event-driven portion of the reference architecture.
+
+TYPICAL RESPONSE HIGHLIGHTS
 - webhookId or subscriptionId
-- callback registration status`
+- callback URL
+- registration status
+
+REFERENCE EXAMPLE
+fetch('/poc/register-webhook', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' }
+});`
   },
   'checkout-to-session':{
     endpoint:'checkout-to-session',
-    desc:'Moves the uploaded Project files into the active Session so reviewers can work in Revu.',
-    code:`POST /poc/checkout-to-session
+    desc:'Checks the uploaded Project files out into the active Studio Session so reviewers can mark them up in Revu.',
+    code:`STEP: Checkout to Session
+METHOD: POST
+PATH: /poc/checkout-to-session
 
-Response highlights:
+WHY THIS STEP EXISTS
+- Moves the uploaded Project files into the active Session.
+- Connects the document upload phase to the live review phase.
+
+EXPECTED INPUTS
+- active sessionId
+- uploaded file ids
+
+TYPICAL RESPONSE HIGHLIGHTS
 - session file ids
-- checkout confirmation`
+- checkout confirmation
+- file-to-session mapping`
   },
   'invite-reviewers':{
     endpoint:'invite-reviewers',
-    desc:'Sends or adds reviewer access for the email list configured in the top input area.',
-    code:`POST /poc/invite-reviewers
+    desc:'Adds or invites the reviewer emails configured in the UI so participants can access the active Session.',
+    code:`STEP: Invite Reviewers
+METHOD: POST
+PATH: /poc/invite-reviewers
 
-Payload source:
-- reviewer emails from chip input`
+WHY THIS STEP EXISTS
+- Adds users or sends invitations for the active Session.
+- Uses the reviewer chip list configured at the top of the screen.
+
+EXPECTED INPUTS
+- reviewerEmails[]
+- active sessionId
+
+TYPICAL RESPONSE HIGHLIGHTS
+- invited users
+- add/invite status
+- skipped duplicates or invalid emails`
   },
   'review':{
-    endpoint:'manual review step',
-    desc:'Non-API handoff where reviewers work in Revu. Mark this step done once markup work is complete.',
-    code:`Manual step
+    endpoint:'review',
+    desc:'Manual handoff step where reviewers enter Revu, join the Session, and complete markup activity before extraction begins.',
+    code:`STEP: Review in Revu
+TYPE: Manual / non-API step
 
-Actions:
-- reviewers join Session in Revu
-- add / update markups
-- return here and click Mark Done`
+WHY THIS STEP EXISTS
+- Reviewers join the Session in Bluebeam Revu.
+- Markups, states, and custom columns are created or updated during this phase.
+
+MANUAL ACTIONS
+- Join the Session in Revu
+- Add markups
+- Update statuses / states
+- Return here and click Mark Done`
   },
   'downstream-process':{
     endpoint:'downstream-process',
-    desc:'Runs the post-review extraction path and returns the structured markup payload used by the dashboard.',
-    code:`POST /poc/downstream-process
+    desc:'Runs the post-review extraction path and returns the structured markup payload used by the dashboard and reporting UI.',
+    code:`STEP: Downstream Process
+METHOD: POST
+PATH: /poc/downstream-process
 
-Response highlights:
+WHY THIS STEP EXISTS
+- Pulls review results back into your app after the Session work is complete.
+- Typically updates the Project copy, exports markup XML, and assembles structured metadata.
+
+TYPICAL RESPONSE HIGHLIGHTS
 - markups[]
 - file metadata
-- export artifacts`
+- custom column values
+- export artifact paths`
   },
   'finalize':{
     endpoint:'finalize',
-    desc:'Moves the Session toward closeout once the working review is complete.',
-    code:`POST /poc/finalize
+    desc:'Moves the Session toward closeout once active review is complete and downstream extraction has been performed.',
+    code:`STEP: Finalize Session
+METHOD: POST
+PATH: /poc/finalize
 
-Response highlights:
-- finalization status`
+WHY THIS STEP EXISTS
+- Closes or transitions the working Session.
+- Keeps the roundtrip flow tidy before final artifact generation.
+
+TYPICAL RESPONSE HIGHLIGHTS
+- finalization status
+- session closeout state`
   },
   'snapshot':{
     endpoint:'snapshot',
-    desc:'Generates a merged snapshot PDF and returns the downloadable output artifacts.',
-    code:`POST /poc/snapshot
+    desc:'Generates a merged snapshot PDF and returns downloadable artifacts for the completed review package.',
+    code:`STEP: Snapshot PDF
+METHOD: POST
+PATH: /poc/snapshot
 
-Response highlights:
+WHY THIS STEP EXISTS
+- Produces a merged artifact after review.
+- Gives the user something tangible to download from the flow.
+
+TYPICAL RESPONSE HIGHLIGHTS
 - downloads[]
-- merged review PDF`
+- merged PDF path
+- artifact names
+
+REFERENCE EXAMPLE
+fetch('/poc/snapshot', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' }
+});`
   },
   'cleanup':{
     endpoint:'cleanup',
-    desc:'Clears the temporary run context and leaves the environment ready for another execution.',
-    code:`POST /poc/cleanup
+    desc:'Clears temporary state and leaves the app ready for another end-to-end execution.',
+    code:`STEP: Cleanup
+METHOD: POST
+PATH: /poc/cleanup
 
-Response highlights:
-- temporary state removed
-- final cleanup status`
+WHY THIS STEP EXISTS
+- Clears temporary run context.
+- Resets the environment for another demo or test cycle.
+
+TYPICAL RESPONSE HIGHLIGHTS
+- temp state removed
+- environment reset confirmation`
   }
 };
 
@@ -1605,22 +1753,37 @@ function devRenderStatePanel(state){
   document.getElementById('devStateGrid').innerHTML=html;
 }
 
-function devShowSnippet(endpoint){
-  devCurrentSnippet=endpoint;
-  const item=DEV_SNIPPETS[endpoint]||DEV_SNIPPETS['setup-project'];
+function devSelectNode(endpoint){
+  document.querySelectorAll('.fc-node.selected').forEach(n=>n.classList.remove('selected'));
+  const node=document.querySelector(`.fc-node[data-endpoint="${endpoint}"]`);
+  if(node)node.classList.add('selected');
+}
+
+function devSnippetText(item){
+  return `${item.endpoint}
+
+${item.desc}
+
+${item.code}`;
+}
+
+function devShowSnippet(endpoint,lock=false){
+  if(lock){
+    devSnippetLocked=true;
+    devCurrentSnippet=endpoint;
+    devSelectNode(endpoint);
+  }
+  const active = lock ? endpoint : (devSnippetLocked ? devCurrentSnippet : endpoint);
+  const item=DEV_SNIPPETS[active]||DEV_SNIPPETS['setup-project'];
   document.getElementById('devSnippetEndpoint').textContent=item.endpoint;
-  document.getElementById('devSnippetDesc').textContent=item.desc;
+  document.getElementById('devSnippetDesc').textContent=item.desc + (devSnippetLocked ? '  Click another tile to switch the pinned reference.' : '');
   document.getElementById('devSnippetCode').textContent=item.code;
 }
 
 async function devCopySnippet(){
   const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];
   try{
-    await navigator.clipboard.writeText(`${item.endpoint}
-
-${item.desc}
-
-${item.code}`);
+    await navigator.clipboard.writeText(devSnippetText(item));
     const btn=document.getElementById('devCopySnippetBtn');
     btn.textContent='✓ Copied';
     setTimeout(()=>{btn.textContent='⎘ Copy';},1800);
@@ -1629,12 +1792,7 @@ ${item.code}`);
 
 function devDownloadSnippet(){
   const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];
-  const content=`${item.endpoint}
-
-${item.desc}
-
-${item.code}`;
-  const blob=new Blob([content],{type:'text/plain;charset=utf-8'});
+  const blob=new Blob([devSnippetText(item)],{type:'text/plain;charset=utf-8'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
   const safe=(item.endpoint||'bluebeam-endpoint').replace(/[^a-z0-9-_]+/gi,'-').toLowerCase();
@@ -1647,7 +1805,8 @@ ${item.code}`;
 }
 
 async function devCopyLogs(){
-  const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')].map(r=>r.innerText.trim()).join('\n');
+  const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')].map(r=>r.innerText.trim()).join('
+');
   if(!rows)return;
   try{await navigator.clipboard.writeText(rows);}catch{}
 }
@@ -1683,9 +1842,19 @@ Resources
 
 function devInitNodeHover(){
   document.querySelectorAll('.fc-node[data-endpoint]').forEach(node=>{
-    node.addEventListener('mouseenter',()=>devShowSnippet(node.dataset.endpoint));
-    node.addEventListener('focusin',()=>devShowSnippet(node.dataset.endpoint));
-    node.addEventListener('click',()=>devShowSnippet(node.dataset.endpoint));
+    node.addEventListener('mouseenter',()=>{ if(!devSnippetLocked) devShowSnippet(node.dataset.endpoint); });
+    node.addEventListener('focusin',()=>{ if(!devSnippetLocked) devShowSnippet(node.dataset.endpoint); });
+    node.addEventListener('click',(e)=>{
+      if(e.target.closest('.fc-node-btn')) return;
+      devShowSnippet(node.dataset.endpoint,true);
+    });
+    node.setAttribute('tabindex','0');
+    node.addEventListener('keydown',(e)=>{
+      if(e.key==='Enter' || e.key===' '){
+        e.preventDefault();
+        devShowSnippet(node.dataset.endpoint,true);
+      }
+    });
   });
 }
 
@@ -1782,7 +1951,7 @@ async function devReset(){
 
 
 devInitNodeHover();
-devShowSnippet('setup-project');
+devShowSnippet('setup-project',true);
 devRenderStatePanel({});
 </script>
 </body>
