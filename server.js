@@ -396,12 +396,12 @@ function normalizeMarkupRecord(record, sourceFile) {
     Author: scalar(firstDefined(mapped, ['author', 'createdby', 'user', 'username'])),
     Type: scalar(firstDefined(mapped, ['type', 'markuptype'])),
     Subject: scalar(firstDefined(mapped, ['subject', 'label', 'title'])),
-    Comment: scalar(firstDefined(mapped, ['comment', 'comments', 'note', 'message', 'reply'])),
+    Comment: scalar(firstDefined(mapped, ['comment', 'comments', 'note', 'message', 'reply', 'contents'])),
     Status: scalar(firstDefined(mapped, ['status', 'state'])),
     Layer: scalar(firstDefined(mapped, ['layer'])),
     Page: scalar(firstDefined(mapped, ['page', 'pagenumber', 'pageindex'])),
-    DateCreated: scalar(firstDefined(mapped, ['datecreated', 'created', 'createddate'])),
-    DateModified: scalar(firstDefined(mapped, ['datemodified', 'modified', 'modifieddate'])),
+    DateCreated: scalar(firstDefined(mapped, ['datecreated', 'creationdate', 'created', 'createddate'])),
+    DateModified: scalar(firstDefined(mapped, ['datemodified', 'moddate', 'modified', 'modifieddate'])),
     Color: scalar(firstDefined(mapped, ['color'])),
     Checked: scalar(firstDefined(mapped, ['checked'])),
     Locked: scalar(firstDefined(mapped, ['locked']))
@@ -412,30 +412,56 @@ function normalizeMarkupRecord(record, sourceFile) {
     'author', 'createdby', 'user', 'username',
     'type', 'markuptype',
     'subject', 'label', 'title',
-    'comment', 'comments', 'note', 'message', 'reply',
+    'comment', 'comments', 'note', 'message', 'reply', 'contents',
     'status', 'state',
     'layer',
     'page', 'pagenumber', 'pageindex',
-    'datecreated', 'created', 'createddate',
-    'datemodified', 'modified', 'modifieddate',
+    'datecreated', 'creationdate', 'created', 'createddate',
+    'datemodified', 'moddate', 'modified', 'modifieddate',
     'color',
     'checked',
-    'locked'
+    'locked',
+    'custom'
   ]);
+
+  const custom = {};
+  const rawCustom = mapped.custom;
+
+  if (rawCustom && typeof rawCustom === 'object' && !Array.isArray(rawCustom)) {
+    for (const [k, v] of Object.entries(rawCustom)) {
+      const sv = scalar(v);
+      if (typeof sv !== 'undefined' && sv !== null && String(sv).trim() !== '') {
+        custom[k] = String(sv).trim();
+      }
+    }
+  }
 
   const extended = {};
   for (const [k, v] of Object.entries(mapped)) {
     if (!skip.has(k)) {
-      const sv = scalar(v);
-      if (typeof sv !== 'undefined' && sv !== null && String(sv) !== '') {
-        extended[k] = sv;
+      if (v && typeof v === 'object' && !Array.isArray(v)) {
+        for (const [nestedK, nestedV] of Object.entries(v)) {
+          const sv = scalar(nestedV);
+          if (typeof sv !== 'undefined' && sv !== null && String(sv).trim() !== '') {
+            extended[`${k}.${nestedK}`] = String(sv).trim();
+          }
+        }
+      } else {
+        const sv = scalar(v);
+        if (typeof sv !== 'undefined' && sv !== null && String(sv).trim() !== '') {
+          extended[k] = String(sv).trim();
+        }
       }
     }
   }
 
   return {
     ...known,
-    ExtendedProperties: extended,
+    Custom: custom,
+    ExtendedProperties: {
+      ...custom,
+      ...extended
+    },
     _sourceFile: sourceFile
   };
 }
