@@ -161,6 +161,23 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .bd-bar{height:100%;border-radius:4px;background:var(--accent);transition:width 0.6s ease;}
 .bd-count{font-family:var(--mono);font-size:11px;color:var(--text-3);width:20px;text-align:right;flex-shrink:0;}
 
+
+/* Pie charts */
+.pie-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center;}
+.pie-wrap{display:flex;justify-content:center;align-items:center;min-height:240px;}
+.pie-chart{width:220px;height:220px;border-radius:50%;position:relative;border:1px solid var(--border);background:conic-gradient(var(--accent) 0deg 360deg);}
+.pie-chart::after{content:'';position:absolute;inset:50%;transform:translate(-50%,-50%);width:104px;height:104px;border-radius:50%;background:var(--white);border:1px solid var(--border);}
+.pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1;text-align:center;pointer-events:none;}
+.pie-total{font-family:var(--mono);font-size:28px;font-weight:700;color:var(--text);line-height:1;}
+.pie-total-label{font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-top:4px;}
+.pie-legend{display:flex;flex-direction:column;gap:10px;}
+.pie-legend-row{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;font-size:12px;}
+.pie-swatch{width:10px;height:10px;border-radius:999px;}
+.pie-label{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.pie-count,.pie-pct{font-family:var(--mono);font-size:11px;color:var(--text-3);}
+.pie-empty{color:var(--text-3);font-size:12px;padding:8px 0;}
+@media (max-width: 760px){.pie-grid{grid-template-columns:1fr;}}
+
 /* Results table */
 .results-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
 .results-table{width:100%;border-collapse:collapse;font-size:12px;}
@@ -427,10 +444,22 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       </div>
 
       <div class="card">
-        <div class="card-title"><div class="card-title-icon">📌</div>Status Distribution</div>
-        <div class="breakdown" id="rwStatusBreakdown"></div>
+        <div class="card-title"><div class="card-title-icon">🥧</div>Status Distribution</div>
+        <div class="pie-grid">
+          <div class="pie-wrap"><div class="pie-chart" id="rwStatusPie"></div></div>
+          <div class="pie-legend" id="rwStatusLegend"></div>
+        </div>
       </div>
 
+      <div class="card">
+        <div class="card-title"><div class="card-title-icon">👷</div>Breakdown by Responsibility</div>
+        <div class="pie-grid">
+          <div class="pie-wrap"><div class="pie-chart" id="rwResponsibilityPie"></div></div>
+          <div class="pie-legend" id="rwResponsibilityLegend"></div>
+        </div>
+      </div>
+
+      <!--
       <div class="card">
         <div class="card-title"><div class="card-title-icon">📈</div>Breakdown by Review Stage</div>
         <div class="breakdown" id="rwStageBreakdown"></div>
@@ -440,6 +469,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
         <div class="card-title"><div class="card-title-icon">🎯</div>Breakdown by Priority</div>
         <div class="breakdown" id="rwPriorityBreakdown"></div>
       </div>
+      -->
 
       <div class="card">
         <div class="card-title"><div class="card-title-icon">📝</div>Markup Details</div>
@@ -944,42 +974,64 @@ async function rwRunDownstream(){
 function rwRenderResults(){
   document.getElementById('rwResults').style.display='flex';
 
-  const getEP=(e,key)=>{
-    if(!e)return'';
-    const direct=e[key];
-    if(typeof direct!=='undefined'&&direct!==null&&String(direct).trim()!=='')return String(direct);
-    const foundKey=Object.keys(e).find(k=>k.toLowerCase()===key.toLowerCase());
-    return foundKey?String(e[foundKey]??''):'';
+  const getCI=(obj,key)=>{
+    if(!obj||typeof obj!=='object')return'';
+    const direct=obj[key];
+    if(typeof direct!=='undefined'&&direct!==null&&String(direct).trim()!=='')return String(direct).trim();
+    const foundKey=Object.keys(obj).find(k=>k.toLowerCase()===String(key).toLowerCase());
+    if(!foundKey)return'';
+    const val=obj[foundKey];
+    return typeof val!=='undefined'&&val!==null?String(val).trim():'';
   };
 
-  const ep=m=>{
-    const e=m.ExtendedProperties||{};
-    return{
-      stage:getEP(e,'Review Stage')||m.Status||'',
-      disc:getEP(e,'Discipline'),
-      resp:getEP(e,'Responsibility'),
-      prio:getEP(e,'Priority'),
-      action:getEP(e,'Action Required'),
-      due:getEP(e,'Due Date')
-    };
+  const getId=m=>m?.ID||m?.Id||m?.id||'';
+  const byId=new Map(rwMarkups.map(m=>[getId(m),m]).filter(([id])=>id));
+
+  const getCustomValue=(m,key)=>{
+    if(!m)return'';
+    const selfVal=
+      getCI(m.ExtendedProperties,key)||
+      getCI(m.Custom,key)||
+      getCI(m.CustomColumns,key)||
+      getCI(m.Columns,key)||
+      getCI(m.Metadata,key);
+    if(selfVal)return selfVal;
+    const parentId=m.Parent||m.parent||m.ParentID||m.parentId||'';
+    if(parentId&&byId.has(parentId)){
+      const parent=byId.get(parentId);
+      return (
+        getCI(parent.ExtendedProperties,key)||
+        getCI(parent.Custom,key)||
+        getCI(parent.CustomColumns,key)||
+        getCI(parent.Columns,key)||
+        getCI(parent.Metadata,key)
+      );
+    }
+    return'';
+  };
+
+  const getStage=m=>{
+    return getCustomValue(m,'Review Stage')||m.Status||m.State||'';
   };
 
   rwMarkups=rwMarkups.map(m=>{
-    const p=ep(m);
+    const stage=getStage(m);
+    const responsibility=getCustomValue(m,'Responsibility');
     return{
       ...m,
-      _status:m.Status||p.stage||'',
-      _stage:p.stage,
-      _discipline:p.disc,
-      _responsibility:p.resp,
-      _priority:p.prio,
-      _action:p.action,
-      _due:p.due
+      _status:m.Status||m.State||stage||'',
+      _stage:stage,
+      _discipline:getCustomValue(m,'Discipline'),
+      _responsibility:responsibility,
+      _priority:getCustomValue(m,'Priority'),
+      _action:getCustomValue(m,'Action Required'),
+      _due:getCustomValue(m,'Due Date')
     };
   });
 
-  const statuses=rwMarkups.map(m=>m._status).filter(Boolean);
+  const statuses=rwMarkups.map(m=>m._status||m._stage).filter(Boolean);
   const stages=rwMarkups.map(m=>m._stage).filter(Boolean);
+  const responsibilities=rwMarkups.map(m=>m._responsibility).filter(Boolean);
   const prios=rwMarkups.map(m=>m._priority).filter(Boolean);
   const withAction=rwMarkups.filter(m=>m._action).length;
   const critical=prios.filter(p=>p.includes('Critical')).length;
@@ -991,31 +1043,39 @@ function rwRenderResults(){
     <div class="sum-card"><div class="sum-val error">${critical}</div><div class="sum-label">Critical Items</div></div>
     <div class="sum-card"><div class="sum-val warn">${authors}</div><div class="sum-label">Active Reviewers</div></div>`;
 
-  const renderBreakdown=(elId,items,colorFn)=>{
-    const counts={};
-    items.forEach(s=>{counts[s]=(counts[s]||0)+1;});
-    const max=Math.max(...Object.values(counts),1);
+  const piePalette=['var(--accent)','var(--green)','var(--error)','var(--warn)','#7c3aed','#0891b2','#ec4899','#64748b','#14b8a6','#f97316'];
 
-    document.getElementById(elId).innerHTML=Object.entries(counts).sort((a,b)=>b[1]-a[1])
-      .map(([l,n])=>`<div class="bd-row"><div class="bd-label" title="${esc(l)}">${esc(l)}</div><div class="bd-track"><div class="bd-bar" style="width:${Math.round(n/max*100)}%;${colorFn(l)}"></div></div><div class="bd-count">${n}</div></div>`)
-      .join('')||'<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No data available</div>';
+  const renderPie=(chartId,legendId,items,totalLabel)=>{
+    const chart=document.getElementById(chartId);
+    const legend=document.getElementById(legendId);
+    const counts={};
+    items.forEach(item=>{counts[item]=(counts[item]||0)+1;});
+    const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+
+    if(!entries.length){
+      chart.style.background='var(--bg)';
+      chart.innerHTML=`<div class="pie-center"><div class="pie-total">0</div><div class="pie-total-label">${esc(totalLabel)}</div></div>`;
+      legend.innerHTML='<div class="pie-empty">No data available</div>';
+      return;
+    }
+
+    const total=entries.reduce((sum,[,n])=>sum+n,0);
+    let current=0;
+    const segments=entries.map(([label,count],idx)=>{
+      const start=current;
+      const pct=count/total;
+      current+=pct*360;
+      const end=current;
+      return {label,count,pct,color:piePalette[idx%piePalette.length],start,end};
+    });
+
+    chart.style.background=`conic-gradient(${segments.map(s=>`${s.color} ${s.start}deg ${s.end}deg`).join(', ')})`;
+    chart.innerHTML=`<div class="pie-center"><div class="pie-total">${total}</div><div class="pie-total-label">${esc(totalLabel)}</div></div>`;
+    legend.innerHTML=segments.map(s=>`<div class="pie-legend-row"><span class="pie-swatch" style="background:${s.color}"></span><span class="pie-label" title="${esc(s.label)}">${esc(s.label)}</span><span class="pie-count">${s.count}</span><span class="pie-pct">${Math.round(s.pct*100)}%</span></div>`).join('');
   };
 
-  renderBreakdown('rwStatusBreakdown',statuses,l=>{
-    if(/step 4/i.test(l)||/revision/i.test(l))return'background:var(--error)';
-    if(/step 3/i.test(l)||/agree/i.test(l))return'background:var(--green)';
-    if(/step 2/i.test(l)||/needed/i.test(l))return'background:var(--warn)';
-    return'';
-  });
-
-  renderBreakdown('rwStageBreakdown',stages,()=> '');
-
-  renderBreakdown('rwPriorityBreakdown',prios,l=>{
-    if(l.includes('Critical'))return'background:var(--error)';
-    if(l.includes('High'))return'background:var(--warn)';
-    if(l.includes('Low'))return'background:var(--green)';
-    return'';
-  });
+  renderPie('rwStatusPie','rwStatusLegend',statuses,'Statuses');
+  renderPie('rwResponsibilityPie','rwResponsibilityLegend',responsibilities,'Assignments');
 
   rwRenderTable();
 }
