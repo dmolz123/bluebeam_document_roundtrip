@@ -43,7 +43,7 @@ const { PDFDocument, PDFName, PDFDict, PDFArray, PDFString } = require('pdf-lib'
 const TokenManager       = require('./tokenManager');
 
 const app    = express();
-const PORT   = process.env.PORT || 3000;
+const PORT   = process.env.PORT || 10000;
 const upload = multer({ storage: multer.memoryStorage() });
 
 // -----------------------------------------------------------------------------
