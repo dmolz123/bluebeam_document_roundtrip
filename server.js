@@ -2,15 +2,16 @@
  * Bluebeam Studio API — Document Roundtrip PoC
  * Proof-of-concept reference implementation. Not for production use.
  *
- * XML-FALLBACK VERSION:
+ * XML-FALLBACK VERSION + STATE MODEL INJECTION:
  *   - Keeps working check-in to Project copy
  *   - Keeps working exportmarkups XML generation
  *   - Replaces markuplist dependency with exported XML download + parse
  *   - Preserves existing flow/endpoints/UI compatibility
+ *   - Adds optional PDF state model injection before project upload
  *
  * Roundtrip flow:
  *   0a. /poc/setup-project          — Create folders + upload custom-columns.xml (once)
- *   0b. /poc/upload-to-project      — Upload PDF(s) from UI → project review folder
+ *   0b. /poc/upload-to-project      — Optionally inject state model + upload PDF(s) from UI → project review folder
  *   0c. /poc/apply-custom-columns   — Apply custom-columns.xml to each uploaded file (optional / not used in UI)
  *   1.  /poc/trigger                — Simulate source-system workflow event
  *   2.  /poc/create-session         — Create Studio Session
@@ -34,6 +35,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const { parseStringPromise } = require('xml2js');
+const { PDFDocument, PDFName, PDFDict, PDFArray, PDFString } = require('pdf-lib');
 const TokenManager = require('./tokenManager');
 
 const app = express();
@@ -66,6 +68,98 @@ const CUSTOM_COLUMNS_XML_PATH = path.join(__dirname, 'resources', 'custom-column
 const MARKUP_SESSION_ID = process.env.MARKUP_SESSION_ID || '';
 const MARKUP_FILE_ID = process.env.MARKUP_FILE_ID || '';
 const MARKUP_FILE_NAME = process.env.MARKUP_FILE_NAME || 'Sample Drawing.pdf';
+
+// -----------------------------------------------------------------------------
+// STATE MODEL — 5-step QC Review
+// -----------------------------------------------------------------------------
+// cName identifiers of custom models to REMOVE before injecting the correct one.
+// Add any incorrect/demo model names here so they are wiped on each run.
+const STATE_MODELS_TO_REMOVE = [
+  '5_step_QC_Review',
+  'Incorrect_Review_Model',
+  'Bad_Model',
+  'Old_Review'
+];
+
+const QC_STATE_MODEL = {
+  cName: '5_step_QC_Review',
+  cUIName: '5-step QC Review',
+  states: [
+    { key: 'Step3_Agree', label: 'Step 3 - Agree' },
+    { key: 'Step3_Disagree', label: 'Step 3 - Disagree' },
+    { key: 'Step3_Address_Future', label: 'Step 3 - Address in Future Submittal' },
+    { key: 'Step4_Revisions_Made', label: 'Step 4 - Revisions Made' },
+    { key: 'Step5_Verified_Concur', label: 'Step 5 - Revisions Verified/Concur' },
+    { key: 'Step5_Incomplete_Disagr', label: 'Step 5 - Revisions Incomplete/Disagree' }
+  ],
+  defaultState: 'Step3_Agree'
+};
+
+// -----------------------------------------------------------------------------
+// PDF STATE MODEL INJECTION
+// -----------------------------------------------------------------------------
+async function injectStateModel(pdfBuffer) {
+  const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
+  const ctx = pdfDoc.context;
+  const cat = pdfDoc.catalog;
+
+  const removeCalls = STATE_MODELS_TO_REMOVE
+    .map(name => `try{Collab.removeStateModel("${name}");}catch(e){}`)
+    .join('\n');
+
+  const statesObj = QC_STATE_MODEL.states
+    .map(state => `    "${state.key}": { cUIName: "${state.label}" }`)
+    .join(',\n');
+
+  const js = `${removeCalls}
+try {
+  Collab.addStateModel({
+    cName:   "${QC_STATE_MODEL.cName}",
+    cUIName: "${QC_STATE_MODEL.cUIName}",
+    oStates: {
+${statesObj}
+    },
+    cDefault: "${QC_STATE_MODEL.defaultState}"
+  });
+} catch(e) {}`.trim();
+
+  const jsBytes = Buffer.from(js, 'utf-8');
+  const jsStream = ctx.stream(jsBytes, { Type: 'JavaScript', Length: jsBytes.length });
+  const jsRef = ctx.register(jsStream);
+
+  const modelKey = `BB_StateModel_${QC_STATE_MODEL.cName}`;
+  const jsAction = ctx.obj({ S: PDFName.of('JavaScript'), JS: jsRef });
+  const jsActRef = ctx.register(jsAction);
+
+  let namesDict = cat.lookupMaybe(PDFName.of('Names'), PDFDict);
+  if (!namesDict) {
+    const ref = ctx.register(ctx.obj({}));
+    cat.set(PDFName.of('Names'), ref);
+    namesDict = ctx.lookup(ref, PDFDict);
+  }
+
+  let jsNamesDict = namesDict.lookupMaybe(PDFName.of('JavaScript'), PDFDict);
+  if (!jsNamesDict) {
+    const ref = ctx.register(ctx.obj({}));
+    namesDict.set(PDFName.of('JavaScript'), ref);
+    jsNamesDict = ctx.lookup(ref, PDFDict);
+  }
+
+  const existing = jsNamesDict.lookupMaybe(PDFName.of('Names'), PDFArray);
+  if (existing) {
+    existing.push(PDFString.of(modelKey));
+    existing.push(jsActRef);
+  } else {
+    jsNamesDict.set(PDFName.of('Names'), ctx.obj([PDFString.of(modelKey), jsActRef]));
+  }
+
+  cat.set(
+    PDFName.of('OpenAction'),
+    ctx.register(ctx.obj({ S: PDFName.of('JavaScript'), JS: jsRef }))
+  );
+
+  return Buffer.from(await pdfDoc.save());
+}
 
 // -----------------------------------------------------------------------------
 // DEMO STUB
@@ -524,7 +618,6 @@ async function parseBluebeamExportXml(xmlText, sourceFile) {
 
   const candidates = extractMarkupCandidates(parsed, sourceFile);
 
-  // De-duplicate similar rows
   const seen = new Set();
   const unique = [];
 
@@ -642,7 +735,6 @@ async function performExportMarkups(accessToken) {
     logStep('Allowing exported markup artifacts to settle for 5s...', 'info');
     await sleep(5000);
 
-    // upsert-style update
     const existingIndex = pocState.markupExports.findIndex(m => m.exportFileName === exportFileName);
     const exportRecord = {
       name: sf.name,
@@ -675,7 +767,6 @@ async function performMarkupExtractionFromXml(accessToken) {
       pf => String(pf.projectFileId) === String(sf.projectFileId)
     );
 
-    // Best-effort only. Do not fail extraction if the original review PDF is still locked/in session.
     if (projectFile) {
       const reviewPath = `/${FOLDER_REVIEW_DOCS}/${projectFile.name}`;
 
@@ -721,7 +812,12 @@ app.get('/health', (req, res) => {
       hasClientId: Boolean(CLIENT_ID),
       webhookCallbackUrl: WEBHOOK_CALLBACK_URL,
       webhookIsLocalhost: isLocalhost(WEBHOOK_CALLBACK_URL),
-      customColumnsXmlExists: fs.existsSync(CUSTOM_COLUMNS_XML_PATH)
+      customColumnsXmlExists: fs.existsSync(CUSTOM_COLUMNS_XML_PATH),
+      stateModel: {
+        enabled: true,
+        name: QC_STATE_MODEL.cUIName,
+        states: QC_STATE_MODEL.states.length
+      }
     }
   });
 });
@@ -847,19 +943,30 @@ app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
     }
 
     pocState.status = 'uploading';
-    logStep(`Received ${req.files.length} file(s) for upload`, 'info');
+
+    const injectModel = req.body.injectStateModel === 'true';
+    logStep(`Received ${req.files.length} file(s) for upload (injectStateModel=${injectModel})`, 'info');
 
     const accessToken = await tokenManager.getValidAccessToken();
     const reviewFolderId = pocState.folderIds[FOLDER_REVIEW_DOCS] || null;
     const uploaded = [];
 
     for (const file of req.files) {
+      let buffer = file.buffer;
+
+      if (injectModel) {
+        logStep(`Injecting 5-step QC Review state model into "${file.originalname}"...`, 'info');
+        buffer = await injectStateModel(buffer);
+        logStep(`State model injected into "${file.originalname}" (${buffer.length} bytes)`, 'success');
+      }
+
       const result = await uploadFileToProject(
-        file.buffer,
+        buffer,
         file.originalname,
         accessToken,
         reviewFolderId
       );
+
       uploaded.push(result);
       pocState.projectFiles.push(result);
     }
@@ -1469,6 +1576,28 @@ app.post('/poc/cleanup', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
+// STANDALONE: inject state model into a single PDF for testing
+// POST /poc/inject-state-model multipart, field "file"
+// -----------------------------------------------------------------------------
+app.post('/poc/inject-state-model', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const modified = await injectStateModel(req.file.buffer);
+    const outName = req.file.originalname.replace(/\.pdf$/i, '') + '_state_injected.pdf';
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${outName}"`);
+    res.setHeader('Content-Length', modified.length);
+    res.send(modified);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -----------------------------------------------------------------------------
 // WEBHOOK LISTENER
 // -----------------------------------------------------------------------------
 app.post('/webhook/studio-events', (req, res) => {
@@ -1518,9 +1647,12 @@ app.listen(PORT, () => {
     console.log('⚠  Webhook will be skipped (localhost URL)');
   }
 
+  console.log(`\nState Model: "${QC_STATE_MODEL.cUIName}" (${QC_STATE_MODEL.states.length} states)`);
+  console.log(`Custom models removed before injection: ${STATE_MODELS_TO_REMOVE.join(', ')}`);
+
   console.log(`\nFLOW:`);
   console.log(`  POST /poc/setup-project         — 0a: Create folders + upload custom-columns.xml`);
-  console.log(`  POST /poc/upload-to-project     — 0b: Upload PDFs from UI → project`);
+  console.log(`  POST /poc/upload-to-project     — 0b: Optional state model injection + upload PDFs from UI → project`);
   console.log(`  POST /poc/apply-custom-columns  — 0c: Apply custom columns to project files (optional)`);
   console.log(`  POST /poc/trigger               — 1:  Workflow event`);
   console.log(`  POST /poc/create-session        — 2:  Create session`);
@@ -1534,5 +1666,6 @@ app.listen(PORT, () => {
   console.log(`  POST /poc/downstream-process    — 9b: Check in + export + XML extract`);
   console.log(`  POST /poc/finalize              — 10: Finalize session`);
   console.log(`  POST /poc/snapshot              — 11: Snapshot + download PDF`);
-  console.log(`  POST /poc/cleanup               — 12: Delete webhook + session\n`);
+  console.log(`  POST /poc/cleanup               — 12: Delete webhook + session`);
+  console.log(`  POST /poc/inject-state-model    — Standalone test endpoint\n`);
 });
