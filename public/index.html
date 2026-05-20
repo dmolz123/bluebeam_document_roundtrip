@@ -111,18 +111,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .csv-label:hover{text-decoration:underline;}
 .csv-label input{position:absolute;inset:0;opacity:0;cursor:pointer;}
 
-
-/* State model toggle */
-.toggle-row{display:flex;align-items:center;gap:10px;padding:10px 0;}
-.toggle-label{font-size:13px;color:var(--text);}
-.toggle-sub{font-size:11px;color:var(--text-3);margin-top:2px;line-height:1.35;}
-.toggle{position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0;}
-.toggle input{opacity:0;width:0;height:0;}
-.toggle-slider{position:absolute;inset:0;background:var(--border-2);border-radius:22px;cursor:pointer;transition:0.2s;}
-.toggle-slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:white;border-radius:50%;transition:0.2s;}
-.toggle input:checked+.toggle-slider{background:var(--accent);}
-.toggle input:checked+.toggle-slider:before{transform:translateX(16px);}
-
 /* Buttons */
 .btn-primary{width:100%;padding:13px;background:var(--accent);color:white;border:none;border-radius:10px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;}
 .btn-primary:hover:not(:disabled){background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,90,255,0.3);}
@@ -410,17 +398,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="drop-zone-hint">PDF files only · multiple supported</div>
     </div>
     <div class="staged-files" id="rwStagedFiles"></div>
-
-    <div class="toggle-row" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
-      <label class="toggle">
-        <input type="checkbox" id="rwInjectStateModel" checked>
-        <span class="toggle-slider"></span>
-      </label>
-      <div>
-        <div class="toggle-label">Inject QC Review State Model</div>
-        <div class="toggle-sub">Removes existing custom states and writes the correct model before upload · handled before the file is uploaded to Studio.</div>
-      </div>
-    </div>
   </div>
 
   <!-- Review details -->
@@ -1056,7 +1033,6 @@ async function rwStart(){
 
   const disc=document.getElementById('rwDiscipline').value;
   const desc=document.getElementById('rwDesc').value.trim();
-  const injectModel=document.getElementById('rwInjectStateModel')?.checked ?? true;
 
   await api('configure',undefined,{
     documentId:name.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,''),
@@ -1075,7 +1051,6 @@ async function rwStart(){
     ['upload',async()=>{
       const fd=new FormData();
       rwFiles.filter(f=>f.status==='staged').forEach(f=>fd.append('files',f.file,f.name));
-      fd.append('injectStateModel', String(injectModel));
       const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
       const d=await r.json();
       if(!r.ok)throw new Error(d.error);
@@ -1340,8 +1315,6 @@ function rwReset(){
   dbtn.classList.remove('loading');
 
   document.querySelectorAll('#rwChipBox .chip:not(.primary)').forEach(c=>c.remove());
-  const injectToggle=document.getElementById('rwInjectStateModel');
-  if(injectToggle)injectToggle.checked=true;
 
   ['setup','upload','session','checkout','invite','checkin','export','mlist'].forEach(id=>{
     const d=document.getElementById('sd-'+id);
@@ -1740,7 +1713,6 @@ async function devUpload(){
   devSetNode('upload-to-project','running');
   const fd=new FormData();
   pending.forEach(f=>fd.append('files',f.file,f.name));
-  fd.append('injectStateModel','true');
 
   try{
     const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
