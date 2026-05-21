@@ -2,30 +2,35 @@
  * Bluebeam Studio API — Document Roundtrip PoC
  * Proof-of-concept reference implementation. Not for production use.
  *
- * XML-FALLBACK VERSION + STATE MODEL INJECTION:
- *   - Keeps working check-in to Project copy
- *   - Keeps working exportmarkups XML generation
- *   - Replaces markuplist dependency with exported XML download + parse
- *   - Preserves existing flow/endpoints/UI compatibility
- *   - Adds optional PDF state model injection before project upload
+ * XML-FALLBACK VERSION + STATE MODEL INJECTION + SQLITE DB LAYER:
+ *   - All existing roundtrip flow preserved
+ *   - SQLite persistence via db.js (better-sqlite3)
+ *   - atkins_project_id flows through configure → all downstream writes
+ *   - New GET /poc/projects/:atkinsId/snapshot for Tab 2 dashboard
+ *   - New GET /poc/projects for project list
+ *   - Polling scheduler: sessions with polling_interval > 0 auto-refresh snapshots
  *
  * Roundtrip flow:
  *   0a. /poc/setup-project          — Create folders + upload custom-columns.xml (once)
  *   0b. /poc/upload-to-project      — Optionally inject state model + upload PDF(s) from UI → project review folder
  *   0c. /poc/apply-custom-columns   — Apply custom-columns.xml to each uploaded file (optional / not used in UI)
  *   1.  /poc/trigger                — Simulate source-system workflow event
- *   2.  /poc/create-session         — Create Studio Session
+ *   2.  /poc/create-session         — Create Studio Session + write to DB
  *   3.  /poc/register-webhook       — Subscribe to session events
- *   4.  /poc/checkout-to-session    — Check project file(s) out into session
+ *   4.  /poc/checkout-to-session    — Check project file(s) out into session + update DB files table
  *   5.  /poc/invite-reviewers       — Invite reviewers
  *   6.  (Review in Bluebeam Revu — no API step)
  *   7.  /poc/checkin                — Check session file(s) back into project
  *   8.  /poc/export-markups         — Run exportmarkups job → XML in project
  *   9.  /poc/run-markuplist-job     — Compatibility route; now extracts structured data from exported XML
- *   9b. /poc/downstream-process     — Combined downstream step: checkin + export + XML parse
+ *   9b. /poc/downstream-process     — Combined downstream step: checkin + export + XML parse + DB snapshot
  *   10. /poc/finalize               — Finalize session
  *   11. /poc/snapshot               — Snapshot + download marked-up PDF
  *   12. /poc/cleanup                — Delete webhook + session
+ *
+ * DB endpoints:
+ *   GET /poc/projects                        — List all Atkins projects in DB
+ *   GET /poc/projects/:atkinsId/snapshot     — Full project snapshot for Tab 2 dashboard
  */
 
 require('dotenv').config();
@@ -37,6 +42,7 @@ const multer = require('multer');
 const { parseStringPromise } = require('xml2js');
 const { PDFDocument, PDFName, PDFDict, PDFArray, PDFString } = require('pdf-lib');
 const TokenManager = require('./tokenManager');
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -72,8 +78,6 @@ const MARKUP_FILE_NAME = process.env.MARKUP_FILE_NAME || 'Sample Drawing.pdf';
 // -----------------------------------------------------------------------------
 // STATE MODEL — 5-step QC Review
 // -----------------------------------------------------------------------------
-// cName identifiers of custom models to REMOVE before injecting the correct one.
-// Add any incorrect/demo model names here so they are wiped on each run.
 const STATE_MODELS_TO_REMOVE = [
   '5_step_QC_Review',
   'Incorrect_Review_Model',
@@ -85,12 +89,12 @@ const QC_STATE_MODEL = {
   cName: '5_step_QC_Review',
   cUIName: '5-step QC Review',
   states: [
-    { key: 'Step3_Agree', label: 'Step 3 - Agree' },
-    { key: 'Step3_Disagree', label: 'Step 3 - Disagree' },
-    { key: 'Step3_Address_Future', label: 'Step 3 - Address in Future Submittal' },
-    { key: 'Step4_Revisions_Made', label: 'Step 4 - Revisions Made' },
-    { key: 'Step5_Verified_Concur', label: 'Step 5 - Revisions Verified/Concur' },
-    { key: 'Step5_Incomplete_Disagr', label: 'Step 5 - Revisions Incomplete/Disagree' }
+    { key: 'Step3_Agree',            label: 'Step 3 - Agree' },
+    { key: 'Step3_Disagree',         label: 'Step 3 - Disagree' },
+    { key: 'Step3_Address_Future',   label: 'Step 3 - Address in Future Submittal' },
+    { key: 'Step4_Revisions_Made',   label: 'Step 4 - Revisions Made' },
+    { key: 'Step5_Verified_Concur',  label: 'Step 5 - Revisions Verified/Concur' },
+    { key: 'Step5_Incomplete_Disagr',label: 'Step 5 - Revisions Incomplete/Disagree' }
   ],
   defaultState: 'Step3_Agree'
 };
@@ -165,30 +169,37 @@ ${statesObj}
 // DEMO STUB
 // -----------------------------------------------------------------------------
 let demoStub = {
-  documentId: process.env.DEMO_DOCUMENT_ID || 'DOC-001',
-  description: process.env.DEMO_DESCRIPTION || 'Design review — coordination update',
-  reviewers: [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }],
-  sessionEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  atkinsProjectId:  process.env.DEMO_ATKINS_PROJECT_ID || '',
+  documentId:       process.env.DEMO_DOCUMENT_ID || 'DOC-001',
+  description:      process.env.DEMO_DESCRIPTION || 'Design review — coordination update',
+  projectName:      '',
+  region:           '',
+  reviewType:       '',
+  qaCategory:       '',
+  discipline:       '',
+  pollingInterval:  0,
+  reviewers:        [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }],
+  sessionEndDate:   new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 };
 
 // -----------------------------------------------------------------------------
 // IN-MEMORY STATE
 // -----------------------------------------------------------------------------
 let pocState = {
-  sessionId: null,
-  subscriptionId: null,
-  projectSetupDone: false,
-  folderIds: {},
+  sessionId:         null,
+  subscriptionId:    null,
+  projectSetupDone:  false,
+  folderIds:         {},
   customColumnsFileId: null,
-  projectFiles: [],
-  sessionFileIds: [],
-  markupExports: [],
-  markups: [],
-  markupJobId: null,
-  status: 'idle',
-  log: [],
-  createdAt: null,
-  webhookEvents: []
+  projectFiles:      [],
+  sessionFileIds:    [],
+  markupExports:     [],
+  markups:           [],
+  markupJobId:       null,
+  status:            'idle',
+  log:               [],
+  createdAt:         null,
+  webhookEvents:     []
 };
 
 function logStep(msg, type = 'info') {
@@ -212,20 +223,20 @@ const tokenManager = new TokenManager();
 // -----------------------------------------------------------------------------
 function resetPocState() {
   pocState = {
-    sessionId: null,
-    subscriptionId: null,
-    projectSetupDone: false,
-    folderIds: {},
+    sessionId:         null,
+    subscriptionId:    null,
+    projectSetupDone:  false,
+    folderIds:         {},
     customColumnsFileId: null,
-    projectFiles: [],
-    sessionFileIds: [],
-    markupExports: [],
-    markups: [],
-    markupJobId: null,
-    status: 'idle',
-    log: [],
-    createdAt: null,
-    webhookEvents: []
+    projectFiles:      [],
+    sessionFileIds:    [],
+    markupExports:     [],
+    markups:           [],
+    markupJobId:       null,
+    status:            'idle',
+    log:               [],
+    createdAt:         null,
+    webhookEvents:     []
   };
 }
 
@@ -252,18 +263,13 @@ async function pollJob(url, headers, maxAttempts = 20, intervalMs = 3000) {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     await sleep(intervalMs);
-
     const res = await fetch(url, { headers });
     const data = await res.json();
-
     const status = data.Status ?? data.JobStatus;
     const msg = data.StatusMessage ?? data.JobStatusMessage ?? '';
     logStep(`Job poll ${attempt}/${maxAttempts}: status=${status} ${msg}`.trim(), 'info');
-
     if (status === 200) return data;
-    if (!inProgress.has(status)) {
-      throw new Error(`Job failed (status=${status}): ${msg}`);
-    }
+    if (!inProgress.has(status)) throw new Error(`Job failed (status=${status}): ${msg}`);
   }
 
   throw new Error(`Job did not complete after ${maxAttempts} attempts`);
@@ -292,11 +298,7 @@ async function createFolder(name, accessToken) {
 async function uploadFileToProject(fileBuffer, fileName, accessToken, folderId = null) {
   logStep(`Uploading "${fileName}" to project ${POC_PROJECT_ID}${folderId ? ` (folderId=${folderId})` : ''}...`, 'info');
 
-  const metaBody = {
-    Name: fileName,
-    Size: fileBuffer.length,
-    CRC: '0'
-  };
+  const metaBody = { Name: fileName, Size: fileBuffer.length, CRC: '0' };
   if (folderId) metaBody.ParentFolderId = folderId;
 
   const metaResp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/files`, {
@@ -316,20 +318,13 @@ async function uploadFileToProject(fileBuffer, fileName, accessToken, folderId =
 
   logStep(`Metadata block created: projectFileId=${projectFileId}`, 'success');
 
-  logStep(`Uploading ${fileBuffer.length} bytes to storage...`, 'info');
   const s3Resp = await fetch(uploadUrl, {
     method: 'PUT',
-    headers: {
-      'Content-Type': uploadContentType,
-      'x-amz-server-side-encryption': 'AES256'
-    },
+    headers: { 'Content-Type': uploadContentType, 'x-amz-server-side-encryption': 'AES256' },
     body: fileBuffer
   });
 
-  if (!s3Resp.ok) {
-    throw new Error(`S3 upload failed for "${fileName}": ${s3Resp.status}`);
-  }
-
+  if (!s3Resp.ok) throw new Error(`S3 upload failed for "${fileName}": ${s3Resp.status}`);
   logStep('S3 upload complete', 'success');
 
   const confirmResp = await fetch(
@@ -349,35 +344,21 @@ async function listProjectFiles(accessToken) {
   const resp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/files`, {
     headers: authHeaders(accessToken)
   });
-  if (!resp.ok) {
-    throw new Error(`Failed to list project files: ${resp.status} - ${await resp.text()}`);
-  }
+  if (!resp.ok) throw new Error(`Failed to list project files: ${resp.status} - ${await resp.text()}`);
   const data = await resp.json();
   return data.ProjectFiles || [];
 }
 
 async function getProjectFileByPath(accessToken, filePath) {
   const url = `${API_V1}/projects/${POC_PROJECT_ID}/files/by-path?path=${encodeURIComponent(filePath)}`;
-  const resp = await fetch(url, {
-    headers: authHeaders(accessToken)
-  });
-
-  if (!resp.ok) {
-    throw new Error(`Failed to get file by path: ${resp.status} - ${await resp.text()}`);
-  }
-
+  const resp = await fetch(url, { headers: authHeaders(accessToken) });
+  if (!resp.ok) throw new Error(`Failed to get file by path: ${resp.status} - ${await resp.text()}`);
   return resp.json();
 }
 
 async function waitForProjectFileSettlement(accessToken, projectFileId, fileName, options = {}) {
-  const {
-    attempts = 6,
-    intervalMs = 5000,
-    finalExtraDelayMs = 5000
-  } = options;
-
+  const { attempts = 6, intervalMs = 5000, finalExtraDelayMs = 5000 } = options;
   logStep(`Waiting for project file settlement: "${fileName}" (projectFileId=${projectFileId})...`, 'info');
-
   let lastSeen = null;
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
@@ -386,28 +367,20 @@ async function waitForProjectFileSettlement(accessToken, projectFileId, fileName
 
     if (match) {
       lastSeen = match;
+      const observed = [`path=${match.Path || '(n/a)'}`, `name=${match.Name || '(n/a)'}`];
+      if (typeof match.Version !== 'undefined')       observed.push(`version=${match.Version}`);
+      if (typeof match.IsCheckedOut !== 'undefined')  observed.push(`isCheckedOut=${match.IsCheckedOut}`);
+      if (typeof match.CheckedOut !== 'undefined')    observed.push(`checkedOut=${match.CheckedOut}`);
+      if (typeof match.ParentFolderId !== 'undefined')observed.push(`parentFolderId=${match.ParentFolderId}`);
 
-      const observed = [
-        `path=${match.Path || '(n/a)'}`,
-        `name=${match.Name || '(n/a)'}`
-      ];
-
-      if (typeof match.Version !== 'undefined') observed.push(`version=${match.Version}`);
-      if (typeof match.IsCheckedOut !== 'undefined') observed.push(`isCheckedOut=${match.IsCheckedOut}`);
-      if (typeof match.CheckedOut !== 'undefined') observed.push(`checkedOut=${match.CheckedOut}`);
-      if (typeof match.ParentFolderId !== 'undefined') observed.push(`parentFolderId=${match.ParentFolderId}`);
-
-      logStep(
-        `Project file re-query ${attempt}/${attempts}: found "${fileName}" (${observed.join(', ')})`,
-        'info'
-      );
+      logStep(`Project file re-query ${attempt}/${attempts}: found "${fileName}" (${observed.join(', ')})`, 'info');
 
       const checkedOutFlags = [match.IsCheckedOut, match.CheckedOut].filter(v => typeof v !== 'undefined');
       const explicitlyCheckedOut = checkedOutFlags.some(v => v === true || String(v).toLowerCase() === 'true');
 
       if (!explicitlyCheckedOut) {
         if (finalExtraDelayMs > 0) {
-          logStep(`Project file appears settled. Waiting an extra ${Math.round(finalExtraDelayMs / 1000)}s before downstream jobs...`, 'info');
+          logStep(`Project file appears settled. Waiting an extra ${Math.round(finalExtraDelayMs / 1000)}s...`, 'info');
           await sleep(finalExtraDelayMs);
         }
         return lastSeen;
@@ -416,43 +389,23 @@ async function waitForProjectFileSettlement(accessToken, projectFileId, fileName
       logStep(`Project file re-query ${attempt}/${attempts}: projectFileId=${projectFileId} not found yet`, 'warn');
     }
 
-    if (attempt < attempts) {
-      await sleep(intervalMs);
-    }
+    if (attempt < attempts) await sleep(intervalMs);
   }
 
-  logStep(
-    `Project file settlement window elapsed for "${fileName}". Proceeding with downstream jobs using best-known state.`,
-    'warn'
-  );
-
-  if (finalExtraDelayMs > 0) {
-    await sleep(finalExtraDelayMs);
-  }
-
+  logStep(`Settlement window elapsed for "${fileName}". Proceeding with best-known state.`, 'warn');
+  if (finalExtraDelayMs > 0) await sleep(finalExtraDelayMs);
   return lastSeen;
 }
 
 async function waitForProjectFileReadyByPath(accessToken, filePath, expectedRevisionId = null) {
   for (let attempt = 1; attempt <= 8; attempt++) {
     const file = await getProjectFileByPath(accessToken, filePath);
-
-    logStep(
-      `by-path re-query ${attempt}/8: revision=${file.RevisionID}, inSession=${file.InSession}, isLocked=${file.IsLocked}`,
-      'info'
-    );
-
+    logStep(`by-path re-query ${attempt}/8: revision=${file.RevisionID}, inSession=${file.InSession}, isLocked=${file.IsLocked}`, 'info');
     const revisionOk = expectedRevisionId == null || Number(file.RevisionID) >= Number(expectedRevisionId);
     const ready = revisionOk && !file.InSession && !file.IsLocked;
-
-    if (ready) {
-      await sleep(3000);
-      return file;
-    }
-
+    if (ready) { await sleep(3000); return file; }
     await sleep(4000);
   }
-
   throw new Error(`Project file did not become ready by path: ${filePath}`);
 }
 
@@ -484,43 +437,32 @@ function scalar(val) {
 
 function normalizeMarkupRecord(record, sourceFile) {
   const mapped = lowerKeyMap(record);
-
   const known = {
-    Id: scalar(firstDefined(mapped, ['id', 'markupid', 'markup_id'])),
-    Author: scalar(firstDefined(mapped, ['author', 'createdby', 'user', 'username'])),
-    Type: scalar(firstDefined(mapped, ['type', 'markuptype'])),
-    Subject: scalar(firstDefined(mapped, ['subject', 'label', 'title'])),
-    Comment: scalar(firstDefined(mapped, ['comment', 'comments', 'note', 'message', 'reply', 'contents'])),
-    Status: scalar(firstDefined(mapped, ['status', 'state'])),
-    Layer: scalar(firstDefined(mapped, ['layer'])),
-    Page: scalar(firstDefined(mapped, ['page', 'pagenumber', 'pageindex'])),
-    DateCreated: scalar(firstDefined(mapped, ['datecreated', 'creationdate', 'created', 'createddate'])),
+    Id:           scalar(firstDefined(mapped, ['id', 'markupid', 'markup_id'])),
+    Author:       scalar(firstDefined(mapped, ['author', 'createdby', 'user', 'username'])),
+    Type:         scalar(firstDefined(mapped, ['type', 'markuptype'])),
+    Subject:      scalar(firstDefined(mapped, ['subject', 'label', 'title'])),
+    Comment:      scalar(firstDefined(mapped, ['comment', 'comments', 'note', 'message', 'reply', 'contents'])),
+    Status:       scalar(firstDefined(mapped, ['status', 'state'])),
+    Layer:        scalar(firstDefined(mapped, ['layer'])),
+    Page:         scalar(firstDefined(mapped, ['page', 'pagenumber', 'pageindex'])),
+    DateCreated:  scalar(firstDefined(mapped, ['datecreated', 'creationdate', 'created', 'createddate'])),
     DateModified: scalar(firstDefined(mapped, ['datemodified', 'moddate', 'modified', 'modifieddate'])),
-    Color: scalar(firstDefined(mapped, ['color'])),
-    Checked: scalar(firstDefined(mapped, ['checked'])),
-    Locked: scalar(firstDefined(mapped, ['locked']))
+    Color:        scalar(firstDefined(mapped, ['color'])),
+    Checked:      scalar(firstDefined(mapped, ['checked'])),
+    Locked:       scalar(firstDefined(mapped, ['locked']))
   };
 
   const skip = new Set([
-    'id', 'markupid', 'markup_id',
-    'author', 'createdby', 'user', 'username',
-    'type', 'markuptype',
-    'subject', 'label', 'title',
-    'comment', 'comments', 'note', 'message', 'reply', 'contents',
-    'status', 'state',
-    'layer',
-    'page', 'pagenumber', 'pageindex',
-    'datecreated', 'creationdate', 'created', 'createddate',
-    'datemodified', 'moddate', 'modified', 'modifieddate',
-    'color',
-    'checked',
-    'locked',
-    'custom'
+    'id','markupid','markup_id','author','createdby','user','username',
+    'type','markuptype','subject','label','title','comment','comments',
+    'note','message','reply','contents','status','state','layer','page',
+    'pagenumber','pageindex','datecreated','creationdate','created','createddate',
+    'datemodified','moddate','modified','modifieddate','color','checked','locked','custom'
   ]);
 
   const custom = {};
   const rawCustom = mapped.custom;
-
   if (rawCustom && typeof rawCustom === 'object' && !Array.isArray(rawCustom)) {
     for (const [k, v] of Object.entries(rawCustom)) {
       const sv = scalar(v);
@@ -549,26 +491,14 @@ function normalizeMarkupRecord(record, sourceFile) {
     }
   }
 
-  return {
-    ...known,
-    Custom: custom,
-    ExtendedProperties: {
-      ...custom,
-      ...extended
-    },
-    _sourceFile: sourceFile
-  };
+  return { ...known, Custom: custom, ExtendedProperties: { ...custom, ...extended }, _sourceFile: sourceFile };
 }
 
 function looksLikeMarkupRecord(obj) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
-
   const keys = Object.keys(lowerKeyMap(obj));
-  const hits = [
-    'author', 'subject', 'comment', 'status', 'page', 'layer', 'type',
-    'markupid', 'id', 'markuptype'
-  ].filter(k => keys.includes(k)).length;
-
+  const hits = ['author','subject','comment','status','page','layer','type','markupid','id','markuptype']
+    .filter(k => keys.includes(k)).length;
   return hits >= 2;
 }
 
@@ -577,66 +507,31 @@ function extractMarkupCandidates(node, sourceFile, results = []) {
     for (const item of node) extractMarkupCandidates(item, sourceFile, results);
     return results;
   }
-
   if (!node || typeof node !== 'object') return results;
-
-  if (looksLikeMarkupRecord(node)) {
-    results.push(normalizeMarkupRecord(node, sourceFile));
-  }
-
-  for (const value of Object.values(node)) {
-    extractMarkupCandidates(value, sourceFile, results);
-  }
-
+  if (looksLikeMarkupRecord(node)) results.push(normalizeMarkupRecord(node, sourceFile));
+  for (const value of Object.values(node)) extractMarkupCandidates(value, sourceFile, results);
   return results;
 }
 
 async function downloadExportedMarkupXml(accessToken, exportFileName) {
   const xmlPath = `/${FOLDER_MARKUP_EXPORTS}/${exportFileName}`;
   const fileMeta = await getProjectFileByPath(accessToken, xmlPath);
-
-  if (!fileMeta.DownloadUrl) {
-    throw new Error(`DownloadUrl missing for exported XML: ${xmlPath}`);
-  }
-
+  if (!fileMeta.DownloadUrl) throw new Error(`DownloadUrl missing for exported XML: ${xmlPath}`);
   logStep(`Downloading exported XML from path=${xmlPath} (fileId=${fileMeta.Id})...`, 'info');
-
   const xmlResp = await fetch(fileMeta.DownloadUrl);
-  if (!xmlResp.ok) {
-    throw new Error(`Failed to download exported XML "${exportFileName}": ${xmlResp.status}`);
-  }
-
+  if (!xmlResp.ok) throw new Error(`Failed to download exported XML "${exportFileName}": ${xmlResp.status}`);
   return xmlResp.text();
 }
 
 async function parseBluebeamExportXml(xmlText, sourceFile) {
-  const parsed = await parseStringPromise(xmlText, {
-    explicitArray: false,
-    mergeAttrs: true,
-    trim: true
-  });
-
+  const parsed = await parseStringPromise(xmlText, { explicitArray: false, mergeAttrs: true, trim: true });
   const candidates = extractMarkupCandidates(parsed, sourceFile);
-
   const seen = new Set();
   const unique = [];
-
   for (const item of candidates) {
-    const key = [
-      item.Id || '',
-      item.Author || '',
-      item.Subject || '',
-      item.Comment || '',
-      item.Page || '',
-      item.DateCreated || ''
-    ].join('|');
-
-    if (!seen.has(key)) {
-      seen.add(key);
-      unique.push(item);
-    }
+    const key = [item.Id||'', item.Author||'', item.Subject||'', item.Comment||'', item.Page||'', item.DateCreated||''].join('|');
+    if (!seen.has(key)) { seen.add(key); unique.push(item); }
   }
-
   return unique;
 }
 
@@ -655,11 +550,7 @@ async function performCheckin(accessToken) {
 
     const resp = await fetch(
       `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/checkin`,
-      {
-        method: 'POST',
-        headers: authHeaders(accessToken),
-        body: JSON.stringify({ Comment: 'Session markup review complete' })
-      }
+      { method: 'POST', headers: authHeaders(accessToken), body: JSON.stringify({ Comment: 'Session markup review complete' }) }
     );
 
     if (!resp.ok) {
@@ -670,13 +561,9 @@ async function performCheckin(accessToken) {
     }
 
     logStep(`"${sf.name}" checked in to project`, 'success');
-
     await waitForProjectFileSettlement(accessToken, sf.projectFileId, sf.name, {
-      attempts: 6,
-      intervalMs: 5000,
-      finalExtraDelayMs: 5000
+      attempts: 6, intervalMs: 5000, finalExtraDelayMs: 5000
     });
-
     results.push({ name: sf.name, success: true });
   }
 
@@ -685,9 +572,7 @@ async function performCheckin(accessToken) {
 }
 
 async function performExportMarkups(accessToken) {
-  if (pocState.sessionFileIds.length === 0) {
-    throw new Error('No session files — run checkout-to-session first');
-  }
+  if (pocState.sessionFileIds.length === 0) throw new Error('No session files — run checkout-to-session first');
 
   logStep('Exporting markups to XML...', 'info');
   const results = [];
@@ -702,7 +587,6 @@ async function performExportMarkups(accessToken) {
 
   for (const sf of pocState.sessionFileIds) {
     const exportFileName = `Markups-${sf.projectFileId}.xml`;
-
     logStep(`Submitting exportmarkups job for "${sf.name}" → ${exportFileName}...`, 'info');
 
     const jobResp = await fetch(
@@ -710,11 +594,7 @@ async function performExportMarkups(accessToken) {
       {
         method: 'POST',
         headers: authHeaders(accessToken),
-        body: JSON.stringify({
-          OutputFileName: exportFileName,
-          OutputPath: FOLDER_MARKUP_EXPORTS,
-          Priority: 0
-        })
+        body: JSON.stringify({ OutputFileName: exportFileName, OutputPath: FOLDER_MARKUP_EXPORTS, Priority: 0 })
       }
     );
 
@@ -736,17 +616,9 @@ async function performExportMarkups(accessToken) {
     await sleep(5000);
 
     const existingIndex = pocState.markupExports.findIndex(m => m.exportFileName === exportFileName);
-    const exportRecord = {
-      name: sf.name,
-      exportFileName,
-      projectPath: FOLDER_MARKUP_EXPORTS
-    };
-
-    if (existingIndex >= 0) {
-      pocState.markupExports[existingIndex] = exportRecord;
-    } else {
-      pocState.markupExports.push(exportRecord);
-    }
+    const exportRecord = { name: sf.name, exportFileName, projectPath: FOLDER_MARKUP_EXPORTS };
+    if (existingIndex >= 0) pocState.markupExports[existingIndex] = exportRecord;
+    else pocState.markupExports.push(exportRecord);
 
     results.push({ name: sf.name, success: true, exportFileName });
   }
@@ -755,39 +627,29 @@ async function performExportMarkups(accessToken) {
 }
 
 async function performMarkupExtractionFromXml(accessToken) {
-  if (!pocState.sessionFileIds.length) {
-    throw new Error('No session files — run checkout-to-session first');
-  }
+  if (!pocState.sessionFileIds.length) throw new Error('No session files — run checkout-to-session first');
 
   pocState.status = 'extracting-markups';
   pocState.markups = [];
 
   for (const sf of pocState.sessionFileIds) {
-    const projectFile = pocState.projectFiles.find(
-      pf => String(pf.projectFileId) === String(sf.projectFileId)
-    );
+    const projectFile = pocState.projectFiles.find(pf => String(pf.projectFileId) === String(sf.projectFileId));
 
     if (projectFile) {
       const reviewPath = `/${FOLDER_REVIEW_DOCS}/${projectFile.name}`;
-
       try {
         const currentFile = await waitForProjectFileReadyByPath(accessToken, reviewPath);
-
         logStep(
-          `Resolved project readiness by path=${reviewPath}, byPathFileId=${currentFile?.Id}, usingCheckedInProjectFileId=${sf.projectFileId}, revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
+          `Resolved project readiness: path=${reviewPath}, revision=${currentFile?.RevisionID}, inSession=${currentFile?.InSession}, isLocked=${currentFile?.IsLocked}`,
           'info'
         );
       } catch (err) {
-        logStep(
-          `Project file not fully ready by path yet (${reviewPath}) — proceeding with XML parse anyway: ${err.message}`,
-          'warn'
-        );
+        logStep(`Project file not fully ready by path (${reviewPath}) — proceeding with XML parse: ${err.message}`, 'warn');
       }
     }
 
     const exportFileName = `Markups-${sf.projectFileId}.xml`;
-
-    logStep(`Downloading and parsing exported XML for "${sf.name}" via ${exportFileName}...`, 'info');
+    logStep(`Downloading and parsing exported XML for "${sf.name}"...`, 'info');
 
     const xmlText = await downloadExportedMarkupXml(accessToken, exportFileName);
     const fileMarkups = await parseBluebeamExportXml(xmlText, sf.name);
@@ -802,22 +664,107 @@ async function performMarkupExtractionFromXml(accessToken) {
 }
 
 // -----------------------------------------------------------------------------
+// POLLING SCHEDULER
+// -----------------------------------------------------------------------------
+// Map of bluebeam_session_id → NodeJS timer reference
+const activePollers = new Map();
+
+/**
+ * Schedule or reschedule a polling job for a session.
+ * intervalHours = 0 clears any existing timer.
+ */
+function scheduleSessionPoller(bluebeamSessionId, atkinsProjectId, intervalHours) {
+  // Clear any existing timer for this session
+  if (activePollers.has(bluebeamSessionId)) {
+    clearInterval(activePollers.get(bluebeamSessionId));
+    activePollers.delete(bluebeamSessionId);
+    logStep(`Cleared existing poller for session ${bluebeamSessionId}`, 'info');
+  }
+
+  if (!intervalHours || intervalHours <= 0) return;
+
+  const intervalMs = intervalHours * 60 * 60 * 1000;
+  logStep(`Scheduling poller for session ${bluebeamSessionId} every ${intervalHours}h`, 'info');
+
+  const timer = setInterval(async () => {
+    logStep(`[POLLER] Auto-polling session ${bluebeamSessionId} (project ${atkinsProjectId})...`, 'info');
+    try {
+      const accessToken = await tokenManager.getValidAccessToken();
+
+      // Only export + extract — don't checkin during auto-poll (non-destructive)
+      const tempState = pocState;
+      if (tempState.sessionId !== bluebeamSessionId) {
+        logStep(`[POLLER] Session ${bluebeamSessionId} not current in-memory session — skipping export, saving last known snapshot`, 'warn');
+        db.updateSessionPolled(bluebeamSessionId);
+        return;
+      }
+
+      await performExportMarkups(accessToken);
+      await sleep(3000);
+      const markups = await performMarkupExtractionFromXml(accessToken);
+
+      // Save snapshot to DB
+      db.insertSnapshot({
+        atkinsProjectId,
+        bluebeamSessionId,
+        markupCount: markups.length,
+        snapshotJson: JSON.stringify(markups)
+      });
+
+      db.updateSessionPolled(bluebeamSessionId);
+      logStep(`[POLLER] Snapshot saved — ${markups.length} markup(s) for session ${bluebeamSessionId}`, 'success');
+    } catch (err) {
+      logStep(`[POLLER] Error polling session ${bluebeamSessionId}: ${err.message}`, 'error');
+    }
+  }, intervalMs);
+
+  activePollers.set(bluebeamSessionId, timer);
+}
+
+/**
+ * On startup, re-register pollers for any sessions that have polling_interval > 0.
+ * This ensures pollers survive a server restart.
+ */
+function restorePollers() {
+  try {
+    const sessions = db.db.prepare(
+      'SELECT * FROM sessions WHERE polling_interval > 0'
+    ).all();
+
+    if (sessions.length) {
+      logStep(`Restoring ${sessions.length} polling scheduler(s) from DB...`, 'info');
+      for (const s of sessions) {
+        scheduleSessionPoller(s.bluebeam_session_id, s.atkins_project_id, s.polling_interval);
+      }
+    }
+  } catch (err) {
+    logStep(`Failed to restore pollers: ${err.message}`, 'warn');
+  }
+}
+
+// -----------------------------------------------------------------------------
 // HEALTH CHECK
 // -----------------------------------------------------------------------------
 app.get('/health', (req, res) => {
+  let dbStatus = 'ok';
+  let projectCount = 0;
+  try {
+    projectCount = db.db.prepare('SELECT COUNT(*) as c FROM projects').get().c;
+  } catch (err) {
+    dbStatus = `error: ${err.message}`;
+  }
+
   res.json({
     status: 'healthy',
     projectId: POC_PROJECT_ID,
+    db: { status: dbStatus, projectCount, path: process.env.DB_PATH || './poc.db' },
+    pollers: activePollers.size,
     config: {
       hasClientId: Boolean(CLIENT_ID),
       webhookCallbackUrl: WEBHOOK_CALLBACK_URL,
       webhookIsLocalhost: isLocalhost(WEBHOOK_CALLBACK_URL),
       customColumnsXmlExists: fs.existsSync(CUSTOM_COLUMNS_XML_PATH),
-      stateModel: {
-        enabled: true,
-        name: QC_STATE_MODEL.cUIName,
-        states: QC_STATE_MODEL.states.length
-      }
+      stateModel: { enabled: true, name: QC_STATE_MODEL.cUIName, states: QC_STATE_MODEL.states.length }
     }
   });
 });
@@ -831,11 +778,37 @@ app.get('/poc/state', (req, res) => {
 
 app.get('/poc/stub', (req, res) => res.json(demoStub));
 
+// -----------------------------------------------------------------------------
+// CONFIGURE
+// Accepts atkinsProjectId, region, reviewType, qaCategory, discipline,
+// pollingInterval in addition to existing fields.
+// Writes/updates the projects table.
+// -----------------------------------------------------------------------------
 app.post('/poc/configure', (req, res) => {
-  const { documentId, description, reviewerEmail } = req.body || {};
+  const {
+    documentId,
+    description,
+    reviewerEmail,
+    atkinsProjectId,
+    projectName,
+    region,
+    reviewType,
+    qaCategory,
+    discipline,
+    pollingInterval
+  } = req.body || {};
 
-  if (documentId) demoStub.documentId = documentId;
-  if (description) demoStub.description = description;
+  if (documentId)       demoStub.documentId      = documentId;
+  if (description)      demoStub.description     = description;
+  if (atkinsProjectId)  demoStub.atkinsProjectId = atkinsProjectId;
+  if (projectName)      demoStub.projectName     = projectName;
+  if (region)           demoStub.region          = region;
+  if (reviewType)       demoStub.reviewType      = reviewType;
+  if (qaCategory)       demoStub.qaCategory      = qaCategory;
+  if (discipline)       demoStub.discipline      = discipline;
+  if (typeof pollingInterval !== 'undefined') {
+    demoStub.pollingInterval = parseInt(pollingInterval) || 0;
+  }
 
   if (reviewerEmail && reviewerEmail !== 'dmolz@bluebeam.com') {
     if (!demoStub.reviewers.some(r => r.email === reviewerEmail)) {
@@ -845,6 +818,20 @@ app.post('/poc/configure', (req, res) => {
   }
 
   demoStub.sessionEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Persist project identity to DB if we have an Atkins project ID
+  if (demoStub.atkinsProjectId) {
+    db.upsertProject({
+      atkinsProjectId:  demoStub.atkinsProjectId,
+      bluebeamProjectId: POC_PROJECT_ID,
+      projectName:      demoStub.projectName  || demoStub.description || null,
+      region:           demoStub.region       || null,
+      reviewType:       demoStub.reviewType   || null,
+      qaCategory:       demoStub.qaCategory   || null
+    });
+    logStep(`Project upserted in DB: ${demoStub.atkinsProjectId}`, 'info');
+  }
+
   res.json({ success: true, stub: demoStub });
 });
 
@@ -881,7 +868,6 @@ app.post('/poc/setup-project', async (req, res) => {
     existing.forEach(f => { folderMap[f.Name] = f.Id; });
 
     const needed = [FOLDER_RESOURCES, FOLDER_REVIEW_DOCS, FOLDER_MARKUP_EXPORTS];
-
     for (const name of needed) {
       if (folderMap[name]) {
         logStep(`Folder "${name}" already exists (id=${folderMap[name]})`, 'info');
@@ -897,8 +883,7 @@ app.post('/poc/setup-project', async (req, res) => {
 
     const allFiles = await listProjectFiles(accessToken);
     const existingXml = allFiles.find(f =>
-      f.Name === 'custom-columns.xml' &&
-      f.ParentFolderId === pocState.folderIds[FOLDER_RESOURCES]
+      f.Name === 'custom-columns.xml' && f.ParentFolderId === pocState.folderIds[FOLDER_RESOURCES]
     );
 
     if (existingXml) {
@@ -907,12 +892,7 @@ app.post('/poc/setup-project', async (req, res) => {
     } else {
       logStep('Uploading custom-columns.xml to resources folder...', 'info');
       const xmlBuffer = fs.readFileSync(CUSTOM_COLUMNS_XML_PATH);
-      const result = await uploadFileToProject(
-        xmlBuffer,
-        'custom-columns.xml',
-        accessToken,
-        pocState.folderIds[FOLDER_RESOURCES]
-      );
+      const result = await uploadFileToProject(xmlBuffer, 'custom-columns.xml', accessToken, pocState.folderIds[FOLDER_RESOURCES]);
       pocState.customColumnsFileId = result.projectFileId;
       logStep(`custom-columns.xml uploaded (fileId=${pocState.customColumnsFileId})`, 'success');
     }
@@ -920,12 +900,7 @@ app.post('/poc/setup-project', async (req, res) => {
     pocState.projectSetupDone = true;
     logStep('Project setup complete', 'success');
 
-    res.json({
-      success: true,
-      folderIds: pocState.folderIds,
-      customColumnsFileId: pocState.customColumnsFileId,
-      state: pocState
-    });
+    res.json({ success: true, folderIds: pocState.folderIds, customColumnsFileId: pocState.customColumnsFileId, state: pocState });
   } catch (err) {
     pocState.status = 'error';
     logStep(err.message, 'error');
@@ -935,15 +910,13 @@ app.post('/poc/setup-project', async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // STEP 0b — Upload PDF(s)
+// Writes each uploaded file to the DB files table.
 // -----------------------------------------------------------------------------
 app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
   try {
-    if (!req.files || req.files.length === 0) {
-      throw new Error('No files received');
-    }
+    if (!req.files || req.files.length === 0) throw new Error('No files received');
 
     pocState.status = 'uploading';
-
     const injectModel = req.body.injectStateModel === 'true';
     logStep(`Received ${req.files.length} file(s) for upload (injectStateModel=${injectModel})`, 'info');
 
@@ -960,15 +933,21 @@ app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
         logStep(`State model injected into "${file.originalname}" (${buffer.length} bytes)`, 'success');
       }
 
-      const result = await uploadFileToProject(
-        buffer,
-        file.originalname,
-        accessToken,
-        reviewFolderId
-      );
-
+      const result = await uploadFileToProject(buffer, file.originalname, accessToken, reviewFolderId);
       uploaded.push(result);
       pocState.projectFiles.push(result);
+
+      // ── DB write ──
+      db.insertFile({
+        atkinsProjectId:       demoStub.atkinsProjectId || 'UNKNOWN',
+        bluebeamProjectId:     POC_PROJECT_ID,
+        bluebeamProjectFileId: result.projectFileId,
+        bluebeamSessionId:     null,         // not in a session yet
+        bluebeamSessionFileId: null,
+        fileName:              result.name,
+        fileSize:              result.size
+      });
+      logStep(`File written to DB: ${result.name} (projectFileId=${result.projectFileId})`, 'info');
     }
 
     if (uploaded.length > 0 && demoStub.documentId === 'DOC-001') {
@@ -989,12 +968,8 @@ app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
 // -----------------------------------------------------------------------------
 app.post('/poc/apply-custom-columns', async (req, res) => {
   try {
-    if (!pocState.customColumnsFileId) {
-      throw new Error('custom-columns.xml not uploaded — run setup-project first');
-    }
-    if (pocState.projectFiles.length === 0) {
-      throw new Error('No project files — run upload-to-project first');
-    }
+    if (!pocState.customColumnsFileId) throw new Error('custom-columns.xml not uploaded — run setup-project first');
+    if (pocState.projectFiles.length === 0) throw new Error('No project files — run upload-to-project first');
 
     logStep('Applying custom columns to project files...', 'info');
     const accessToken = await tokenManager.getValidAccessToken();
@@ -1027,10 +1002,7 @@ app.post('/poc/apply-custom-columns', async (req, res) => {
 
       const { Id: jobId } = await jobResp.json();
       logStep(`Job submitted: jobId=${jobId} — polling...`, 'success');
-
-      const pollUrl = `${API_V1}/jobs/${jobId}`;
-      await pollJob(pollUrl, authHeaders(accessToken));
-
+      await pollJob(`${API_V1}/jobs/${jobId}`, authHeaders(accessToken));
       logStep(`Custom columns applied to "${pf.name}"`, 'success');
       results.push({ name: pf.name, success: true, jobId });
     }
@@ -1049,18 +1021,18 @@ app.post('/poc/apply-custom-columns', async (req, res) => {
 app.post('/poc/trigger', (req, res) => {
   pocState.status = 'triggered';
   pocState.log = [];
-
   logStep(`Workflow event received — document: ${demoStub.documentId}`, 'info');
+  logStep(`Atkins Project: ${demoStub.atkinsProjectId || '(not set)'}`, 'info');
   logStep(`Files: ${pocState.projectFiles.map(f => f.name).join(', ') || '(none)'}`, 'info');
   logStep(`Description: ${demoStub.description}`, 'info');
   logStep(`Reviewers: ${demoStub.reviewers.map(r => r.email).join(', ')}`, 'info');
   logStep(`Session end date: ${new Date(demoStub.sessionEndDate).toLocaleDateString()}`, 'info');
-
   res.json({ success: true, state: pocState });
 });
 
 // -----------------------------------------------------------------------------
 // STEP 2 — Create Session
+// Writes session record to DB and schedules poller if interval > 0.
 // -----------------------------------------------------------------------------
 app.post('/poc/create-session', async (req, res) => {
   try {
@@ -1079,18 +1051,16 @@ app.post('/poc/create-session', async (req, res) => {
         Restricted: true,
         SessionEndDate: demoStub.sessionEndDate,
         DefaultPermissions: [
-          { Type: 'Markup', Allow: 'Allow' },
-          { Type: 'SaveCopy', Allow: 'Allow' },
-          { Type: 'PrintCopy', Allow: 'Allow' },
+          { Type: 'Markup',      Allow: 'Allow' },
+          { Type: 'SaveCopy',    Allow: 'Allow' },
+          { Type: 'PrintCopy',   Allow: 'Allow' },
           { Type: 'MarkupAlert', Allow: 'Allow' },
-          { Type: 'AddDocuments', Allow: 'Deny' }
+          { Type: 'AddDocuments',Allow: 'Deny'  }
         ]
       })
     });
 
-    if (!resp.ok) {
-      throw new Error(`Session creation failed: ${resp.status} - ${await resp.text()}`);
-    }
+    if (!resp.ok) throw new Error(`Session creation failed: ${resp.status} - ${await resp.text()}`);
 
     const data = await resp.json();
     pocState.sessionId = data.Id;
@@ -1098,6 +1068,27 @@ app.post('/poc/create-session', async (req, res) => {
 
     logStep(`Session created: ID=${pocState.sessionId}`, 'success');
     logStep(`Session name: ${sessionName}`, 'info');
+
+    // ── DB write ──
+    db.insertSession({
+      atkinsProjectId:   demoStub.atkinsProjectId || 'UNKNOWN',
+      bluebeamSessionId: pocState.sessionId,
+      reviewName:        demoStub.documentId,
+      discipline:        demoStub.discipline    || null,
+      reviewType:        demoStub.reviewType    || null,
+      pollingInterval:   demoStub.pollingInterval || 0
+    });
+    logStep(`Session written to DB: ${pocState.sessionId}`, 'info');
+
+    // Schedule poller if interval is set
+    if (demoStub.pollingInterval > 0) {
+      scheduleSessionPoller(
+        pocState.sessionId,
+        demoStub.atkinsProjectId || 'UNKNOWN',
+        demoStub.pollingInterval
+      );
+    }
+
     res.json({ success: true, sessionId: pocState.sessionId, state: pocState });
   } catch (err) {
     pocState.status = 'error';
@@ -1111,9 +1102,7 @@ app.post('/poc/create-session', async (req, res) => {
 // -----------------------------------------------------------------------------
 app.post('/poc/register-webhook', async (req, res) => {
   try {
-    if (!pocState.sessionId) {
-      throw new Error('No active session — run create-session first');
-    }
+    if (!pocState.sessionId) throw new Error('No active session — run create-session first');
 
     if (isLocalhost(WEBHOOK_CALLBACK_URL)) {
       logStep('Webhook skipped — WEBHOOK_CALLBACK_URL is localhost (Bluebeam requires public HTTPS)', 'warn');
@@ -1127,16 +1116,10 @@ app.post('/poc/register-webhook', async (req, res) => {
     const resp = await fetch(`${API_V2}/subscriptions`, {
       method: 'POST',
       headers: authHeaders(accessToken),
-      body: JSON.stringify({
-        sourceType: 'session',
-        resourceId: pocState.sessionId,
-        callbackURI: WEBHOOK_CALLBACK_URL
-      })
+      body: JSON.stringify({ sourceType: 'session', resourceId: pocState.sessionId, callbackURI: WEBHOOK_CALLBACK_URL })
     });
 
-    if (!resp.ok) {
-      throw new Error(`Webhook registration failed: ${resp.status} - ${await resp.text()}`);
-    }
+    if (!resp.ok) throw new Error(`Webhook registration failed: ${resp.status} - ${await resp.text()}`);
 
     const data = await resp.json();
     pocState.subscriptionId = data.subscriptionId;
@@ -1153,6 +1136,7 @@ app.post('/poc/register-webhook', async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // STEP 4 — Checkout to Session
+// Updates the DB files table with session file IDs after checkout.
 // -----------------------------------------------------------------------------
 app.post('/poc/checkout-to-session', async (req, res) => {
   try {
@@ -1170,11 +1154,7 @@ app.post('/poc/checkout-to-session', async (req, res) => {
 
       const resp = await fetch(
         `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/checkout-to-session`,
-        {
-          method: 'POST',
-          headers: authHeaders(accessToken),
-          body: JSON.stringify({ SessionId: pocState.sessionId })
-        }
+        { method: 'POST', headers: authHeaders(accessToken), body: JSON.stringify({ SessionId: pocState.sessionId }) }
       );
 
       if (!resp.ok) {
@@ -1190,20 +1170,11 @@ app.post('/poc/checkout-to-session', async (req, res) => {
 
           if (releaseResp.ok) {
             logStep(`Checkout released for "${pf.name}" — retrying...`, 'info');
-
             const retry = await fetch(
               `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/checkout-to-session`,
-              {
-                method: 'POST',
-                headers: authHeaders(accessToken),
-                body: JSON.stringify({ SessionId: pocState.sessionId })
-              }
+              { method: 'POST', headers: authHeaders(accessToken), body: JSON.stringify({ SessionId: pocState.sessionId }) }
             );
-
-            if (!retry.ok) {
-              logStep(`Retry failed for "${pf.name}": ${retry.status}`, 'warn');
-              continue;
-            }
+            if (!retry.ok) { logStep(`Retry failed for "${pf.name}": ${retry.status}`, 'warn'); continue; }
           } else {
             logStep(`Could not release checkout for "${pf.name}"`, 'warn');
             continue;
@@ -1228,26 +1199,24 @@ app.post('/poc/checkout-to-session', async (req, res) => {
 
       const sessionFilesData = await sessionFilesResp.json();
       const sessionFiles = sessionFilesData.SessionFiles || sessionFilesData.Files || [];
-
-      const match = sessionFiles.find(f =>
-        f.ProjectFileId === pf.projectFileId || f.Name === pf.name
-      );
+      const match = sessionFiles.find(f => f.ProjectFileId === pf.projectFileId || f.Name === pf.name);
 
       if (!match) {
         logStep(`Could not find session file entry for "${pf.name}" after checkout`, 'warn');
         continue;
       }
 
-      const entry = {
-        sessionFileId: match.Id,
-        projectFileId: pf.projectFileId,
-        name: pf.name
-      };
-
+      const entry = { sessionFileId: match.Id, projectFileId: pf.projectFileId, name: pf.name };
       pocState.sessionFileIds.push(entry);
       checked.push(entry);
 
-      logStep(`"${pf.name}" checked out to session (sessionFileId=${match.Id})`, 'success');
+      // ── DB write ──
+      db.updateFileSession({
+        sessionId:     pocState.sessionId,
+        sessionFileId: match.Id,
+        projectFileId: pf.projectFileId
+      });
+      logStep(`"${pf.name}" checked out to session (sessionFileId=${match.Id}) — DB updated`, 'success');
     }
 
     logStep(`${checked.length} file(s) checked out to session`, 'success');
@@ -1277,10 +1246,7 @@ app.post('/poc/invite-reviewers', async (req, res) => {
         ? `${API_V1}/sessions/${pocState.sessionId}/users`
         : `${API_V1}/sessions/${pocState.sessionId}/invite`;
 
-      logStep(
-        `Inviting ${reviewer.email} via ${reviewer.hasStudioAccount ? 'direct-add' : 'email-invite'}`,
-        'info'
-      );
+      logStep(`Inviting ${reviewer.email} via ${reviewer.hasStudioAccount ? 'direct-add' : 'email-invite'}`, 'info');
 
       const resp = await fetch(endpoint, {
         method: 'POST',
@@ -1334,13 +1300,7 @@ app.post('/poc/export-markups', async (req, res) => {
   try {
     const accessToken = await tokenManager.getValidAccessToken();
     const results = await performExportMarkups(accessToken);
-
-    res.json({
-      success: true,
-      results,
-      markupExports: pocState.markupExports,
-      state: pocState
-    });
+    res.json({ success: true, results, markupExports: pocState.markupExports, state: pocState });
   } catch (err) {
     pocState.status = 'error';
     logStep(err.message, 'error');
@@ -1349,26 +1309,17 @@ app.post('/poc/export-markups', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 9 — Compatibility Route (now XML-backed extraction)
+// STEP 9 — Compatibility Route (XML-backed extraction)
 // -----------------------------------------------------------------------------
 app.post('/poc/run-markuplist-job', async (req, res) => {
   try {
     const accessToken = await tokenManager.getValidAccessToken();
-
     if (!pocState.markupExports.length) {
       logStep('No exported XML tracked yet — running export-markups first...', 'info');
       await performExportMarkups(accessToken);
     }
-
     const markups = await performMarkupExtractionFromXml(accessToken);
-
-    res.json({
-      success: true,
-      count: markups.length,
-      markups,
-      extractionMode: 'exportmarkups-xml',
-      state: pocState
-    });
+    res.json({ success: true, count: markups.length, markups, extractionMode: 'exportmarkups-xml', state: pocState });
   } catch (err) {
     pocState.status = 'error';
     logStep(err.message, 'error');
@@ -1378,6 +1329,7 @@ app.post('/poc/run-markuplist-job', async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // STEP 9b — Combined Downstream Processing
+// Saves DB snapshot after extraction.
 // -----------------------------------------------------------------------------
 app.post('/poc/downstream-process', async (req, res) => {
   try {
@@ -1388,17 +1340,27 @@ app.post('/poc/downstream-process', async (req, res) => {
     const accessToken = await tokenManager.getValidAccessToken();
 
     const checkinResults = await performCheckin(accessToken);
-
     logStep('Global post-checkin settle delay: 5s...', 'info');
     await sleep(5000);
 
     const exportResults = await performExportMarkups(accessToken);
-
     logStep('Global post-export settle delay: 5s...', 'info');
     await sleep(5000);
 
     const markups = await performMarkupExtractionFromXml(accessToken);
 
+    // ── DB write: snapshot ──
+    db.insertSnapshot({
+      atkinsProjectId:   demoStub.atkinsProjectId || 'UNKNOWN',
+      bluebeamSessionId: pocState.sessionId,
+      markupCount:       markups.length,
+      snapshotJson:      JSON.stringify(markups)
+    });
+
+    // ── DB write: update session last_polled_at ──
+    db.updateSessionPolled(pocState.sessionId);
+
+    logStep(`Snapshot saved to DB — ${markups.length} markup(s)`, 'success');
     logStep('Downstream processing complete', 'success');
 
     res.json({
@@ -1420,6 +1382,7 @@ app.post('/poc/downstream-process', async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // STEP 10 — Finalize Session
+// Updates session status in DB.
 // -----------------------------------------------------------------------------
 app.post('/poc/finalize', async (req, res) => {
   try {
@@ -1439,9 +1402,10 @@ app.post('/poc/finalize', async (req, res) => {
       })
     });
 
-    if (!resp.ok) {
-      throw new Error(`Finalize failed: ${resp.status} - ${await resp.text()}`);
-    }
+    if (!resp.ok) throw new Error(`Finalize failed: ${resp.status} - ${await resp.text()}`);
+
+    // ── DB write ──
+    db.updateSessionStatus(pocState.sessionId, 'finalized');
 
     logStep('Session finalized', 'success');
     res.json({ success: true, state: pocState });
@@ -1453,7 +1417,7 @@ app.post('/poc/finalize', async (req, res) => {
 });
 
 // -----------------------------------------------------------------------------
-// STEP 11 — Snapshot
+// STEP 11 — Snapshot PDF
 // -----------------------------------------------------------------------------
 app.post('/poc/snapshot', async (req, res) => {
   try {
@@ -1473,46 +1437,29 @@ app.post('/poc/snapshot', async (req, res) => {
         { method: 'POST', headers: authHeaders(accessToken) }
       );
 
-      if (!snapResp.ok) {
-        logStep(`Snapshot request failed for "${sf.name}": ${snapResp.status}`, 'warn');
-        continue;
-      }
+      if (!snapResp.ok) { logStep(`Snapshot request failed for "${sf.name}": ${snapResp.status}`, 'warn'); continue; }
 
       let downloadUrl = null;
-
       for (let i = 0; i < 20; i++) {
         await sleep(5000);
-
         const pollToken = await tokenManager.getValidAccessToken();
         const pollResp = await fetch(
           `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/snapshot`,
           { headers: authHeaders(pollToken) }
         );
-
         if (!pollResp.ok) continue;
-
         const d = await pollResp.json();
         logStep(`Snapshot poll ${i + 1}: ${d.Status}`, 'info');
-
-        if (d.Status === 'Complete') {
-          downloadUrl = d.DownloadUrl;
-          break;
-        }
-        if (d.Status === 'Error') {
-          throw new Error(`Snapshot error: ${d.Message}`);
-        }
+        if (d.Status === 'Complete') { downloadUrl = d.DownloadUrl; break; }
+        if (d.Status === 'Error') throw new Error(`Snapshot error: ${d.Message}`);
       }
 
-      if (!downloadUrl) {
-        logStep(`Snapshot timed out for "${sf.name}"`, 'warn');
-        continue;
-      }
+      if (!downloadUrl) { logStep(`Snapshot timed out for "${sf.name}"`, 'warn'); continue; }
 
       const dlResp = await fetch(downloadUrl);
       if (!dlResp.ok) throw new Error(`Download failed: ${dlResp.status}`);
 
       const pdfBuffer = await dlResp.buffer();
-
       const publicDir = path.join(__dirname, 'public');
       if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir, { recursive: true });
 
@@ -1524,6 +1471,7 @@ app.post('/poc/snapshot', async (req, res) => {
     }
 
     pocState.status = 'complete';
+    db.updateSessionStatus(pocState.sessionId, 'complete');
     logStep('Snapshots complete', 'success');
     res.json({ success: true, downloads, state: pocState });
   } catch (err) {
@@ -1535,6 +1483,7 @@ app.post('/poc/snapshot', async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // STEP 12 — Cleanup
+// Updates session status and clears the poller.
 // -----------------------------------------------------------------------------
 app.post('/poc/cleanup', async (req, res) => {
   try {
@@ -1544,30 +1493,23 @@ app.post('/poc/cleanup', async (req, res) => {
 
     if (pocState.subscriptionId) {
       const subResp = await fetch(`${API_V2}/subscriptions/${pocState.subscriptionId}`, {
-        method: 'DELETE',
-        headers: authHeaders(accessToken)
+        method: 'DELETE', headers: authHeaders(accessToken)
       });
-
-      logStep(
-        subResp.ok ? 'Webhook subscription deleted' : `Sub delete: ${subResp.status}`,
-        subResp.ok ? 'success' : 'warn'
-      );
+      logStep(subResp.ok ? 'Webhook subscription deleted' : `Sub delete: ${subResp.status}`, subResp.ok ? 'success' : 'warn');
     }
 
     const sessResp = await fetch(`${API_V1}/sessions/${pocState.sessionId}`, {
-      method: 'DELETE',
-      headers: authHeaders(accessToken)
+      method: 'DELETE', headers: authHeaders(accessToken)
     });
+    logStep(sessResp.ok ? 'Session deleted' : `Session delete: ${sessResp.status}`, sessResp.ok ? 'success' : 'warn');
 
-    logStep(
-      sessResp.ok ? 'Session deleted' : `Session delete: ${sessResp.status}`,
-      sessResp.ok ? 'success' : 'warn'
-    );
+    // ── DB write + clear poller ──
+    db.updateSessionStatus(pocState.sessionId, 'cleaned');
+    scheduleSessionPoller(pocState.sessionId, null, 0); // clears timer
 
     logStep('Cleanup complete', 'success');
     pocState.sessionId = null;
     pocState.subscriptionId = null;
-
     res.json({ success: true, state: pocState });
   } catch (err) {
     logStep(err.message, 'error');
@@ -1577,21 +1519,79 @@ app.post('/poc/cleanup', async (req, res) => {
 
 // -----------------------------------------------------------------------------
 // STANDALONE: inject state model into a single PDF for testing
-// POST /poc/inject-state-model multipart, field "file"
 // -----------------------------------------------------------------------------
 app.post('/poc/inject-state-model', upload.single('file'), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const modified = await injectStateModel(req.file.buffer);
     const outName = req.file.originalname.replace(/\.pdf$/i, '') + '_state_injected.pdf';
-
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${outName}"`);
     res.setHeader('Content-Length', modified.length);
     res.send(modified);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =============================================================================
+// DB QUERY ENDPOINTS (used by Tab 2 dashboard)
+// =============================================================================
+
+// GET /poc/projects — list all Atkins projects in DB
+app.get('/poc/projects', (req, res) => {
+  try {
+    const projects = db.listProjects();
+    res.json({ projects });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /poc/projects/:atkinsId/snapshot
+// Returns project metadata, all sessions with their latest snapshot, and all files.
+// This is the primary Tab 2 data endpoint.
+app.get('/poc/projects/:atkinsId/snapshot', (req, res) => {
+  try {
+    const { atkinsId } = req.params;
+
+    const project  = db.getProject(atkinsId);
+    const sessions = db.getSessionsByProject(atkinsId);
+    const files    = db.getFilesByProject(atkinsId);
+
+    if (!project && !sessions.length) {
+      return res.status(404).json({
+        error: `No data found for project ${atkinsId}`,
+        hint: 'Start a review from Tab 1 with this Atkins Project ID to populate data.'
+      });
+    }
+
+    // Attach latest snapshot to each session
+    const sessionsWithSnapshots = sessions.map(s => {
+      const snap = db.getLatestSnapshotBySession(atkinsId, s.bluebeam_session_id);
+      let markups = [];
+      if (snap && snap.snapshot_json) {
+        try { markups = JSON.parse(snap.snapshot_json); } catch (_) {}
+      }
+      return {
+        ...s,
+        markup_count:   snap ? snap.markup_count : 0,
+        last_snapshot:  snap ? snap.created_at   : null,
+        markups,
+        files: files.filter(f => f.bluebeam_session_id === s.bluebeam_session_id)
+      };
+    });
+
+    const totalMarkups = sessionsWithSnapshots.reduce((sum, s) => sum + (s.markup_count || 0), 0);
+
+    res.json({
+      project:       project || { atkins_project_id: atkinsId },
+      sessions:      sessionsWithSnapshots,
+      files,
+      totalMarkups,
+      sessionCount:  sessions.length,
+      fileCount:     files.length
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -1614,26 +1614,14 @@ app.get('/api/project-markups', (req, res) => {
   if (!pocState.markups.length) {
     return res.status(404).json({ error: 'No markup data. Run downstream processing first.' });
   }
-
-  res.json(
-    pocState.markups.map(m => ({
-      MarkupId: m.Id,
-      Author: m.Author,
-      Type: m.Type,
-      Subject: m.Subject,
-      Comment: m.Comment,
-      Status: m.Status,
-      Layer: m.Layer,
-      Page: m.Page,
-      DateCreated: m.DateCreated,
-      DateModified: m.DateModified,
-      Color: m.Color,
-      Checked: m.Checked,
-      Locked: m.Locked,
-      ExtendedProperties: m.ExtendedProperties || {},
-      SourceFile: m._sourceFile
-    }))
-  );
+  res.json(pocState.markups.map(m => ({
+    MarkupId: m.Id, Author: m.Author, Type: m.Type, Subject: m.Subject,
+    Comment: m.Comment, Status: m.Status, Layer: m.Layer, Page: m.Page,
+    DateCreated: m.DateCreated, DateModified: m.DateModified, Color: m.Color,
+    Checked: m.Checked, Locked: m.Locked,
+    ExtendedProperties: m.ExtendedProperties || {},
+    SourceFile: m._sourceFile
+  })));
 });
 
 // -----------------------------------------------------------------------------
@@ -1642,30 +1630,33 @@ app.get('/api/project-markups', (req, res) => {
 app.listen(PORT, () => {
   console.log(`\nBluebeam Studio PoC  →  http://localhost:${PORT}`);
   console.log(`Project: ${POC_PROJECT_ID}`);
+  console.log(`DB: ${process.env.DB_PATH || './poc.db'}`);
 
-  if (isLocalhost(WEBHOOK_CALLBACK_URL)) {
-    console.log('⚠  Webhook will be skipped (localhost URL)');
-  }
+  if (isLocalhost(WEBHOOK_CALLBACK_URL)) console.log('⚠  Webhook will be skipped (localhost URL)');
 
   console.log(`\nState Model: "${QC_STATE_MODEL.cUIName}" (${QC_STATE_MODEL.states.length} states)`);
-  console.log(`Custom models removed before injection: ${STATE_MODELS_TO_REMOVE.join(', ')}`);
 
   console.log(`\nFLOW:`);
   console.log(`  POST /poc/setup-project         — 0a: Create folders + upload custom-columns.xml`);
-  console.log(`  POST /poc/upload-to-project     — 0b: Optional state model injection + upload PDFs from UI → project`);
-  console.log(`  POST /poc/apply-custom-columns  — 0c: Apply custom columns to project files (optional)`);
+  console.log(`  POST /poc/upload-to-project     — 0b: Optional state model injection + upload PDFs → project + DB`);
+  console.log(`  POST /poc/apply-custom-columns  — 0c: Apply custom columns (optional)`);
   console.log(`  POST /poc/trigger               — 1:  Workflow event`);
-  console.log(`  POST /poc/create-session        — 2:  Create session`);
+  console.log(`  POST /poc/create-session        — 2:  Create session + DB write + schedule poller`);
   console.log(`  POST /poc/register-webhook      — 3:  Register webhook`);
-  console.log(`  POST /poc/checkout-to-session   — 4:  Check out files into session`);
+  console.log(`  POST /poc/checkout-to-session   — 4:  Check out files + update DB files table`);
   console.log(`  POST /poc/invite-reviewers      — 5:  Invite reviewers`);
   console.log(`       (6: Review in Revu)`);
   console.log(`  POST /poc/checkin               — 7:  Check in session files`);
   console.log(`  POST /poc/export-markups        — 8:  Export markups to XML`);
-  console.log(`  POST /poc/run-markuplist-job    — 9:  Compatibility route, XML-backed extraction`);
-  console.log(`  POST /poc/downstream-process    — 9b: Check in + export + XML extract`);
-  console.log(`  POST /poc/finalize              — 10: Finalize session`);
+  console.log(`  POST /poc/run-markuplist-job    — 9:  XML-backed extraction`);
+  console.log(`  POST /poc/downstream-process    — 9b: Check in + export + XML extract + DB snapshot`);
+  console.log(`  POST /poc/finalize              — 10: Finalize session + update DB status`);
   console.log(`  POST /poc/snapshot              — 11: Snapshot + download PDF`);
-  console.log(`  POST /poc/cleanup               — 12: Delete webhook + session`);
-  console.log(`  POST /poc/inject-state-model    — Standalone test endpoint\n`);
+  console.log(`  POST /poc/cleanup               — 12: Delete webhook + session + clear poller`);
+  console.log(`\nDB ENDPOINTS:`);
+  console.log(`  GET  /poc/projects                     — List all projects`);
+  console.log(`  GET  /poc/projects/:atkinsId/snapshot  — Full project snapshot for Tab 2\n`);
+
+  // Re-register any polling schedulers persisted from a previous run
+  restorePollers();
 });
