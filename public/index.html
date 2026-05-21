@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bluebeam Studio — Document Roundtrip</title>
+<title>Bluebeam Studio — Atkins QA/QC</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -36,33 +36,30 @@ header{background:var(--white);border-bottom:1px solid var(--border);padding:0 3
 .header-logo svg{width:16px;height:16px;fill:white;}
 .header-title{font-size:15px;font-weight:600;color:var(--text);}
 .header-title span{color:var(--text-2);font-weight:400;}
+.header-badge{background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;letter-spacing:0.04em;}
 
 /* ── TABS ── */
 .tab-bar{background:var(--white);border-bottom:1px solid var(--border);display:flex;padding:0 32px;flex-shrink:0;}
 .tab-btn{padding:14px 20px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-family:var(--sans);font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s;margin-bottom:-1px;letter-spacing:0.01em;}
 .tab-btn:hover{color:var(--text);}
 .tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
-
 .tab-content{display:none;flex:1;overflow:hidden;}
 .tab-content.active{display:flex;flex-direction:column;}
 
-/* ═══════════════════════════════════════
-   REVIEW WORKFLOW TAB
-═══════════════════════════════════════ */
-.rw-wrap{flex:1;overflow-y:auto;padding:40px 32px;}
-.rw-inner{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:24px;}
+/* ── SHARED PAGE WRAP ── */
+.page-wrap{flex:1;overflow-y:auto;padding:40px 32px;}
+.page-inner{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:24px;}
+.page-title{font-size:24px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.page-sub{font-size:14px;color:var(--text-2);line-height:1.5;}
 
-.rw-page-title{font-size:24px;font-weight:700;color:var(--text);margin-bottom:2px;}
-.rw-page-sub{font-size:14px;color:var(--text-2);line-height:1.5;}
-
-/* Cards */
+/* ── CARDS ── */
 .card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:28px;}
 .card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:18px;display:flex;align-items:center;gap:8px;}
 .card-title-icon{width:28px;height:28px;background:var(--accent-l);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
 
-/* Form elements */
+/* ── FORM ── */
 .field{display:flex;flex-direction:column;gap:6px;}
-.field + .field{margin-top:16px;}
+.field+.field{margin-top:16px;}
 .field-row{display:grid;gap:16px;align-items:end;}
 .field-row.cols-2{grid-template-columns:1fr 1fr;}
 .field-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
@@ -73,10 +70,24 @@ input[type="text"],input[type="email"],input[type="date"],select,textarea{
   transition:border-color 0.15s,box-shadow 0.15s;outline:none;
 }
 input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,90,255,0.1);}
+input.input-error{border-color:var(--error)!important;box-shadow:0 0 0 3px rgba(220,38,38,0.1)!important;}
+input.input-ok{border-color:var(--green)!important;}
 select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
 textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
-/* Drop zone */
+.field-hint{font-size:11px;color:var(--text-3);margin-top:4px;line-height:1.4;}
+.field-error{font-size:11px;color:var(--error);margin-top:4px;font-weight:500;}
+.field-ok{font-size:11px;color:var(--green);margin-top:4px;font-weight:500;}
+
+/* Project ID input with inline badge */
+.project-id-wrap{position:relative;}
+.project-id-wrap input{padding-right:80px;font-family:var(--mono);font-size:13px;letter-spacing:0.03em;}
+.project-id-status{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;white-space:nowrap;}
+.project-id-status.ok{color:var(--green);}
+.project-id-status.err{color:var(--error);}
+.project-id-status.hint{color:var(--text-3);}
+
+/* ── DROP ZONE ── */
 .drop-zone{border:2px dashed var(--border-2);border-radius:10px;padding:28px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;background:var(--bg);}
 .drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-l);}
 .drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
@@ -85,19 +96,35 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .drop-zone-title span{color:var(--accent);}
 .drop-zone-hint{font-size:12px;color:var(--text-3);font-family:var(--mono);}
 
-.staged-files{display:flex;flex-direction:column;gap:6px;margin-top:12px;}
-.staged-file{display:flex;align-items:center;gap:10px;background:var(--white);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;}
+/* ── STAGED FILES (Tab 1 — rich multi-file view) ── */
+.staged-files{display:flex;flex-direction:column;gap:0;margin-top:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.staged-files-header{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;padding:8px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-3);}
+.staged-file{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:10px 14px;background:var(--white);border-bottom:1px solid var(--border);font-size:13px;transition:background 0.1s;}
+.staged-file:last-child{border-bottom:none;}
+.staged-file:hover{background:#fafbff;}
+.sf-name-wrap{display:flex;align-items:center;gap:8px;min-width:0;}
 .sf-icon{font-size:16px;flex-shrink:0;}
-.sf-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;}
-.sf-size{color:var(--text-3);font-size:12px;font-family:var(--mono);flex-shrink:0;}
-.sf-status{font-size:12px;font-weight:500;flex-shrink:0;}
-.sf-status.ok{color:var(--green);}
-.sf-status.err{color:var(--error);}
-.sf-status.wait{color:var(--text-3);}
+.sf-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:var(--text);}
+.sf-size{color:var(--text-3);font-size:12px;font-family:var(--mono);text-align:right;white-space:nowrap;}
+.sf-status-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;white-space:nowrap;}
+.sf-status-badge.staged{background:var(--bg);color:var(--text-3);border:1px solid var(--border);}
+.sf-status-badge.uploading{background:var(--warn-l);color:var(--warn);}
+.sf-status-badge.ok{background:var(--green-l);color:var(--green);}
+.sf-status-badge.err{background:var(--error-l);color:var(--error);}
+.sf-session-badge{font-size:11px;font-family:var(--mono);color:var(--accent);background:var(--accent-l);padding:2px 7px;border-radius:4px;white-space:nowrap;}
 .sf-remove{background:none;border:none;color:var(--text-3);cursor:pointer;padding:2px 6px;border-radius:4px;font-size:16px;line-height:1;transition:all 0.15s;}
 .sf-remove:hover{color:var(--error);background:var(--error-l);}
 
-/* Reviewer chips */
+/* Session rollup bar */
+.session-rollup{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:12px;}
+.session-rollup-left{display:flex;align-items:center;gap:12px;}
+.session-rollup-id{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-l);padding:3px 10px;border-radius:6px;}
+.session-rollup-count{font-size:13px;color:var(--text-2);}
+.session-rollup-count strong{color:var(--text);}
+.session-rollup-statuses{display:flex;gap:6px;}
+.rollup-pill{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;}
+
+/* ── REVIEWER CHIPS ── */
 .chip-box{border:1px solid var(--border-2);border-radius:8px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px;min-height:44px;cursor:text;transition:border-color 0.15s,box-shadow 0.15s;background:var(--white);}
 .chip-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,90,255,0.1);}
 .chip{display:inline-flex;align-items:center;gap:5px;background:var(--accent-l);border:1px solid rgba(26,90,255,0.2);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:500;color:var(--accent);}
@@ -105,27 +132,27 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .chip-x{background:none;border:none;color:inherit;cursor:pointer;padding:0;font-size:14px;opacity:0.6;line-height:1;}
 .chip-x:hover{opacity:1;}
 .chip-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:14px;color:var(--text);flex:1;min-width:160px;padding:2px 0;}
-.field-hint{font-size:11px;color:var(--text-3);margin-top:4px;}
-
 .csv-label{display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--accent);cursor:pointer;font-weight:500;position:relative;margin-top:6px;}
 .csv-label:hover{text-decoration:underline;}
 .csv-label input{position:absolute;inset:0;opacity:0;cursor:pointer;}
 
-/* Buttons */
+/* ── BUTTONS ── */
 .btn-primary{width:100%;padding:13px;background:var(--accent);color:white;border:none;border-radius:10px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;}
 .btn-primary:hover:not(:disabled){background:var(--accent-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,90,255,0.3);}
 .btn-primary:disabled{background:#c5d0e8;cursor:not-allowed;transform:none;box-shadow:none;}
-.btn-primary.loading{background:var(--warn);color:white;}
-
+.btn-primary.loading{background:var(--warn);}
 .btn-success{width:100%;padding:13px;background:var(--white);color:var(--green);border:2px solid var(--green);border-radius:10px;font-family:var(--sans);font-size:15px;font-weight:600;cursor:pointer;transition:all 0.2s;}
 .btn-success:hover:not(:disabled){background:var(--green-l);}
 .btn-success:disabled{opacity:0.4;cursor:not-allowed;}
 .btn-success.loading{background:var(--warn);color:white;border-color:var(--warn);}
-
 .btn-ghost{width:100%;padding:10px;background:none;color:var(--text-2);border:1px solid var(--border);border-radius:8px;font-family:var(--sans);font-size:13px;cursor:pointer;transition:all 0.15s;}
 .btn-ghost:hover{border-color:var(--error);color:var(--error);}
+.btn-outline{padding:9px 18px;background:var(--white);color:var(--accent);border:1px solid var(--accent);border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.btn-outline:hover:not(:disabled){background:var(--accent-l);}
+.btn-outline:disabled{opacity:0.4;cursor:not-allowed;}
+.btn-sm{padding:7px 14px;font-size:12px;border-radius:7px;}
 
-/* Step checklist */
+/* ── STEP CHECKLIST ── */
 .step-list{display:flex;flex-direction:column;gap:8px;}
 .step-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
 .step-row:last-child{border-bottom:none;}
@@ -138,13 +165,13 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .step-row-label.muted{color:var(--text-3);}
 .step-row-api{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;}
 
-/* Session banner */
+/* ── SESSION BANNER ── */
 .session-banner{background:var(--white);border:2px solid var(--green);border-radius:12px;padding:20px 24px;}
 .session-banner-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:var(--green);margin-bottom:6px;}
 .session-id{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text);letter-spacing:0.05em;margin-bottom:4px;}
 .session-hint{font-size:13px;color:var(--text-2);}
 
-/* Summary cards */
+/* ── SUMMARY CARDS ── */
 .summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
 .sum-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px;}
 .sum-val{font-size:28px;font-weight:700;color:var(--accent);font-family:var(--mono);line-height:1;}
@@ -153,15 +180,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .sum-val.error{color:var(--error);}
 .sum-label{font-size:12px;color:var(--text-2);margin-top:4px;}
 
-/* Breakdown */
-.breakdown{display:flex;flex-direction:column;gap:8px;}
-.bd-row{display:flex;align-items:center;gap:12px;}
-.bd-label{font-size:12px;color:var(--text);width:210px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.bd-track{flex:1;background:var(--bg);border-radius:4px;height:8px;overflow:hidden;}
-.bd-bar{height:100%;border-radius:4px;background:var(--accent);transition:width 0.6s ease;}
-.bd-count{font-family:var(--mono);font-size:11px;color:var(--text-3);width:20px;text-align:right;flex-shrink:0;}
-
-/* Pie charts */
+/* ── PIE ── */
 .pie-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:center;}
 .pie-wrap{display:flex;justify-content:center;align-items:center;min-height:240px;}
 .pie-chart{width:220px;height:220px;border-radius:50%;position:relative;border:1px solid var(--border);background:conic-gradient(var(--accent) 0deg 360deg);}
@@ -175,9 +194,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .pie-label{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pie-count,.pie-pct{font-family:var(--mono);font-size:11px;color:var(--text-3);}
 .pie-empty{color:var(--text-3);font-size:12px;padding:8px 0;}
-@media (max-width: 760px){.pie-grid{grid-template-columns:1fr;}}
 
-/* Results table */
+/* ── RESULTS TABLE ── */
 .results-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
 .results-table{width:100%;border-collapse:collapse;font-size:12px;}
 .results-table th{text-align:left;padding:10px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);white-space:nowrap;cursor:pointer;user-select:none;}
@@ -194,12 +212,70 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .pill-red{background:var(--error-l);color:var(--error);}
 .pill-gray{background:var(--bg);color:var(--text-2);border:1px solid var(--border);}
 
-/* ═══════════════════════════════════════
-   DEVELOPER CONSOLE TAB
-═══════════════════════════════════════ */
-.dev-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+/* ══════════════════════════════════════
+   TAB 2 — REVIEW DATA
+══════════════════════════════════════ */
+.t2-lookup-bar{display:flex;align-items:flex-end;gap:12px;}
+.t2-lookup-bar .field{flex:1;}
+.t2-poll-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid var(--border);margin-top:14px;}
+.t2-poll-label{font-size:13px;color:var(--text-2);flex:1;}
+.t2-poll-label strong{color:var(--text);}
+.t2-sync-meta{font-size:12px;color:var(--text-3);font-family:var(--mono);}
+.t2-sync-badge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--green);}
+.t2-sync-badge::before{content:'';display:block;width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.4;}}
 
-/* Config bar at top */
+/* Project overview cards */
+.t2-overview{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.t2-ov-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.t2-ov-val{font-size:30px;font-weight:700;font-family:var(--mono);line-height:1;}
+.t2-ov-val.blue{color:var(--accent);}
+.t2-ov-val.green{color:var(--green);}
+.t2-ov-val.warn{color:var(--warn);}
+.t2-ov-val.gray{color:var(--text-3);}
+.t2-ov-label{font-size:12px;color:var(--text-2);margin-top:4px;}
+
+/* Session table */
+.session-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
+.session-table{width:100%;border-collapse:collapse;font-size:13px;}
+.session-table th{text-align:left;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);white-space:nowrap;}
+.session-table td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:top;}
+.session-table tr:last-child td{border-bottom:none;}
+.session-table tr:hover td{background:#fafbff;}
+.session-expand-btn{background:none;border:none;cursor:pointer;color:var(--accent);font-size:12px;font-weight:500;padding:0;transition:all 0.15s;}
+.session-expand-btn:hover{text-decoration:underline;}
+.session-files-row{display:none;}
+.session-files-row.open{display:table-row;}
+.session-files-inner{background:var(--bg);padding:12px 16px 16px 40px;}
+.session-file-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.session-file-item:last-child{border-bottom:none;}
+.session-file-name{flex:1;font-weight:500;color:var(--text);}
+.session-file-size{color:var(--text-3);font-family:var(--mono);}
+
+/* Progress bar */
+.progress-bar-wrap{background:var(--bg);border-radius:6px;height:6px;overflow:hidden;margin-top:6px;}
+.progress-bar{height:100%;border-radius:6px;background:var(--accent);transition:width 0.4s ease;}
+.progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text-3);font-family:var(--mono);margin-top:3px;}
+
+/* Polling controls */
+.poll-controls{display:flex;align-items:center;gap:10px;}
+.poll-select{padding:7px 32px 7px 12px;border:1px solid var(--border-2);border-radius:8px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+.poll-select:focus{border-color:var(--accent);}
+.poll-indicator{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex-shrink:0;transition:background 0.3s;}
+.poll-indicator.active{background:var(--green);animation:pulse-dot 2s ease infinite;}
+.poll-running-label{font-size:12px;color:var(--text-3);}
+.poll-running-label.active{color:var(--green);}
+
+/* Empty state */
+.empty-state{text-align:center;padding:48px 32px;color:var(--text-3);}
+.empty-state-icon{font-size:40px;margin-bottom:12px;}
+.empty-state-title{font-size:15px;font-weight:600;color:var(--text-2);margin-bottom:6px;}
+.empty-state-sub{font-size:13px;line-height:1.5;}
+
+/* ══════════════════════════════════════
+   DEVELOPER CONSOLE TAB
+══════════════════════════════════════ */
+.dev-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
 .dev-config-bar{background:var(--white);border-bottom:1px solid var(--border);padding:16px 32px;display:grid;grid-template-columns:minmax(180px,220px) minmax(180px,1fr) minmax(180px,1fr) minmax(240px,1.5fr) auto;gap:16px;align-items:stretch;}
 .dev-config-field{display:flex;flex-direction:column;gap:6px;min-width:0;justify-content:flex-start;align-self:stretch;}
 .dev-config-label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);}
@@ -224,7 +300,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
 .dev-btn-ghost{background:var(--white);color:var(--text-2);border:1px solid var(--border);}
 .dev-btn-ghost:hover{border-color:var(--error);color:var(--error);}
-
 .dev-shell{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;align-items:start;}
 .dev-main{min-width:0;min-height:0;overflow:visible;display:flex;flex-direction:column;gap:18px;padding:20px 24px 24px 24px;}
 .dev-sidebar{background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0;position:sticky;top:72px;max-height:calc(100vh - 88px);overflow:hidden;}
@@ -232,7 +307,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-panel-title{font-size:12px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
 .dev-panel-actions{display:flex;gap:8px;flex-wrap:wrap;}
 .dev-panel-hint{font-size:12px;color:var(--text-3);line-height:1.5;}
-
 .dev-collapsible{background:var(--white);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
 .dev-collapsible summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;font-size:14px;font-weight:600;color:var(--text);}
 .dev-collapsible summary::-webkit-details-marker{display:none;}
@@ -254,7 +328,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-quick-actions{display:flex;flex-wrap:wrap;gap:10px;}
 .dev-qa-btn{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:var(--white);font-size:12px;color:var(--text);cursor:pointer;}
 .dev-qa-btn:hover{border-color:var(--accent);color:var(--accent);}
-@media (max-width: 1200px){.dev-shell{grid-template-columns:minmax(0,1fr);} .dev-sidebar{position:relative;top:auto;max-height:none;height:auto;border-left:none;border-top:1px solid var(--border);} .dev-readme-grid,.dev-link-grid{grid-template-columns:1fr;} }
 .dev-state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
 .dev-state-card{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg);}
 .dev-state-label{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
@@ -268,12 +341,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-code{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:14px;overflow:auto;font-family:var(--mono);font-size:11px;line-height:1.65;border:1px solid #1e293b;white-space:pre-wrap;word-break:break-word;}
 .dev-copy-snippet{padding:6px 10px;border:1px solid var(--border);background:var(--white);border-radius:8px;font-size:12px;color:var(--text-2);cursor:pointer;}
 .dev-copy-snippet:hover{border-color:var(--accent);color:var(--accent);}
-
-/* Flowchart canvas */
 .dev-canvas{background:var(--white);border:1px solid var(--border);border-radius:14px;overflow:auto;padding:24px;}
 .dev-canvas-inner{display:flex;flex-direction:column;gap:32px;max-width:980px;margin:0 auto;}
-
-/* Phase group */
 .phase{display:flex;flex-direction:column;gap:0;}
 .phase-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
 .phase-badge{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;}
@@ -281,14 +350,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .phase-badge.session{background:#d1fae5;color:#065f46;}
 .phase-badge.extract{background:#fef3c7;color:#92400e;}
 .phase-line{flex:1;height:1px;background:var(--border);}
-
-/* Node grid */
 .node-grid{display:flex;flex-wrap:wrap;gap:12px;position:relative;}
-
-/* Connector arrow between grids */
 .phase-arrow{display:flex;justify-content:center;align-items:center;padding:8px 0;color:var(--text-3);font-size:18px;}
-
-/* Individual node */
 .fc-node{background:var(--white);border:2px solid var(--border);border-radius:12px;padding:14px 16px;min-width:180px;max-width:220px;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;}
 .fc-node:hover{border-color:var(--accent);box-shadow:0 6px 18px rgba(26,90,255,0.12);transform:translateY(-1px);}
 .fc-node.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(26,90,255,0.14),0 8px 22px rgba(26,90,255,0.14);}
@@ -314,11 +377,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .fc-node-btn.done-btn{background:var(--green);}
 .fc-node-btn.manual-btn{background:var(--bg);color:var(--text-2);border:1px solid var(--border);}
 .fc-node-btn.manual-btn:hover{background:var(--green-l);color:var(--green);border-color:var(--green);}
-
-/* Arrow between nodes */
 .node-arrow{display:flex;align-items:center;color:var(--border-2);font-size:16px;padding:0 4px;align-self:center;}
-
-/* Dev log */
 .dev-log-shell{display:flex;flex-direction:column;min-height:0;flex:1;border-top:1px solid var(--border);}
 .dev-log-toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px 16px 10px 16px;}
 .dev-log-bar{overflow-y:auto;padding:0 16px 16px 16px;flex:1;}
@@ -331,8 +390,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .dev-log-msg.error{color:var(--error);}
 .dev-log-msg.warn{color:var(--warn);}
 .dev-log-msg.webhook{color:var(--accent);}
-
-/* Dev markup section */
 .dev-markup-section{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:20px;flex-shrink:0;}
 .dev-markup-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
 .dev-markup-count{font-size:12px;color:var(--text-2);margin-left:auto;font-family:var(--mono);}
@@ -344,17 +401,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 .json-key{color:#1d4ed8;}.json-str{color:#059669;}.json-num{color:#d97706;}.json-bool{color:#7c3aed;}.json-null{color:var(--text-3);}
 .markup-empty{color:var(--text-3);font-size:13px;padding:16px 0;text-align:center;}
 
-@media (max-width: 1180px){
-  .dev-shell{grid-template-columns:1fr;}
-  .dev-sidebar{position:relative;height:auto;border-left:none;border-top:1px solid var(--border);}
-  .dev-state-grid{grid-template-columns:1fr;}
-}
-
-@media (max-width: 768px){
-  .dev-config-bar{padding:16px;}
-  .dev-main{padding:16px;}
-  .dev-canvas{padding:16px;}
-}
+@media (max-width:1200px){.dev-shell{grid-template-columns:minmax(0,1fr);}.dev-sidebar{position:relative;top:auto;max-height:none;height:auto;border-left:none;border-top:1px solid var(--border);}.dev-readme-grid,.dev-link-grid{grid-template-columns:1fr;}}
+@media (max-width:768px){.dev-config-bar{padding:16px;}.dev-main{padding:16px;}.dev-canvas{padding:16px;}.summary-row,.t2-overview{grid-template-columns:repeat(2,1fr);}.pie-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -364,28 +412,105 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
     <div class="header-logo">
       <svg viewBox="0 0 16 16"><path d="M8 2L2 6v8h12V6L8 2zm0 2l4 2.67V14H4V6.67L8 4z"/></svg>
     </div>
-    <div class="header-title">Bluebeam Studio <span>/ API Roundtrip Demo</span></div>
+    <div class="header-title">Bluebeam Studio <span>/ Atkins QA/QC</span></div>
   </div>
+  <span class="header-badge">PoC</span>
 </header>
 
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('rw')">Review Workflow</button>
+  <button class="tab-btn active" onclick="switchTab('rw')">Review Process: Setup</button>
+  <button class="tab-btn" onclick="switchTab('data')">Review Process: Data</button>
   <button class="tab-btn" onclick="switchTab('dev')">Developer Console</button>
 </div>
 
 <!-- ═══════════════════════════════════════
-     REVIEW WORKFLOW TAB
+     TAB 1 — REVIEW PROCESS: SETUP
 ═══════════════════════════════════════ -->
 <div class="tab-content active" id="tab-rw">
-<div class="rw-wrap">
-<div class="rw-inner">
+<div class="page-wrap">
+<div class="page-inner">
 
   <div>
-    <div class="rw-page-title">Start a Document Review</div>
-    <div class="rw-page-sub">Upload your drawings, add reviewers, and click Start Review. Bluebeam handles the setup flow automatically. After the review is complete, run downstream processing to update the project copy and pull metadata into the dashboard.</div>
+    <div class="page-title">Start a Document Review</div>
+    <div class="page-sub">Configure your Atkins project, upload drawings, add reviewers, and launch the review. Bluebeam handles session setup automatically. Run downstream processing after review is complete to pull metadata into the dashboard.</div>
   </div>
 
-  <!-- Files -->
+  <!-- ── Project Identity ── -->
+  <div class="card">
+    <div class="card-title"><div class="card-title-icon">🏗️</div>Project Identity</div>
+
+    <div class="field-row cols-2">
+      <div class="field">
+        <label>Atkins Project ID <span style="color:var(--error)">*</span></label>
+        <div class="project-id-wrap">
+          <input type="text" id="rwAtkinsId"
+                 placeholder="ATK-2024-0001"
+                 oninput="rwValidateProjectId()"
+                 style="font-family:var(--mono);font-size:13px;letter-spacing:0.03em;">
+          <span class="project-id-status hint" id="rwAtkinsIdStatus">e.g. ATK-2024-0001</span>
+        </div>
+        <div class="field-hint" id="rwAtkinsIdHint">Format: ATK-YYYY-NNNN · Letters, numbers, hyphens only · No spaces</div>
+      </div>
+      <div class="field">
+        <label>Project Name</label>
+        <input type="text" id="rwProjectName" placeholder="e.g. Midtown Transit Hub">
+      </div>
+    </div>
+
+    <div class="field-row cols-3" style="margin-top:16px;">
+      <div class="field">
+        <label>Region</label>
+        <select id="rwRegion">
+          <option value="">— Select Region —</option>
+          <optgroup label="Americas">
+            <option>North America – East</option>
+            <option>North America – West</option>
+            <option>Latin America</option>
+          </optgroup>
+          <optgroup label="Europe & Africa">
+            <option>UK & Ireland</option>
+            <option>Continental Europe</option>
+            <option>Middle East & Africa</option>
+          </optgroup>
+          <optgroup label="Asia-Pacific">
+            <option>Asia Pacific</option>
+            <option>Australia & New Zealand</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>Review Type</label>
+        <select id="rwReviewType">
+          <option value="">— Select Type —</option>
+          <option>IFC – Issued for Construction</option>
+          <option>IFR – Issued for Review</option>
+          <option>IFT – Issued for Tender</option>
+          <option>IFA – Issued for Approval</option>
+          <option>AFC – Approved for Construction</option>
+          <option>Coordination Review</option>
+          <option>Peer Review</option>
+          <option>Internal Check</option>
+          <option>Regulatory Submission</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>QA/QC Category</label>
+        <select id="rwQaCategory">
+          <option value="">— Select Category —</option>
+          <option>Design Quality Check</option>
+          <option>Constructability Review</option>
+          <option>Code Compliance</option>
+          <option>Safety in Design</option>
+          <option>Environmental Review</option>
+          <option>Technical Assurance</option>
+          <option>Drawing Register Check</option>
+          <option>As-Built Verification</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Documents ── -->
   <div class="card">
     <div class="card-title"><div class="card-title-icon">📄</div>Documents</div>
     <div class="drop-zone" id="rwDropZone"
@@ -397,10 +522,30 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="drop-zone-title"><span>Click to browse</span> or drag &amp; drop</div>
       <div class="drop-zone-hint">PDF files only · multiple supported</div>
     </div>
-    <div class="staged-files" id="rwStagedFiles"></div>
+
+    <div id="rwStagedFilesWrap" style="display:none;margin-top:12px;">
+      <div class="staged-files">
+        <div class="staged-files-header">
+          <span>File</span>
+          <span>Size</span>
+          <span>Status</span>
+          <span></span>
+        </div>
+        <div id="rwStagedFilesBody"></div>
+      </div>
+
+      <!-- Session rollup — shown once session is active -->
+      <div class="session-rollup" id="rwSessionRollup" style="display:none;">
+        <div class="session-rollup-left">
+          <span class="session-rollup-id" id="rwRollupSessionId">—</span>
+          <span class="session-rollup-count"><strong id="rwRollupCount">0</strong> files in active session</span>
+        </div>
+        <div class="session-rollup-statuses" id="rwRollupStatuses"></div>
+      </div>
+    </div>
   </div>
 
-  <!-- Review details -->
+  <!-- ── Review Details ── -->
   <div class="card">
     <div class="card-title"><div class="card-title-icon">📋</div>Review Details</div>
     <div class="field-row cols-2">
@@ -426,13 +571,25 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       <label>Description</label>
       <input type="text" id="rwDesc" placeholder="Brief description of what's being reviewed">
     </div>
-    <div class="field" style="margin-top:16px;">
-      <label>Review Deadline</label>
-      <input type="date" id="rwDeadline">
+    <div class="field-row cols-2" style="margin-top:16px;">
+      <div class="field">
+        <label>Review Deadline</label>
+        <input type="date" id="rwDeadline">
+      </div>
+      <div class="field">
+        <label>Polling Interval</label>
+        <select id="rwPolling">
+          <option value="0">Manual only</option>
+          <option value="1">Every hour</option>
+          <option value="4">Every 4 hours</option>
+          <option value="8" selected>Every 8 hours</option>
+          <option value="24">Daily</option>
+        </select>
+      </div>
     </div>
   </div>
 
-  <!-- Reviewers -->
+  <!-- ── Reviewers ── -->
   <div class="card">
     <div class="card-title"><div class="card-title-icon">👥</div>Reviewers</div>
     <div class="field">
@@ -451,22 +608,22 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
     </div>
   </div>
 
-  <!-- Action -->
+  <!-- ── Actions ── -->
   <div style="display:flex;flex-direction:column;gap:10px;" id="rwActions">
     <button class="btn-primary" id="rwStartBtn" onclick="rwStart()">Start Review</button>
   </div>
 
-  <!-- Progress -->
+  <!-- ── Progress ── -->
   <div id="rwProgressSection" style="display:none;flex-direction:column;gap:16px;">
 
     <div class="card" id="rwProgressCard">
       <div class="card-title"><div class="card-title-icon">⚙️</div>Setting Up Review</div>
       <div class="step-list" id="rwStepList">
-        <div class="step-row" id="rs-setup"><div class="step-dot" id="sd-setup">1</div><div class="step-row-label muted" id="sl-setup">Project setup</div><span class="step-row-api">setup-project</span></div>
-        <div class="step-row" id="rs-upload"><div class="step-dot" id="sd-upload">2</div><div class="step-row-label muted" id="sl-upload">Upload documents to project</div><span class="step-row-api">upload-to-project</span></div>
-        <div class="step-row" id="rs-session"><div class="step-dot" id="sd-session">3</div><div class="step-row-label muted" id="sl-session">Create Studio Session</div><span class="step-row-api">create-session</span></div>
-        <div class="step-row" id="rs-checkout"><div class="step-dot" id="sd-checkout">4</div><div class="step-row-label muted" id="sl-checkout">Check out documents to session</div><span class="step-row-api">checkout-to-session</span></div>
-        <div class="step-row" id="rs-invite"><div class="step-dot" id="sd-invite">5</div><div class="step-row-label muted" id="sl-invite">Invite reviewers</div><span class="step-row-api">invite-reviewers</span></div>
+        <div class="step-row"><div class="step-dot" id="sd-setup">1</div><div class="step-row-label muted" id="sl-setup">Project setup</div><span class="step-row-api">setup-project</span></div>
+        <div class="step-row"><div class="step-dot" id="sd-upload">2</div><div class="step-row-label muted" id="sl-upload">Upload documents to project</div><span class="step-row-api">upload-to-project</span></div>
+        <div class="step-row"><div class="step-dot" id="sd-session">3</div><div class="step-row-label muted" id="sl-session">Create Studio Session</div><span class="step-row-api">create-session</span></div>
+        <div class="step-row"><div class="step-dot" id="sd-checkout">4</div><div class="step-row-label muted" id="sl-checkout">Check out documents to session</div><span class="step-row-api">checkout-to-session</span></div>
+        <div class="step-row"><div class="step-dot" id="sd-invite">5</div><div class="step-row-label muted" id="sl-invite">Invite reviewers</div><span class="step-row-api">invite-reviewers</span></div>
       </div>
     </div>
 
@@ -476,17 +633,14 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="session-hint">Go to Bluebeam Revu → Studio → Sessions and enter this ID to join and begin marking up documents.</div>
     </div>
 
-    <!-- Post-review processing card -->
     <div class="card" id="rwDownstreamCard" style="display:none;">
       <div class="card-title"><div class="card-title-icon">🔄</div>Post-Review Processing</div>
       <div style="font-size:13px;color:var(--text-2);line-height:1.6;margin-bottom:16px;">
-        After reviewers are finished in Revu, run the downstream flow to update the project copy, export markups, and pull file metadata into the dashboard.
+        After reviewers are finished in Revu, run the downstream flow to update the project copy, export markups, and pull metadata into the dashboard.
       </div>
-
       <button class="btn-success" id="rwDownstreamBtn" onclick="rwRunDownstream()">
         Update Project Copy &amp; Pull Metadata
       </button>
-
       <div class="step-list" id="rwDownstreamSteps" style="margin-top:18px;display:none;">
         <div class="step-row"><div class="step-dot" id="sd-checkin">1</div><div class="step-row-label muted" id="sl-checkin">Update project copy from session</div><span class="step-row-api">checkin</span></div>
         <div class="step-row"><div class="step-dot" id="sd-export">2</div><div class="step-row-label muted" id="sl-export">Export markup XML</div><span class="step-row-api">export-markups</span></div>
@@ -496,12 +650,10 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
     <!-- Results -->
     <div id="rwResults" style="display:none;flex-direction:column;gap:20px;">
-
       <div class="card">
         <div class="card-title"><div class="card-title-icon">📊</div>Review Summary</div>
         <div class="summary-row" id="rwSummaryCards"></div>
       </div>
-
       <div class="card">
         <div class="card-title"><div class="card-title-icon">🥧</div>Status Distribution</div>
         <div class="pie-grid">
@@ -509,7 +661,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="pie-legend" id="rwStatusLegend"></div>
         </div>
       </div>
-
       <div class="card">
         <div class="card-title"><div class="card-title-icon">👷</div>Breakdown by Responsibility</div>
         <div class="pie-grid">
@@ -517,19 +668,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           <div class="pie-legend" id="rwResponsibilityLegend"></div>
         </div>
       </div>
-
-      <!--
-      <div class="card">
-        <div class="card-title"><div class="card-title-icon">📈</div>Breakdown by Review Stage</div>
-        <div class="breakdown" id="rwStageBreakdown"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title"><div class="card-title-icon">🎯</div>Breakdown by Priority</div>
-        <div class="breakdown" id="rwPriorityBreakdown"></div>
-      </div>
-      -->
-
       <div class="card">
         <div class="card-title"><div class="card-title-icon">📝</div>Markup Details</div>
         <div class="results-wrap">
@@ -550,11 +688,9 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
           </table>
         </div>
       </div>
-
     </div>
 
     <button class="btn-ghost" onclick="rwReset()">↺ Start a New Review</button>
-
   </div>
 
 </div>
@@ -562,13 +698,145 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 </div>
 
 <!-- ═══════════════════════════════════════
-     DEVELOPER CONSOLE TAB
+     TAB 2 — REVIEW PROCESS: DATA
+═══════════════════════════════════════ -->
+<div class="tab-content" id="tab-data">
+<div class="page-wrap">
+<div class="page-inner" style="max-width:900px;">
+
+  <div>
+    <div class="page-title">Review Process: Data</div>
+    <div class="page-sub">Look up an Atkins Project ID to see all associated sessions, pull a current metadata snapshot, and configure automatic polling. Data is read from the snapshot database — not live from Bluebeam on every load.</div>
+  </div>
+
+  <!-- ── Project Lookup ── -->
+  <div class="card">
+    <div class="card-title"><div class="card-title-icon">🔎</div>Project Lookup</div>
+
+    <div class="t2-lookup-bar">
+      <div class="field">
+        <label>Atkins Project ID</label>
+        <div class="project-id-wrap">
+          <input type="text" id="t2AtkinsId"
+                 placeholder="ATK-2024-0001"
+                 oninput="t2ValidateId()"
+                 style="font-family:var(--mono);font-size:13px;letter-spacing:0.03em;">
+          <span class="project-id-status hint" id="t2AtkinsIdStatus">e.g. ATK-2024-0001</span>
+        </div>
+      </div>
+      <button class="btn-outline" id="t2PullBtn" onclick="t2PullSnapshot()" disabled
+              style="margin-bottom:0;height:44px;align-self:flex-end;">
+        Pull Current Snapshot
+      </button>
+    </div>
+
+    <!-- Polling row -->
+    <div class="t2-poll-row">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;">
+        <span class="poll-indicator" id="t2PollIndicator"></span>
+        <span class="poll-running-label" id="t2PollRunningLabel">Auto-polling off</span>
+      </div>
+      <div class="poll-controls">
+        <label style="font-size:12px;color:var(--text-2);text-transform:none;letter-spacing:0;font-weight:400;">Polling interval:</label>
+        <select class="poll-select" id="t2PollInterval" onchange="t2UpdatePolling()">
+          <option value="0">Off</option>
+          <option value="1">Every hour</option>
+          <option value="4">Every 4 hours</option>
+          <option value="8">Every 8 hours</option>
+          <option value="24">Daily</option>
+        </select>
+      </div>
+      <div class="t2-sync-meta" id="t2LastSync">Last sync: —</div>
+    </div>
+  </div>
+
+  <!-- ── Project Overview (hidden until loaded) ── -->
+  <div id="t2Overview" style="display:none;flex-direction:column;gap:24px;">
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon">📁</div>
+        <span id="t2ProjectLabel">Project Overview</span>
+        <span style="margin-left:auto;font-size:12px;color:var(--text-3);font-family:var(--mono);font-weight:400;" id="t2ProjectIdLabel"></span>
+      </div>
+      <div class="t2-overview" id="t2OverviewCards"></div>
+    </div>
+
+    <!-- ── Sessions Table ── -->
+    <div class="card">
+      <div class="card-title"><div class="card-title-icon">🔁</div>Sessions</div>
+      <div class="session-table-wrap">
+        <table class="session-table">
+          <thead>
+            <tr>
+              <th>Session ID</th>
+              <th>Review Name</th>
+              <th>Files</th>
+              <th>Status</th>
+              <th>Markups</th>
+              <th>Last Polled</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="t2SessionsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Status Distribution ── -->
+    <div class="card">
+      <div class="card-title"><div class="card-title-icon">🥧</div>Status Distribution (All Sessions)</div>
+      <div class="pie-grid">
+        <div class="pie-wrap"><div class="pie-chart" id="t2StatusPie"></div></div>
+        <div class="pie-legend" id="t2StatusLegend"></div>
+      </div>
+    </div>
+
+    <!-- ── All Markups Aggregate Table ── -->
+    <div class="card">
+      <div class="card-title"><div class="card-title-icon">📝</div>All Markups — Project Rollup</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+        <input type="text" id="t2MarkupSearch" placeholder="Filter by author, subject, status…"
+               oninput="t2FilterMarkups()" style="max-width:320px;min-height:36px;padding:7px 12px;font-size:13px;">
+        <span style="font-size:12px;color:var(--text-3);font-family:var(--mono);" id="t2MarkupCount">0 markups</span>
+      </div>
+      <div class="results-wrap">
+        <table class="results-table">
+          <thead><tr>
+            <th onclick="t2Sort('_session')">Session</th>
+            <th onclick="t2Sort('Page')">Pg</th>
+            <th onclick="t2Sort('Subject')">Subject</th>
+            <th onclick="t2Sort('Author')">Author</th>
+            <th onclick="t2Sort('_stage')">Review Stage</th>
+            <th onclick="t2Sort('_responsibility')">Responsibility</th>
+            <th onclick="t2Sort('_priority')">Priority</th>
+            <th onclick="t2Sort('Comment')">Comment</th>
+          </tr></thead>
+          <tbody id="t2MarkupsTbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" id="t2EmptyState">
+    <div class="empty-state-icon">📋</div>
+    <div class="empty-state-title">No project loaded</div>
+    <div class="empty-state-sub">Enter an Atkins Project ID above and click <strong>Pull Current Snapshot</strong> to load session data and metadata.</div>
+  </div>
+
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     TAB 3 — DEVELOPER CONSOLE
 ═══════════════════════════════════════ -->
 <div class="tab-content" id="tab-dev">
 <div class="dev-wrap">
 
   <div class="dev-config-bar">
-
     <div class="dev-config-field" style="min-width:180px;max-width:220px;">
       <div class="dev-config-label">PDF Files</div>
       <div class="dev-upload-zone" id="devUploadZone"
@@ -581,19 +849,16 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       </div>
       <div class="dev-staged" id="devStagedFiles"></div>
     </div>
-
     <div class="dev-config-field">
       <div class="dev-config-label">External Document ID</div>
       <input class="dev-input" id="devDocId" type="text" placeholder="DOC-001" onchange="devConfig()">
       <div class="dev-config-sub">Reference value passed into configure()</div>
     </div>
-
     <div class="dev-config-field">
       <div class="dev-config-label">Session Description</div>
       <input class="dev-input" id="devDesc" type="text" placeholder="Design review" onchange="devConfig()">
       <div class="dev-config-sub">Display/context field for the review flow</div>
     </div>
-
     <div class="dev-config-field" style="flex:1.5;min-width:240px;">
       <div class="dev-config-label">Reviewers</div>
       <div class="dev-chip-box" id="devChipBox" onclick="document.getElementById('devChipInput').focus()">
@@ -601,12 +866,10 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
         <input class="dev-chip-input" id="devChipInput" type="email" placeholder="Add email, Enter" onkeydown="devChipKey(event)">
       </div>
     </div>
-
     <div class="dev-action-btns">
       <button class="dev-btn dev-btn-primary" id="devUploadBtn" onclick="devUpload()">⬆ Upload</button>
       <button class="dev-btn dev-btn-ghost" onclick="devReset()">↺ Reset</button>
     </div>
-
   </div>
 
   <div class="dev-shell">
@@ -619,9 +882,8 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
         </summary>
         <div class="dev-readme-body">
           <div class="dev-readme-note">
-            This reference app shows a Bluebeam Studio roundtrip pattern: seed the project, upload files, launch a Session for review, then run downstream extraction to pull structured outputs back into the UI. Placeholder values are included where a live environment has not yet returned an ID or link.
+            This reference app shows a Bluebeam Studio roundtrip pattern: seed the project, upload files, launch a Session for review, then run downstream extraction to pull structured outputs back into the UI.
           </div>
-
           <div class="dev-readme-grid">
             <div class="dev-readme-card">
               <h4>Setup</h4>
@@ -644,11 +906,10 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <ul>
                 <li>Finalize the review handoff and generate a downstream artifact path.</li>
                 <li>Pull snapshot / structured markup outputs back into the dashboard.</li>
-                <li>Outputs can include <strong>downloads, markup JSON, CSV,</strong> and file metadata.</li>
+                <li>Outputs include <strong>markup JSON, CSV,</strong> and file metadata.</li>
               </ul>
             </div>
           </div>
-
           <div class="dev-link-grid">
             <a class="dev-link-card" href="https://developers.bluebeam.com/s/?language=en_US" target="_blank" rel="noopener noreferrer">
               <div class="dev-link-title">Bluebeam Developer Portal</div>
@@ -666,7 +927,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="dev-link-meta">github.com/placeholder-org</div>
             </a>
           </div>
-
           <div class="dev-quick-actions">
             <button class="dev-qa-btn" onclick="window.open('https://developers.bluebeam.com/s/?language=en_US','_blank')">↗ Open Dev Portal</button>
             <button class="dev-qa-btn" onclick="window.open('https://support.bluebeam.com/developer/getting-started-dev-portal.html','_blank')">📘 Open Getting Started</button>
@@ -686,7 +946,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="dev-canvas">
       <div class="dev-canvas-inner">
 
-        <!-- SETUP phase -->
         <div class="phase">
           <div class="phase-header">
             <span class="phase-badge setup">Setup</span>
@@ -700,9 +959,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="fc-node-api">setup-project</div>
               <button class="fc-node-btn" onclick="devFire('setup-project')">Run</button>
             </div>
-
             <div class="node-arrow">→</div>
-
             <div class="fc-node" id="fn-upload-to-project" data-endpoint="upload-to-project">
               <div class="fc-node-status idle" id="fs-upload-to-project">·</div>
               <div class="fc-node-icon">⬆️</div>
@@ -715,7 +972,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
         <div class="phase-arrow">↓</div>
 
-        <!-- SESSION phase -->
         <div class="phase">
           <div class="phase-header">
             <span class="phase-badge session">Session</span>
@@ -729,9 +985,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="fc-node-api">trigger</div>
               <button class="fc-node-btn" onclick="devFire('trigger')">Run</button>
             </div>
-
             <div class="node-arrow">→</div>
-
             <div class="fc-node" id="fn-create-session" data-endpoint="create-session">
               <div class="fc-node-status idle" id="fs-create-session">·</div>
               <div class="fc-node-icon">🏠</div>
@@ -739,9 +993,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="fc-node-api">create-session</div>
               <button class="fc-node-btn" onclick="devFire('create-session')">Run</button>
             </div>
-
             <div class="node-arrow">→</div>
-
             <div class="fc-node" id="fn-register-webhook" data-endpoint="register-webhook">
               <div class="fc-node-status idle" id="fs-register-webhook">·</div>
               <div class="fc-node-icon">🔔</div>
@@ -749,9 +1001,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="fc-node-api">register-webhook</div>
               <button class="fc-node-btn" onclick="devFire('register-webhook')">Run</button>
             </div>
-
             <div class="node-arrow">→</div>
-
             <div class="fc-node" id="fn-checkout-to-session" data-endpoint="checkout-to-session">
               <div class="fc-node-status idle" id="fs-checkout-to-session">·</div>
               <div class="fc-node-icon">🔗</div>
@@ -759,9 +1009,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="fc-node-api">checkout-to-session</div>
               <button class="fc-node-btn" onclick="devFire('checkout-to-session')">Run</button>
             </div>
-
             <div class="node-arrow">→</div>
-
             <div class="fc-node" id="fn-invite-reviewers" data-endpoint="invite-reviewers">
               <div class="fc-node-status idle" id="fs-invite-reviewers">·</div>
               <div class="fc-node-icon">📧</div>
@@ -769,9 +1017,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="fc-node-api">invite-reviewers</div>
               <button class="fc-node-btn" onclick="devFire('invite-reviewers')">Run</button>
             </div>
-
             <div class="node-arrow">→</div>
-
             <div class="fc-node manual" id="fn-review" data-endpoint="review">
               <div class="fc-node-status idle" id="fs-review">·</div>
               <div class="fc-node-icon">✏️</div>
@@ -784,7 +1030,6 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
 
         <div class="phase-arrow">↓</div>
 
-        <!-- EXTRACTION phase -->
         <div class="phase">
           <div class="phase-header">
             <span class="phase-badge extract">Extraction &amp; Close</span>
@@ -798,9 +1043,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="fc-node-api">downstream-process</div>
               <button class="fc-node-btn" onclick="devFire('downstream-process')">Run</button>
             </div>
-
             <div class="node-arrow">→</div>
-
             <div class="fc-node" id="fn-finalize" data-endpoint="finalize">
               <div class="fc-node-status idle" id="fs-finalize">·</div>
               <div class="fc-node-icon">🏁</div>
@@ -808,9 +1051,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="fc-node-api">finalize</div>
               <button class="fc-node-btn" onclick="devFire('finalize')">Run</button>
             </div>
-
             <div class="node-arrow">→</div>
-
             <div class="fc-node" id="fn-snapshot" data-endpoint="snapshot">
               <div class="fc-node-status idle" id="fs-snapshot">·</div>
               <div class="fc-node-icon">📸</div>
@@ -818,9 +1059,7 @@ textarea{resize:vertical;min-height:80px;line-height:1.5;}
               <div class="fc-node-api">snapshot</div>
               <button class="fc-node-btn" onclick="devFire('snapshot')">Run</button>
             </div>
-
             <div class="node-arrow">→</div>
-
             <div class="fc-node" id="fn-cleanup" data-endpoint="cleanup">
               <div class="fc-node-status idle" id="fs-cleanup">·</div>
               <div class="fc-node-icon">🗑️</div>
@@ -902,34 +1141,28 @@ Creates or verifies the working Studio Project structure used by the rest of the
 </div>
 
 <script>
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── UTILITIES ────────────────────────────────────────────────────────────────
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 async function api(path,method='POST',body=null){
   const opts={method,headers:{'Content-Type':'application/json'}};
   if(body)opts.body=JSON.stringify(body);
-
   const r=await fetch(`/poc/${path}`,opts);
-
   let d=null;
-  try{
-    d=await r.json();
-  }catch(_err){
-    d=null;
-  }
-
-  if(!r.ok){
-    throw new Error((d&&d.error)||`HTTP ${r.status}`);
-  }
-
+  try{d=await r.json();}catch(_){}
+  if(!r.ok)throw new Error((d&&d.error)||`HTTP ${r.status}`);
   return d||{};
 }
 
 function switchTab(t){
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='rw')||(i===1&&t==='dev')));
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active',(i===0&&t==='rw')||(i===1&&t==='data')||(i===2&&t==='dev'));
+  });
   document.getElementById('tab-rw').classList.toggle('active',t==='rw');
+  document.getElementById('tab-data').classList.toggle('active',t==='data');
   document.getElementById('tab-dev').classList.toggle('active',t==='dev');
 }
+
 function syntaxHL(json){
   return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{
@@ -939,14 +1172,63 @@ function syntaxHL(json){
       return`<span class="json-num">${m}</span>`;
     });
 }
+
+// Default deadline = +7 days
 (()=>{const d=new Date();d.setDate(d.getDate()+7);document.getElementById('rwDeadline').value=d.toISOString().slice(0,10);})();
 
-// ── REVIEW WORKFLOW ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// TAB 1 — REVIEW WORKFLOW
+// ═══════════════════════════════════════════════════════════════════════════════
 let rwFiles=[];
 let rwMarkups=[];
 let rwSortKey='Page';
 let rwSortDir='asc';
 
+// ── Project ID Validation ──────────────────────────────────────────────────
+const PROJECT_ID_RE=/^ATK-\d{4}-\d{4}$/;
+
+function rwValidateProjectId(){
+  const val=document.getElementById('rwAtkinsId').value.trim();
+  const input=document.getElementById('rwAtkinsId');
+  const status=document.getElementById('rwAtkinsIdStatus');
+  const hint=document.getElementById('rwAtkinsIdHint');
+
+  if(!val){
+    input.classList.remove('input-ok','input-error');
+    status.className='project-id-status hint';
+    status.textContent='e.g. ATK-2024-0001';
+    hint.textContent='Format: ATK-YYYY-NNNN · Letters, numbers, hyphens only · No spaces';
+    hint.style.color='var(--text-3)';
+    return false;
+  }
+
+  // Strip invalid chars on the fly (no spaces, no specials)
+  const cleaned=val.replace(/[^A-Za-z0-9-]/g,'').toUpperCase();
+  if(cleaned!==val){document.getElementById('rwAtkinsId').value=cleaned;}
+
+  if(PROJECT_ID_RE.test(cleaned)){
+    input.classList.add('input-ok');
+    input.classList.remove('input-error');
+    status.className='project-id-status ok';
+    status.textContent='✓ Valid';
+    hint.textContent='Project ID accepted';
+    hint.style.color='var(--green)';
+    // Auto-sync to Tab 2 field
+    document.getElementById('t2AtkinsId').value=cleaned;
+    t2ValidateId();
+    return true;
+  }else{
+    input.classList.add('input-error');
+    input.classList.remove('input-ok');
+    status.className='project-id-status err';
+    status.textContent='Invalid format';
+    hint.textContent='Expected: ATK-YYYY-NNNN (e.g. ATK-2024-0001)';
+    hint.style.color='var(--error)';
+    return false;
+  }
+}
+
+// ── File handling ──────────────────────────────────────────────────────────
 function rwFileSelect(e){rwAddFiles(Array.from(e.target.files));e.target.value='';}
 function rwDrop(e){
   e.preventDefault();
@@ -955,115 +1237,129 @@ function rwDrop(e){
 }
 function rwAddFiles(files){
   files.forEach(f=>{
-    if(!rwFiles.find(s=>s.name===f.name))rwFiles.push({file:f,name:f.name,size:f.size,status:'staged'});
+    if(!rwFiles.find(s=>s.name===f.name))rwFiles.push({file:f,name:f.name,size:f.size,status:'staged',sessionFileId:null});
   });
   rwRenderFiles();
 }
+
 function rwRenderFiles(){
-  const el=document.getElementById('rwStagedFiles');
-  if(!rwFiles.length){el.innerHTML='';return;}
-  el.innerHTML=rwFiles.map(f=>{
+  const wrap=document.getElementById('rwStagedFilesWrap');
+  const body=document.getElementById('rwStagedFilesBody');
+  if(!rwFiles.length){wrap.style.display='none';body.innerHTML='';return;}
+  wrap.style.display='block';
+
+  body.innerHTML=rwFiles.map(f=>{
     const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
-    const st=f.status==='ok'
-      ?'<span class="sf-status ok">✓ Uploaded</span>'
-      :f.status==='err'
-      ?'<span class="sf-status err">✗ Failed</span>'
-      :'<span class="sf-status wait">Ready to upload</span>';
-    const rmv=f.status!=='ok'?`<button class="sf-remove" onclick="rwRemoveFile('${esc(f.name)}')">×</button>`:'';
-    return`<div class="staged-file"><span class="sf-icon">📄</span><span class="sf-name" title="${esc(f.name)}">${esc(f.name)}</span><span class="sf-size">${sz}</span>${st}${rmv}</div>`;
+    const badge=
+      f.status==='ok'?`<span class="sf-status-badge ok">✓ Uploaded</span>`:
+      f.status==='err'?`<span class="sf-status-badge err">✗ Failed</span>`:
+      f.status==='uploading'?`<span class="sf-status-badge uploading">↑ Uploading…</span>`:
+      `<span class="sf-status-badge staged">Staged</span>`;
+    const sessionTag=f.sessionFileId?`<span class="sf-session-badge">${esc(f.sessionFileId)}</span>`:'';
+    const rmv=f.status!=='ok'&&f.status!=='uploading'
+      ?`<button class="sf-remove" onclick="rwRemoveFile('${esc(f.name)}')" title="Remove">×</button>`
+      :`<span style="width:28px;display:inline-block;"></span>`;
+    return`<div class="staged-file">
+      <div class="sf-name-wrap"><span class="sf-icon">📄</span><span class="sf-name" title="${esc(f.name)}">${esc(f.name)}</span>${sessionTag}</div>
+      <span class="sf-size">${sz}</span>
+      ${badge}
+      ${rmv}
+    </div>`;
   }).join('');
 }
+
 function rwRemoveFile(name){rwFiles=rwFiles.filter(f=>f.name!==name);rwRenderFiles();}
 
+function rwUpdateSessionRollup(sessionId){
+  const rollup=document.getElementById('rwSessionRollup');
+  const uploaded=rwFiles.filter(f=>f.status==='ok');
+  if(!sessionId||!uploaded.length){rollup.style.display='none';return;}
+  rollup.style.display='flex';
+  document.getElementById('rwRollupSessionId').textContent=sessionId;
+  document.getElementById('rwRollupCount').textContent=uploaded.length;
+  document.getElementById('rwRollupStatuses').innerHTML=`
+    <span class="rollup-pill pill-green">${uploaded.length} uploaded</span>
+    <span class="rollup-pill pill-blue">${rwFiles.filter(f=>f.status==='staged').length} staged</span>
+  `;
+}
+
+// ── Chip input ─────────────────────────────────────────────────────────────
 function rwChipKey(e){
-  if(e.key==='Enter'||e.key===','){
-    e.preventDefault();
-    rwAddChip(e.target.value.trim().replace(/,$/,''));
-    e.target.value='';
-  }
+  if(e.key==='Enter'||e.key===','){e.preventDefault();rwAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
   if(e.key==='Backspace'&&!e.target.value){
     const chips=[...document.querySelectorAll('#rwChipBox .chip:not(.primary)')];
-    if(chips.length){
-      const last=chips[chips.length-1];
-      api('remove-reviewer',undefined,{email:last.dataset.email}).catch(()=>{});
-      last.remove();
-    }
+    if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email}).catch(()=>{});last.remove();}
   }
 }
 function rwAddChip(email){
   if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
   if([...document.querySelectorAll('#rwChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const c=document.createElement('span');
-  c.className='chip';
-  c.dataset.email=email;
+  const c=document.createElement('span');c.className='chip';c.dataset.email=email;
   c.innerHTML=`${esc(email)} <button class="chip-x" onclick="rwRemoveChip(this,'${esc(email)}')">×</button>`;
   document.getElementById('rwChipBox').insertBefore(c,document.getElementById('rwChipInput'));
   api('configure',undefined,{reviewerEmail:email}).catch(()=>{});
 }
-function rwRemoveChip(btn,email){
-  btn.closest('.chip').remove();
-  api('remove-reviewer',undefined,{email}).catch(()=>{});
-}
+function rwRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email}).catch(()=>{});}
 async function rwImportCsv(e){
-  const f=e.target.files[0];
-  if(!f)return;
+  const f=e.target.files[0];if(!f)return;
   const t=await f.text();
   t.split(/[\r\n,;]+/).map(s=>s.trim()).filter(s=>s.includes('@')).forEach(rwAddChip);
   e.target.value='';
 }
 
+// ── Step dots ──────────────────────────────────────────────────────────────
 function rwSetStep(id,state,label=''){
   const dot=document.getElementById('sd-'+id);
   const lbl=document.getElementById('sl-'+id);
   if(!dot)return;
   dot.className='step-dot '+state;
   dot.textContent=state==='done'?'✓':state==='running'?'↻':state==='error'?'✗':(parseInt(dot.textContent)||'·');
-  if(lbl&&label){
-    lbl.textContent=label;
-    lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');
-  }else if(lbl){
-    lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');
-  }
+  if(lbl&&label){lbl.textContent=label;lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');}
+  else if(lbl){lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');}
 }
 
+// ── Start Review ───────────────────────────────────────────────────────────
 async function rwStart(){
   if(!rwFiles.length){alert('Please add at least one PDF.');return;}
+  if(!rwValidateProjectId()){alert('Please enter a valid Atkins Project ID (e.g. ATK-2024-0001).');return;}
   const name=document.getElementById('rwName').value.trim();
   if(!name){alert('Please enter a review name.');return;}
 
   const disc=document.getElementById('rwDiscipline').value;
   const desc=document.getElementById('rwDesc').value.trim();
+  const region=document.getElementById('rwRegion').value;
+  const reviewType=document.getElementById('rwReviewType').value;
 
   await api('configure',undefined,{
-    documentId:name.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,''),
-    description:`${disc?disc+' — ':''}${desc||name}`
+    documentId:document.getElementById('rwAtkinsId').value.trim()+'-'+name.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'').slice(0,20),
+    description:[region,reviewType,disc,desc||name].filter(Boolean).join(' — ')
   });
 
   const btn=document.getElementById('rwStartBtn');
-  btn.disabled=true;
-  btn.textContent='Setting up...';
-
+  btn.disabled=true;btn.textContent='Setting up…';
   document.getElementById('rwProgressSection').style.display='flex';
   document.getElementById('rwActions').style.display='none';
+
+  rwFiles.forEach(f=>f.status='staged');
+  rwRenderFiles();
 
   const steps=[
     ['setup',()=>api('setup-project')],
     ['upload',async()=>{
+      rwFiles.filter(f=>f.status==='staged').forEach(f=>f.status='uploading');
+      rwRenderFiles();
       const fd=new FormData();
-      rwFiles.filter(f=>f.status==='staged').forEach(f=>fd.append('files',f.file,f.name));
+      rwFiles.filter(f=>f.status==='uploading').forEach(f=>fd.append('files',f.file,f.name));
       const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
       const d=await r.json();
       if(!r.ok)throw new Error(d.error);
-      (d.uploaded||[]).forEach(u=>{
-        const sf=rwFiles.find(f=>f.name===u.name);
-        if(sf)sf.status='ok';
-      });
+      (d.uploaded||[]).forEach(u=>{const sf=rwFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
       rwRenderFiles();
       return d;
     }],
     ['session',async()=>{
       await api('trigger');
-      const sessionResult = await api('create-session');
+      const sessionResult=await api('create-session');
       await api('register-webhook');
       return sessionResult;
     }],
@@ -1077,134 +1373,108 @@ async function rwStart(){
       await fn();
       rwSetStep(id,'done');
     }
-
     const state=await fetch('/poc/state').then(r=>r.json());
     document.getElementById('rwSessionBanner').style.display='block';
     document.getElementById('rwSessionId').textContent=state.sessionId||'—';
     document.getElementById('rwDownstreamCard').style.display='block';
+    rwUpdateSessionRollup(state.sessionId);
   }catch(err){
     ['setup','upload','session','checkout','invite'].forEach(id=>{
       if(document.getElementById('sd-'+id)?.className.includes('running'))rwSetStep(id,'error');
     });
     document.getElementById('rwProgressCard').style.border='2px solid var(--error)';
-    btn.disabled=false;
-    btn.textContent='Start Review';
+    btn.disabled=false;btn.textContent='Start Review';
     document.getElementById('rwActions').style.display='flex';
     alert(`Review setup failed:\n\n${err.message}`);
-    console.error(err);
   }
 }
 
+// ── Downstream ─────────────────────────────────────────────────────────────
 async function rwRunDownstream(){
   const btn=document.getElementById('rwDownstreamBtn');
   const stepWrap=document.getElementById('rwDownstreamSteps');
-
-  btn.disabled=true;
-  btn.classList.add('loading');
-  btn.textContent='Running downstream process...';
-  stepWrap.style.display='flex';
-  stepWrap.style.flexDirection='column';
+  btn.disabled=true;btn.classList.add('loading');btn.textContent='Running downstream process…';
+  stepWrap.style.display='flex';stepWrap.style.flexDirection='column';
 
   try{
     ['checkin','export','mlist'].forEach(id=>{
-      const dot=document.getElementById('sd-'+id);
-      const lbl=document.getElementById('sl-'+id);
+      const dot=document.getElementById('sd-'+id);const lbl=document.getElementById('sl-'+id);
       if(dot){dot.className='step-dot running';dot.textContent='↻';}
       if(lbl)lbl.className='step-row-label';
     });
-
     const result=await api('downstream-process');
-
     ['checkin','export','mlist'].forEach(id=>{
-      const dot=document.getElementById('sd-'+id);
-      const lbl=document.getElementById('sl-'+id);
+      const dot=document.getElementById('sd-'+id);const lbl=document.getElementById('sl-'+id);
       if(dot){dot.className='step-dot done';dot.textContent='✓';}
       if(lbl)lbl.className='step-row-label';
     });
-
     rwMarkups=result?.markups||[];
-    btn.textContent='✓ Project Updated & Metadata Pulled';
-    btn.classList.remove('loading');
+    btn.textContent='✓ Project Updated & Metadata Pulled';btn.classList.remove('loading');
     rwRenderResults();
-
-    try{ await devRefreshLog(); }catch(_err){}
+    try{await devRefreshLog();}catch(_){}
   }catch(err){
     ['checkin','export','mlist'].forEach(id=>{
       const dot=document.getElementById('sd-'+id);
-      const lbl=document.getElementById('sl-'+id);
-      if(dot?.className.includes('running')){
-        dot.className='step-dot error';
-        dot.textContent='✗';
-      }
-      if(lbl)lbl.className='step-row-label';
+      if(dot?.className.includes('running')){dot.className='step-dot error';dot.textContent='✗';}
     });
-    btn.disabled=false;
-    btn.classList.remove('loading');
-    btn.textContent='Update Project Copy & Pull Metadata';
+    btn.disabled=false;btn.classList.remove('loading');btn.textContent='Update Project Copy & Pull Metadata';
     alert(`Downstream processing failed:\n\n${err.message}`);
-    console.error(err);
-
-    try{ await devRefreshLog(); }catch(_err){}
+    try{await devRefreshLog();}catch(_){}
   }
 }
 
-function rwRenderResults(){
-  document.getElementById('rwResults').style.display='flex';
+// ── Results rendering ──────────────────────────────────────────────────────
+const piePalette=['var(--accent)','var(--green)','var(--error)','var(--warn)','#7c3aed','#0891b2','#ec4899','#64748b','#14b8a6','#f97316'];
 
-  const getCI=(obj,key)=>{
-    if(!obj||typeof obj!=='object')return'';
-    const direct=obj[key];
-    if(typeof direct!=='undefined'&&direct!==null&&String(direct).trim()!=='')return String(direct).trim();
-    const foundKey=Object.keys(obj).find(k=>k.toLowerCase()===String(key).toLowerCase());
-    if(!foundKey)return'';
-    const val=obj[foundKey];
-    return typeof val!=='undefined'&&val!==null?String(val).trim():'';
-  };
+function renderPie(chartId,legendId,items,totalLabel){
+  const chart=document.getElementById(chartId);
+  const legend=document.getElementById(legendId);
+  const counts={};
+  items.forEach(item=>{counts[item]=(counts[item]||0)+1;});
+  const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  if(!entries.length){
+    chart.style.background='var(--bg)';
+    chart.innerHTML=`<div class="pie-center"><div class="pie-total">0</div><div class="pie-total-label">${esc(totalLabel)}</div></div>`;
+    legend.innerHTML='<div class="pie-empty">No data available</div>';return;
+  }
+  const total=entries.reduce((sum,[,n])=>sum+n,0);let current=0;
+  const segments=entries.map(([label,count],idx)=>{
+    const start=current;const pct=count/total;current+=pct*360;
+    return{label,count,pct,color:piePalette[idx%piePalette.length],start,end:current};
+  });
+  chart.style.background=`conic-gradient(${segments.map(s=>`${s.color} ${s.start}deg ${s.end}deg`).join(', ')})`;
+  chart.innerHTML=`<div class="pie-center"><div class="pie-total">${total}</div><div class="pie-total-label">${esc(totalLabel)}</div></div>`;
+  legend.innerHTML=segments.map(s=>`<div class="pie-legend-row"><span class="pie-swatch" style="background:${s.color}"></span><span class="pie-label" title="${esc(s.label)}">${esc(s.label)}</span><span class="pie-count">${s.count}</span><span class="pie-pct">${Math.round(s.pct*100)}%</span></div>`).join('');
+}
 
-  const getId=m=>m?.ID||m?.Id||m?.id||'';
-  const byId=new Map(rwMarkups.map(m=>[getId(m),m]).filter(([id])=>id));
+function getCI(obj,key){
+  if(!obj||typeof obj!=='object')return'';
+  const direct=obj[key];
+  if(typeof direct!=='undefined'&&direct!==null&&String(direct).trim()!=='')return String(direct).trim();
+  const fk=Object.keys(obj).find(k=>k.toLowerCase()===String(key).toLowerCase());
+  if(!fk)return'';const val=obj[fk];
+  return typeof val!=='undefined'&&val!==null?String(val).trim():'';
+}
 
+function enrichMarkup(m,byId){
   const getCustomValue=(m,key)=>{
-    if(!m)return'';
-    const selfVal=
-      getCI(m.ExtendedProperties,key)||
-      getCI(m.Custom,key)||
-      getCI(m.CustomColumns,key)||
-      getCI(m.Columns,key)||
-      getCI(m.Metadata,key);
+    const selfVal=getCI(m.ExtendedProperties,key)||getCI(m.Custom,key)||getCI(m.CustomColumns,key)||getCI(m.Columns,key)||getCI(m.Metadata,key);
     if(selfVal)return selfVal;
     const parentId=m.Parent||m.parent||m.ParentID||m.parentId||'';
     if(parentId&&byId.has(parentId)){
       const parent=byId.get(parentId);
-      return (
-        getCI(parent.ExtendedProperties,key)||
-        getCI(parent.Custom,key)||
-        getCI(parent.CustomColumns,key)||
-        getCI(parent.Columns,key)||
-        getCI(parent.Metadata,key)
-      );
-    }
-    return'';
+      return(getCI(parent.ExtendedProperties,key)||getCI(parent.Custom,key)||getCI(parent.CustomColumns,key)||getCI(parent.Columns,key)||getCI(parent.Metadata,key));
+    }return'';
   };
+  const stage=getCustomValue(m,'Review Stage')||m.Status||m.State||'';
+  return{...m,_status:m.Status||m.State||stage||'',_stage:stage,_discipline:getCustomValue(m,'Discipline'),_responsibility:getCustomValue(m,'Responsibility'),_priority:getCustomValue(m,'Priority'),_action:getCustomValue(m,'Action Required'),_due:getCustomValue(m,'Due Date')};
+}
 
-  const getStage=m=>{
-    return getCustomValue(m,'Review Stage')||m.Status||m.State||'';
-  };
-
-  rwMarkups=rwMarkups.map(m=>{
-    const stage=getStage(m);
-    const responsibility=getCustomValue(m,'Responsibility');
-    return{
-      ...m,
-      _status:m.Status||m.State||stage||'',
-      _stage:stage,
-      _discipline:getCustomValue(m,'Discipline'),
-      _responsibility:responsibility,
-      _priority:getCustomValue(m,'Priority'),
-      _action:getCustomValue(m,'Action Required'),
-      _due:getCustomValue(m,'Due Date')
-    };
-  });
+function rwRenderResults(){
+  document.getElementById('rwResults').style.display='flex';
+  const getId=m=>m?.ID||m?.Id||m?.id||'';
+  const byId=new Map(rwMarkups.map(m=>[getId(m),m]).filter(([id])=>id));
+  rwMarkups=rwMarkups.map(m=>enrichMarkup(m,byId));
 
   const statuses=rwMarkups.map(m=>m._status||m._stage).filter(Boolean);
   const responsibilities=rwMarkups.map(m=>m._responsibility).filter(Boolean);
@@ -1219,44 +1489,12 @@ function rwRenderResults(){
     <div class="sum-card"><div class="sum-val error">${critical}</div><div class="sum-label">Critical Items</div></div>
     <div class="sum-card"><div class="sum-val warn">${authors}</div><div class="sum-label">Active Reviewers</div></div>`;
 
-  const piePalette=['var(--accent)','var(--green)','var(--error)','var(--warn)','#7c3aed','#0891b2','#ec4899','#64748b','#14b8a6','#f97316'];
-
-  const renderPie=(chartId,legendId,items,totalLabel)=>{
-    const chart=document.getElementById(chartId);
-    const legend=document.getElementById(legendId);
-    const counts={};
-    items.forEach(item=>{counts[item]=(counts[item]||0)+1;});
-    const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-
-    if(!entries.length){
-      chart.style.background='var(--bg)';
-      chart.innerHTML=`<div class="pie-center"><div class="pie-total">0</div><div class="pie-total-label">${esc(totalLabel)}</div></div>`;
-      legend.innerHTML='<div class="pie-empty">No data available</div>';
-      return;
-    }
-
-    const total=entries.reduce((sum,[,n])=>sum+n,0);
-    let current=0;
-    const segments=entries.map(([label,count],idx)=>{
-      const start=current;
-      const pct=count/total;
-      current+=pct*360;
-      const end=current;
-      return {label,count,pct,color:piePalette[idx%piePalette.length],start,end};
-    });
-
-    chart.style.background=`conic-gradient(${segments.map(s=>`${s.color} ${s.start}deg ${s.end}deg`).join(', ')})`;
-    chart.innerHTML=`<div class="pie-center"><div class="pie-total">${total}</div><div class="pie-total-label">${esc(totalLabel)}</div></div>`;
-    legend.innerHTML=segments.map(s=>`<div class="pie-legend-row"><span class="pie-swatch" style="background:${s.color}"></span><span class="pie-label" title="${esc(s.label)}">${esc(s.label)}</span><span class="pie-count">${s.count}</span><span class="pie-pct">${Math.round(s.pct*100)}%</span></div>`).join('');
-  };
-
   renderPie('rwStatusPie','rwStatusLegend',statuses,'Statuses');
   renderPie('rwResponsibilityPie','rwResponsibilityLegend',responsibilities,'Assignments');
-
   rwRenderTable();
 }
 
-function rwPrioPill(p){
+function prioPill(p){
   if(!p)return`<span class="pill pill-gray">—</span>`;
   if(p.includes('Critical'))return`<span class="pill pill-red">${esc(p.split('–')[0].trim())}</span>`;
   if(p.includes('High'))return`<span class="pill pill-warn">${esc(p.split('–')[0].trim())}</span>`;
@@ -1268,35 +1506,25 @@ function rwPrioPill(p){
 function rwRenderTable(){
   const sorted=[...rwMarkups].sort((a,b)=>{
     const av=String(a[rwSortKey]??''),bv=String(b[rwSortKey]??'');
-    return rwSortDir==='asc'
-      ?av.localeCompare(bv,undefined,{numeric:true})
-      :bv.localeCompare(av,undefined,{numeric:true});
+    return rwSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
   });
-
   document.getElementById('rwResultsTbody').innerHTML=sorted.map(m=>`<tr>
     <td>${m.Page??'—'}</td>
     <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
     <td>${esc(m.Author||'—')}</td>
-    <td>${m._stage?`<span class="pill pill-blue" title="${esc(m._stage)}">${esc(m._stage.length>28?m._stage.slice(0,26)+'…':m._stage)}</span>`:'—'}</td>
+    <td>${m._stage?`<span class="pill pill-blue">${esc(m._stage.length>28?m._stage.slice(0,26)+'…':m._stage)}</span>`:'—'}</td>
     <td>${esc(m._discipline||'—')}</td>
     <td>${esc(m._responsibility||'—')}</td>
-    <td>${rwPrioPill(m._priority)}</td>
+    <td>${prioPill(m._priority)}</td>
     <td title="${esc(m._action||'')}">${esc(m._action||'—')}</td>
     <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
     <td>${esc(m._due||'—')}</td>
   </tr>`).join('');
 }
-function rwSort(k){
-  rwSortDir=(rwSortKey===k&&rwSortDir==='asc')?'desc':'asc';
-  rwSortKey=k;
-  if(rwMarkups.length)rwRenderTable();
-}
+function rwSort(k){rwSortDir=(rwSortKey===k&&rwSortDir==='asc')?'desc':'asc';rwSortKey=k;if(rwMarkups.length)rwRenderTable();}
 
 function rwReset(){
-  rwFiles=[];
-  rwMarkups=[];
-  rwRenderFiles();
-
+  rwFiles=[];rwMarkups=[];rwRenderFiles();
   document.getElementById('rwProgressSection').style.display='none';
   document.getElementById('rwResults').style.display='none';
   document.getElementById('rwSessionBanner').style.display='none';
@@ -1304,379 +1532,299 @@ function rwReset(){
   document.getElementById('rwDownstreamSteps').style.display='none';
   document.getElementById('rwProgressCard').style.border='';
   document.getElementById('rwActions').style.display='flex';
-
+  document.getElementById('rwSessionRollup').style.display='none';
   const btn=document.getElementById('rwStartBtn');
-  btn.disabled=false;
-  btn.textContent='Start Review';
-
+  btn.disabled=false;btn.textContent='Start Review';
   const dbtn=document.getElementById('rwDownstreamBtn');
-  dbtn.disabled=false;
-  dbtn.textContent='Update Project Copy & Pull Metadata';
-  dbtn.classList.remove('loading');
-
+  dbtn.disabled=false;dbtn.textContent='Update Project Copy & Pull Metadata';dbtn.classList.remove('loading');
   document.querySelectorAll('#rwChipBox .chip:not(.primary)').forEach(c=>c.remove());
-
   ['setup','upload','session','checkout','invite','checkin','export','mlist'].forEach(id=>{
     const d=document.getElementById('sd-'+id);
-    if(d){
-      d.className='step-dot';
-      const orig={setup:1,upload:2,session:3,checkout:4,invite:5,checkin:1,export:2,mlist:3};
-      d.textContent=orig[id]||'·';
-    }
-    const l=document.getElementById('sl-'+id);
-    if(l)l.className='step-row-label muted';
+    if(d){d.className='step-dot';const orig={setup:1,upload:2,session:3,checkout:4,invite:5,checkin:1,export:2,mlist:3};d.textContent=orig[id]||'·';}
+    const l=document.getElementById('sl-'+id);if(l)l.className='step-row-label muted';
   });
-
   api('reset').catch(()=>{});
 }
 
-// ── DEVELOPER CONSOLE ─────────────────────────────────────────────────────────
-let devFiles=[];
-let devMarkups=[];
-let devSortKey='Page';
-let devSortDir='asc';
-let devView='table';
-let devLastState=null;
-let devCurrentSnippet='setup-project';
-let devSnippetLocked=false;
+// ═══════════════════════════════════════════════════════════════════════════════
+// TAB 2 — REVIEW PROCESS: DATA
+// ═══════════════════════════════════════════════════════════════════════════════
+let t2AllMarkups=[];
+let t2FilteredMarkups=[];
+let t2SortKey='_session';
+let t2SortDir='asc';
+let t2PollTimer=null;
+let t2CurrentProjectId=null;
+
+// ── Project ID validation (Tab 2) ──────────────────────────────────────────
+function t2ValidateId(){
+  const val=document.getElementById('t2AtkinsId').value.trim().toUpperCase();
+  document.getElementById('t2AtkinsId').value=val.replace(/[^A-Za-z0-9-]/g,'');
+  const status=document.getElementById('t2AtkinsIdStatus');
+  const btn=document.getElementById('t2PullBtn');
+  if(PROJECT_ID_RE.test(val)){
+    status.className='project-id-status ok';status.textContent='✓ Valid';btn.disabled=false;
+  }else if(val){
+    status.className='project-id-status err';status.textContent='Invalid format';btn.disabled=true;
+  }else{
+    status.className='project-id-status hint';status.textContent='e.g. ATK-2024-0001';btn.disabled=true;
+  }
+}
+
+// ── Pull Snapshot ──────────────────────────────────────────────────────────
+async function t2PullSnapshot(){
+  const projectId=document.getElementById('t2AtkinsId').value.trim().toUpperCase();
+  if(!PROJECT_ID_RE.test(projectId)){alert('Invalid Atkins Project ID.');return;}
+
+  t2CurrentProjectId=projectId;
+  const btn=document.getElementById('t2PullBtn');
+  btn.disabled=true;btn.textContent='Pulling…';
+
+  try{
+    // Try to pull live snapshot from the PoC API
+    // In production, this would query the DB for all sessions for this project
+    const state=await fetch('/poc/state').then(r=>r.json());
+
+    // Build synthetic dataset from current PoC state + any markups we have
+    const sessions=t2BuildSessionsFromState(state,projectId);
+    t2AllMarkups=t2BuildMarkupsFromState(state,sessions);
+
+    t2RenderOverview(projectId,sessions,state);
+    t2RenderSessions(sessions);
+    renderPie('t2StatusPie','t2StatusLegend',t2AllMarkups.map(m=>m._stage||m._status).filter(Boolean),'Statuses');
+    t2FilterMarkups();
+
+    document.getElementById('t2Overview').style.display='flex';
+    document.getElementById('t2EmptyState').style.display='none';
+
+    const now=new Date();
+    document.getElementById('t2LastSync').innerHTML=`<span class="t2-sync-badge">Live</span> &nbsp;Last sync: ${now.toLocaleTimeString()}`;
+  }catch(err){
+    alert(`Failed to pull snapshot:\n\n${err.message}`);
+  }finally{
+    btn.disabled=false;btn.textContent='Pull Current Snapshot';
+  }
+}
+
+function t2BuildSessionsFromState(state,projectId){
+  // Build sessions array from PoC state
+  // In production this would come from: SELECT * FROM sessions WHERE atkins_project_id = ?
+  const sessions=[];
+  if(state.sessionId){
+    const fileMap={};
+    (state.sessionFileIds||[]).forEach(sf=>{fileMap[sf.sessionFileId]={...sf};});
+
+    const sessionMarkupCount=(state.markups||[]).length;
+    const statuses=(state.markups||[]).map(m=>m._stage||m._status||m.Status||'').filter(Boolean);
+    const statusCounts={};statuses.forEach(s=>{statusCounts[s]=(statusCounts[s]||0)+1;});
+
+    sessions.push({
+      sessionId:state.sessionId,
+      reviewName:state.stub?.documentId||projectId,
+      files:state.projectFiles||[],
+      sessionFiles:state.sessionFileIds||[],
+      status:state.status||'active',
+      markupCount:sessionMarkupCount,
+      statusCounts,
+      lastPolled:new Date().toISOString(),
+      pollingInterval:parseInt(document.getElementById('rwPolling').value)||0
+    });
+  }
+
+  // If no live session, show a placeholder for demo purposes
+  if(!sessions.length){
+    sessions.push({
+      sessionId:'DEMO-SESSION',
+      reviewName:`${projectId} — Example Review`,
+      files:[{name:'Drawing-A100.pdf',size:2400000},{name:'Drawing-S200.pdf',size:1800000}],
+      sessionFiles:[],
+      status:'active',
+      markupCount:0,
+      statusCounts:{},
+      lastPolled:new Date().toISOString(),
+      pollingInterval:0,
+      isDemo:true
+    });
+  }
+  return sessions;
+}
+
+function t2BuildMarkupsFromState(state,sessions){
+  const getId=m=>m?.ID||m?.Id||m?.id||'';
+  const rawMarkups=state.markups||[];
+  const byId=new Map(rawMarkups.map(m=>[getId(m),m]).filter(([id])=>id));
+
+  return rawMarkups.map(m=>{
+    const enriched=enrichMarkup(m,byId);
+    return{...enriched,_session:state.sessionId||'—'};
+  });
+}
+
+function t2RenderOverview(projectId,sessions,state){
+  document.getElementById('t2ProjectLabel').textContent=state.stub?.description?`Project: ${state.stub.description.split(' — ')[0]}`:`Project Overview`;
+  document.getElementById('t2ProjectIdLabel').textContent=projectId;
+
+  const totalMarkups=sessions.reduce((s,sess)=>s+sess.markupCount,0);
+  const totalFiles=sessions.reduce((s,sess)=>s+(sess.files?.length||0),0);
+  const activeSessionCount=sessions.filter(s=>s.status==='active'||s.status==='triggered'||s.status==='checking-in'||s.status==='inviting').length;
+  const reviewers=[...new Set((state.stub?.reviewers||[]).map(r=>r.email))].length;
+
+  document.getElementById('t2OverviewCards').innerHTML=`
+    <div class="t2-ov-card"><div class="t2-ov-val blue">${sessions.length}</div><div class="t2-ov-label">Total Sessions</div></div>
+    <div class="t2-ov-card"><div class="t2-ov-val green">${totalFiles}</div><div class="t2-ov-label">Files in Review</div></div>
+    <div class="t2-ov-card"><div class="t2-ov-val warn">${totalMarkups}</div><div class="t2-ov-label">Total Markups</div></div>
+    <div class="t2-ov-card"><div class="t2-ov-val gray">${reviewers}</div><div class="t2-ov-label">Reviewers</div></div>`;
+}
+
+function t2RenderSessions(sessions){
+  const statusPill=s=>{
+    if(s==='active'||s==='inviting')return`<span class="pill pill-green">Active</span>`;
+    if(s==='triggered'||s==='creating')return`<span class="pill pill-blue">Starting</span>`;
+    if(s==='complete')return`<span class="pill pill-gray">Complete</span>`;
+    if(s==='error')return`<span class="pill pill-red">Error</span>`;
+    return`<span class="pill pill-gray">${esc(s)}</span>`;
+  };
+
+  document.getElementById('t2SessionsTbody').innerHTML=sessions.map((sess,i)=>{
+    const fileCount=sess.files?.length||0;
+    const lastPoll=sess.lastPolled?new Date(sess.lastPolled).toLocaleString():'—';
+    const filesHtml=sess.files?.length
+      ?sess.files.map(f=>{
+        const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
+        return`<div class="session-file-item"><span class="sf-icon">📄</span><span class="session-file-name">${esc(f.name)}</span><span class="session-file-size">${sz}</span></div>`;
+      }).join('')
+      :'<div style="color:var(--text-3);font-size:12px;padding:8px 0;">No files tracked</div>';
+
+    return`
+      <tr>
+        <td><span style="font-family:var(--mono);font-size:12px;color:var(--accent);">${esc(sess.sessionId)}</span>${sess.isDemo?'<span style="margin-left:6px;font-size:10px;color:var(--text-3);font-weight:600;text-transform:uppercase;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;">demo</span>':''}</td>
+        <td style="font-weight:500;">${esc(sess.reviewName)}</td>
+        <td><span style="font-family:var(--mono);font-size:12px;color:var(--text-2);">${fileCount}</span></td>
+        <td>${statusPill(sess.status)}</td>
+        <td><span style="font-family:var(--mono);font-size:12px;color:var(--text-2);">${sess.markupCount}</span></td>
+        <td style="color:var(--text-3);font-size:12px;">${lastPoll}</td>
+        <td><button class="session-expand-btn" onclick="t2ToggleFiles(${i})">▾ Files</button></td>
+      </tr>
+      <tr class="session-files-row" id="t2-session-files-${i}">
+        <td colspan="7" style="padding:0;">
+          <div class="session-files-inner">${filesHtml}</div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function t2ToggleFiles(i){
+  const row=document.getElementById(`t2-session-files-${i}`);
+  row.classList.toggle('open');
+  const btn=row.previousElementSibling.querySelector('.session-expand-btn');
+  if(btn)btn.textContent=row.classList.contains('open')?'▴ Files':'▾ Files';
+}
+
+function t2FilterMarkups(){
+  const q=(document.getElementById('t2MarkupSearch').value||'').toLowerCase();
+  t2FilteredMarkups=q
+    ?t2AllMarkups.filter(m=>[m.Author,m.Subject,m._status,m._stage,m._responsibility,m.Comment,m._session].some(v=>v&&String(v).toLowerCase().includes(q)))
+    :[...t2AllMarkups];
+  document.getElementById('t2MarkupCount').textContent=`${t2FilteredMarkups.length} markup${t2FilteredMarkups.length!==1?'s':''}`;
+  t2RenderMarkupsTable();
+}
+
+function t2RenderMarkupsTable(){
+  const sorted=[...t2FilteredMarkups].sort((a,b)=>{
+    const av=String(a[t2SortKey]??''),bv=String(b[t2SortKey]??'');
+    return t2SortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
+  });
+
+  if(!sorted.length){
+    document.getElementById('t2MarkupsTbody').innerHTML=`<tr><td colspan="8" class="markup-empty">No markups found${document.getElementById('t2MarkupSearch').value?' for this filter':' — run downstream processing to populate data'}.</td></tr>`;
+    return;
+  }
+
+  document.getElementById('t2MarkupsTbody').innerHTML=sorted.map(m=>`<tr>
+    <td><span style="font-family:var(--mono);font-size:10px;color:var(--accent);background:var(--accent-l);padding:1px 6px;border-radius:4px;">${esc((m._session||'').toString().slice(0,12))}</span></td>
+    <td>${m.Page??'—'}</td>
+    <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
+    <td>${esc(m.Author||'—')}</td>
+    <td>${m._stage?`<span class="pill pill-blue">${esc(m._stage.length>24?m._stage.slice(0,22)+'…':m._stage)}</span>`:'—'}</td>
+    <td>${esc(m._responsibility||'—')}</td>
+    <td>${prioPill(m._priority)}</td>
+    <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
+  </tr>`).join('');
+}
+function t2Sort(k){t2SortDir=(t2SortKey===k&&t2SortDir==='asc')?'desc':'asc';t2SortKey=k;t2RenderMarkupsTable();}
+
+// ── Polling ────────────────────────────────────────────────────────────────
+function t2UpdatePolling(){
+  const intervalHours=parseInt(document.getElementById('t2PollInterval').value)||0;
+  const indicator=document.getElementById('t2PollIndicator');
+  const label=document.getElementById('t2PollRunningLabel');
+
+  if(t2PollTimer){clearInterval(t2PollTimer);t2PollTimer=null;}
+
+  if(intervalHours>0&&t2CurrentProjectId){
+    indicator.className='poll-indicator active';
+    label.className='poll-running-label active';
+    label.textContent=`Auto-polling every ${intervalHours===1?'hour':intervalHours+' hours'}`;
+    t2PollTimer=setInterval(()=>{
+      if(t2CurrentProjectId)t2PullSnapshot();
+    },intervalHours*60*60*1000);
+  }else{
+    indicator.className='poll-indicator';
+    label.className='poll-running-label';
+    label.textContent='Auto-polling off';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DEVELOPER CONSOLE
+// ═══════════════════════════════════════════════════════════════════════════════
+let devFiles=[];let devMarkups=[];let devSortKey='Page';let devSortDir='asc';
+let devView='table';let devLastState=null;let devCurrentSnippet='setup-project';let devSnippetLocked=false;
 
 const DEV_SNIPPETS={
-  'setup-project':{
-    endpoint:'setup-project',
-    desc:'Creates or verifies the Studio Project structure, including the working folders and resources used by the rest of the roundtrip flow.',
-    code:`STEP: Setup Project
-METHOD: POST
-PATH: /poc/setup-project
-
-WHY THIS STEP EXISTS
-- Creates or verifies the base Studio Project structure.
-- Confirms the target project and the folders used later in the workflow.
-- Seeds reusable resources such as custom-columns.xml when your backend supports it.
-
-EXPECTED INPUTS
-- externalDocumentId: ${document.getElementById('devDocId')?.value || 'DOC-001'}
-- sessionDescription: ${document.getElementById('devDesc')?.value || 'Design review'}
-
-TYPICAL RESPONSE HIGHLIGHTS
-- projectId
-- review-documents folder id
-- resources folder id
-- resource seed status
-
-REFERENCE EXAMPLE
-fetch('/poc/setup-project', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    externalDocumentId: 'DOC-001',
-    description: 'Design review'
-  })
-});`
-  },
-  'upload-to-project':{
-    endpoint:'upload-to-project',
-    desc:'Uploads the staged PDF files into the Studio Project so they can later be checked out into the active Session.',
-    code:`STEP: Upload to Project
-METHOD: POST
-PATH: /poc/upload-to-project
-CONTENT-TYPE: multipart/form-data
-
-WHY THIS STEP EXISTS
-- Sends selected PDFs from the UI into the Studio Project.
-- Creates the file records that will later be used for checkout into the Session.
-
-EXPECTED INPUTS
-- files[] from the PDF upload zone
-
-TYPICAL RESPONSE HIGHLIGHTS
-- uploaded file names
-- project file ids
-- upload status per file
-
-REFERENCE EXAMPLE
-const fd = new FormData();
-files.forEach(file => fd.append('files', file, file.name));
-
-fetch('/poc/upload-to-project', {
-  method: 'POST',
-  body: fd
-});`
-  },
-  'trigger':{
-    endpoint:'trigger',
-    desc:'Initializes the run state for the current roundtrip so later steps can read and update shared context.',
-    code:`STEP: Trigger Event
-METHOD: POST
-PATH: /poc/trigger
-
-WHY THIS STEP EXISTS
-- Starts the orchestration state for the current run.
-- Useful when your backend stores the active project, files, and downstream IDs in memory or a temp store.
-
-TYPICAL RESPONSE HIGHLIGHTS
-- run initialized
-- state object created or refreshed
-- downstream steps unlocked`
-  },
-  'create-session':{
-    endpoint:'create-session',
-    desc:'Creates the Studio Session used for live review and stores the returned session identifier in runtime state.',
-    code:`STEP: Create Session
-METHOD: POST
-PATH: /poc/create-session
-
-WHY THIS STEP EXISTS
-- Creates the live Studio Session where reviewers work in Revu.
-- Uses the configured external document id and description as reference context.
-
-EXPECTED INPUTS
-- externalDocumentId: ${document.getElementById('devDocId')?.value || 'DOC-001'}
-- sessionDescription: ${document.getElementById('devDesc')?.value || 'Design review'}
-
-TYPICAL RESPONSE HIGHLIGHTS
-- sessionId
-- session name
-- description
-- status
-
-REFERENCE EXAMPLE
-fetch('/poc/create-session', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    documentId: 'DOC-001',
-    description: 'Design review'
-  })
-});`
-  },
-  'register-webhook':{
-    endpoint:'register-webhook',
-    desc:'Registers a subscription or webhook callback so the app can observe review-related events during the workflow.',
-    code:`STEP: Register Webhook
-METHOD: POST
-PATH: /poc/register-webhook
-
-WHY THIS STEP EXISTS
-- Subscribes the app to callback events.
-- Helps demonstrate the event-driven portion of the reference architecture.
-
-TYPICAL RESPONSE HIGHLIGHTS
-- webhookId or subscriptionId
-- callback URL
-- registration status
-
-REFERENCE EXAMPLE
-fetch('/poc/register-webhook', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' }
-});`
-  },
-  'checkout-to-session':{
-    endpoint:'checkout-to-session',
-    desc:'Checks the uploaded Project files out into the active Studio Session so reviewers can mark them up in Revu.',
-    code:`STEP: Checkout to Session
-METHOD: POST
-PATH: /poc/checkout-to-session
-
-WHY THIS STEP EXISTS
-- Moves the uploaded Project files into the active Session.
-- Connects the document upload phase to the live review phase.
-
-EXPECTED INPUTS
-- active sessionId
-- uploaded file ids
-
-TYPICAL RESPONSE HIGHLIGHTS
-- session file ids
-- checkout confirmation
-- file-to-session mapping`
-  },
-  'invite-reviewers':{
-    endpoint:'invite-reviewers',
-    desc:'Adds or invites the reviewer emails configured in the UI so participants can access the active Session.',
-    code:`STEP: Invite Reviewers
-METHOD: POST
-PATH: /poc/invite-reviewers
-
-WHY THIS STEP EXISTS
-- Adds users or sends invitations for the active Session.
-- Uses the reviewer chip list configured at the top of the screen.
-
-EXPECTED INPUTS
-- reviewerEmails[]
-- active sessionId
-
-TYPICAL RESPONSE HIGHLIGHTS
-- invited users
-- add/invite status
-- skipped duplicates or invalid emails`
-  },
-  'review':{
-    endpoint:'review',
-    desc:'Manual handoff step where reviewers enter Revu, join the Session, and complete markup activity before extraction begins.',
-    code:`STEP: Review in Revu
-TYPE: Manual / non-API step
-
-WHY THIS STEP EXISTS
-- Reviewers join the Session in Bluebeam Revu.
-- Markups, states, and custom columns are created or updated during this phase.
-
-MANUAL ACTIONS
-- Join the Session in Revu
-- Add markups
-- Update statuses / states
-- Return here and click Mark Done`
-  },
-  'downstream-process':{
-    endpoint:'downstream-process',
-    desc:'Runs the post-review extraction path and returns the structured markup payload used by the dashboard and reporting UI.',
-    code:`STEP: Downstream Process
-METHOD: POST
-PATH: /poc/downstream-process
-
-WHY THIS STEP EXISTS
-- Pulls review results back into your app after the Session work is complete.
-- Typically updates the Project copy, exports markup XML, and assembles structured metadata.
-
-TYPICAL RESPONSE HIGHLIGHTS
-- markups[]
-- file metadata
-- custom column values
-- export artifact paths`
-  },
-  'finalize':{
-    endpoint:'finalize',
-    desc:'Moves the Session toward closeout once active review is complete and downstream extraction has been performed.',
-    code:`STEP: Finalize Session
-METHOD: POST
-PATH: /poc/finalize
-
-WHY THIS STEP EXISTS
-- Closes or transitions the working Session.
-- Keeps the roundtrip flow tidy before final artifact generation.
-
-TYPICAL RESPONSE HIGHLIGHTS
-- finalization status
-- session closeout state`
-  },
-  'snapshot':{
-    endpoint:'snapshot',
-    desc:'Generates a merged snapshot PDF and returns downloadable artifacts for the completed review package.',
-    code:`STEP: Snapshot PDF
-METHOD: POST
-PATH: /poc/snapshot
-
-WHY THIS STEP EXISTS
-- Produces a merged artifact after review.
-- Gives the user something tangible to download from the flow.
-
-TYPICAL RESPONSE HIGHLIGHTS
-- downloads[]
-- merged PDF path
-- artifact names
-
-REFERENCE EXAMPLE
-fetch('/poc/snapshot', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' }
-});`
-  },
-  'cleanup':{
-    endpoint:'cleanup',
-    desc:'Clears temporary state and leaves the app ready for another end-to-end execution.',
-    code:`STEP: Cleanup
-METHOD: POST
-PATH: /poc/cleanup
-
-WHY THIS STEP EXISTS
-- Clears temporary run context.
-- Resets the environment for another demo or test cycle.
-
-TYPICAL RESPONSE HIGHLIGHTS
-- temp state removed
-- environment reset confirmation`
-  }
+  'setup-project':{endpoint:'setup-project',desc:'Creates or verifies the Studio Project structure, including working folders and resources used by the rest of the roundtrip flow.',code:`STEP: Setup Project\nMETHOD: POST\nPATH: /poc/setup-project\n\nWHY THIS STEP EXISTS\n- Creates or verifies the base Studio Project structure.\n- Confirms the target project and folders used later in the workflow.\n- Seeds reusable resources such as custom-columns.xml.\n\nTYPICAL RESPONSE HIGHLIGHTS\n- projectId\n- review-documents folder id\n- resources folder id\n- resource seed status`},
+  'upload-to-project':{endpoint:'upload-to-project',desc:'Uploads the staged PDF files into the Studio Project so they can be checked out into the active Session.',code:`STEP: Upload to Project\nMETHOD: POST\nPATH: /poc/upload-to-project\nCONTENT-TYPE: multipart/form-data\n\nTYPICAL RESPONSE HIGHLIGHTS\n- uploaded file names\n- project file ids\n- upload status per file`},
+  'trigger':{endpoint:'trigger',desc:'Initializes the run state for the current roundtrip so later steps can read and update shared context.',code:`STEP: Trigger Event\nMETHOD: POST\nPATH: /poc/trigger\n\nTYPICAL RESPONSE HIGHLIGHTS\n- run initialized\n- state object created or refreshed`},
+  'create-session':{endpoint:'create-session',desc:'Creates the Studio Session used for live review and stores the returned session identifier in runtime state.',code:`STEP: Create Session\nMETHOD: POST\nPATH: /poc/create-session\n\nTYPICAL RESPONSE HIGHLIGHTS\n- sessionId\n- session name\n- description\n- status`},
+  'register-webhook':{endpoint:'register-webhook',desc:'Registers a subscription or webhook callback so the app can observe review-related events during the workflow.',code:`STEP: Register Webhook\nMETHOD: POST\nPATH: /poc/register-webhook\n\nTYPICAL RESPONSE HIGHLIGHTS\n- webhookId or subscriptionId\n- callback URL\n- registration status`},
+  'checkout-to-session':{endpoint:'checkout-to-session',desc:'Checks the uploaded Project files out into the active Studio Session so reviewers can mark them up in Revu.',code:`STEP: Checkout to Session\nMETHOD: POST\nPATH: /poc/checkout-to-session\n\nTYPICAL RESPONSE HIGHLIGHTS\n- session file ids\n- checkout confirmation\n- file-to-session mapping`},
+  'invite-reviewers':{endpoint:'invite-reviewers',desc:'Adds or invites the reviewer emails configured in the UI so participants can access the active Session.',code:`STEP: Invite Reviewers\nMETHOD: POST\nPATH: /poc/invite-reviewers\n\nTYPICAL RESPONSE HIGHLIGHTS\n- invited users\n- add/invite status\n- skipped duplicates`},
+  'review':{endpoint:'review',desc:'Manual handoff step where reviewers enter Revu, join the Session, and complete markup activity before extraction begins.',code:`STEP: Review in Revu\nTYPE: Manual / non-API step\n\nMANUAL ACTIONS\n- Join the Session in Revu\n- Add markups\n- Update statuses / states\n- Return here and click Mark Done`},
+  'downstream-process':{endpoint:'downstream-process',desc:'Runs the post-review extraction path and returns the structured markup payload used by the dashboard and reporting UI.',code:`STEP: Downstream Process\nMETHOD: POST\nPATH: /poc/downstream-process\n\nTYPICAL RESPONSE HIGHLIGHTS\n- markups[]\n- file metadata\n- custom column values\n- export artifact paths`},
+  'finalize':{endpoint:'finalize',desc:'Moves the Session toward closeout once active review is complete and downstream extraction has been performed.',code:`STEP: Finalize Session\nMETHOD: POST\nPATH: /poc/finalize\n\nTYPICAL RESPONSE HIGHLIGHTS\n- finalization status\n- session closeout state`},
+  'snapshot':{endpoint:'snapshot',desc:'Generates a merged snapshot PDF and returns downloadable artifacts for the completed review package.',code:`STEP: Snapshot PDF\nMETHOD: POST\nPATH: /poc/snapshot\n\nTYPICAL RESPONSE HIGHLIGHTS\n- downloads[]\n- merged PDF path\n- artifact names`},
+  'cleanup':{endpoint:'cleanup',desc:'Clears temporary state and leaves the app ready for another end-to-end execution.',code:`STEP: Cleanup\nMETHOD: POST\nPATH: /poc/cleanup\n\nTYPICAL RESPONSE HIGHLIGHTS\n- temp state removed\n- environment reset confirmation`}
 };
 
 function devFileSelect(e){devAddFiles(Array.from(e.target.files));e.target.value='';}
-function devDrop(e){
-  e.preventDefault();
-  document.getElementById('devUploadZone').classList.remove('drag-over');
-  devAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));
-}
-function devAddFiles(files){
-  files.forEach(f=>{
-    if(!devFiles.find(s=>s.name===f.name))devFiles.push({file:f,name:f.name,size:f.size,status:'staged'});
-  });
-  devRenderFiles();
-}
-function devRenderFiles(){
-  document.getElementById('devStagedFiles').innerHTML=devFiles.map(f=>{
-    const st=f.status==='ok'?`<span class="dev-staged-ok">✓</span>`:f.status==='err'?`<span class="dev-staged-err">✗</span>`:'·';
-    return`<div class="dev-staged-file">${st} ${esc(f.name)}</div>`;
-  }).join('');
-}
+function devDrop(e){e.preventDefault();document.getElementById('devUploadZone').classList.remove('drag-over');devAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));}
+function devAddFiles(files){files.forEach(f=>{if(!devFiles.find(s=>s.name===f.name))devFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});devRenderFiles();}
+function devRenderFiles(){document.getElementById('devStagedFiles').innerHTML=devFiles.map(f=>{const st=f.status==='ok'?`<span class="dev-staged-ok">✓</span>`:f.status==='err'?`<span class="dev-staged-err">✗</span>`:'·';return`<div class="dev-staged-file">${st} ${esc(f.name)}</div>`;}).join('');}
 function devChipKey(e){
-  if(e.key==='Enter'||e.key===','){
-    e.preventDefault();
-    devAddChip(e.target.value.trim().replace(/,$/,''));
-    e.target.value='';
-  }
-  if(e.key==='Backspace'&&!e.target.value){
-    const chips=[...document.querySelectorAll('#devChipBox .chip:not(.primary)')];
-    if(chips.length){
-      const last=chips[chips.length-1];
-      api('remove-reviewer',undefined,{email:last.dataset.email}).catch(()=>{});
-      last.remove();
-    }
-  }
+  if(e.key==='Enter'||e.key===','){e.preventDefault();devAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
+  if(e.key==='Backspace'&&!e.target.value){const chips=[...document.querySelectorAll('#devChipBox .chip:not(.primary)')];if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email}).catch(()=>{});last.remove();}}
 }
 function devAddChip(email){
   if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
   if([...document.querySelectorAll('#devChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const c=document.createElement('span');
-  c.className='chip';
-  c.dataset.email=email;
-  c.style.fontSize='11px';
+  const c=document.createElement('span');c.className='chip';c.dataset.email=email;c.style.fontSize='11px';
   c.innerHTML=`${esc(email)} <button class="chip-x" onclick="devRemoveChip(this,'${esc(email)}')">×</button>`;
   document.getElementById('devChipBox').insertBefore(c,document.getElementById('devChipInput'));
   api('configure',undefined,{reviewerEmail:email}).catch(()=>{});
 }
-function devRemoveChip(btn,email){
-  btn.closest('.chip').remove();
-  api('remove-reviewer',undefined,{email}).catch(()=>{});
-}
-function devConfig(){
-  const docId=document.getElementById('devDocId').value.trim();
-  const desc=document.getElementById('devDesc').value.trim();
-  const body={};
-  if(docId)body.documentId=docId;
-  if(desc)body.description=desc;
-  if(Object.keys(body).length)api('configure',undefined,body).catch(()=>{});
-}
+function devRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email}).catch(()=>{});}
+function devConfig(){const docId=document.getElementById('devDocId').value.trim();const desc=document.getElementById('devDesc').value.trim();const body={};if(docId)body.documentId=docId;if(desc)body.description=desc;if(Object.keys(body).length)api('configure',undefined,body).catch(()=>{});}
 
 function devSetNode(endpoint,state){
-  const node=document.getElementById('fn-'+endpoint);
-  const status=document.getElementById('fs-'+endpoint);
+  const node=document.getElementById('fn-'+endpoint);const status=document.getElementById('fs-'+endpoint);
   if(!node||!status)return;
-
   node.className='fc-node'+(state==='manual'?' manual':'');
-  if(state==='running')node.classList.add('running');
-  else if(state==='done')node.classList.add('done');
-  else if(state==='error')node.classList.add('error');
-
-  status.className='fc-node-status '+state;
-  status.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'·';
-
+  if(state==='running')node.classList.add('running');else if(state==='done')node.classList.add('done');else if(state==='error')node.classList.add('error');
+  status.className='fc-node-status '+state;status.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'·';
   const btn=node.querySelector('.fc-node-btn');
   if(btn&&state==='done'){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
-  if(btn&&state==='running'){btn.disabled=true;btn.textContent='Running...';}
-  if(btn&&state!=='running'&&state!=='done'){
-    btn.disabled=false;
-    btn.textContent=node.classList.contains('manual')?'Mark Done':'Run';
-    if(node.classList.contains('manual'))btn.className='fc-node-btn manual-btn';
-    else btn.className='fc-node-btn';
-  }
+  if(btn&&state==='running'){btn.disabled=true;btn.textContent='Running…';}
+  if(btn&&state!=='running'&&state!=='done'){btn.disabled=false;btn.textContent=node.classList.contains('manual')?'Mark Done':'Run';if(node.classList.contains('manual'))btn.className='fc-node-btn manual-btn';else btn.className='fc-node-btn';}
 }
 
 async function devFire(endpoint){
@@ -1684,219 +1832,70 @@ async function devFire(endpoint){
   try{
     const data=await api(endpoint);
     devSetNode(endpoint,'done');
-
-    if((endpoint==='run-markuplist-job'||endpoint==='downstream-process')&&data.markups){
-      devMarkups=data.markups;
-      devRenderDevMarkups();
-    }
-
+    if((endpoint==='run-markuplist-job'||endpoint==='downstream-process')&&data.markups){devMarkups=data.markups;devRenderDevMarkups();}
     if(endpoint==='snapshot'&&data.downloads?.length){
       document.getElementById('devDownloads').style.display='block';
-      document.getElementById('devDownloadLinks').innerHTML=data.downloads.map(d=>
-        `<a href="${esc(d.path)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--green-l);border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:13px;font-weight:500;text-decoration:none;">⬇ ${esc(d.name)}</a>`
-      ).join('');
+      document.getElementById('devDownloadLinks').innerHTML=data.downloads.map(d=>`<a href="${esc(d.path)}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--green-l);border:1px solid var(--green);border-radius:8px;color:var(--green);font-size:13px;font-weight:500;text-decoration:none;">⬇ ${esc(d.name)}</a>`).join('');
     }
-
     await devRefreshLog();
-  }catch(err){
-    devSetNode(endpoint,'error');
-    await devRefreshLog();
-    alert(`${endpoint} failed:\n\n${err.message}`);
-    console.error(err);
-  }
+  }catch(err){devSetNode(endpoint,'error');await devRefreshLog();alert(`${endpoint} failed:\n\n${err.message}`);}
 }
 
 async function devUpload(){
-  const pending=devFiles.filter(f=>f.status==='staged');
-  if(!pending.length){alert('No files staged.');return;}
-
+  const pending=devFiles.filter(f=>f.status==='staged');if(!pending.length){alert('No files staged.');return;}
   devSetNode('upload-to-project','running');
-  const fd=new FormData();
-  pending.forEach(f=>fd.append('files',f.file,f.name));
-
+  const fd=new FormData();pending.forEach(f=>fd.append('files',f.file,f.name));
   try{
     const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
-    const d=await r.json();
-    if(!r.ok)throw new Error(d.error);
-
-    (d.uploaded||[]).forEach(u=>{
-      const sf=devFiles.find(f=>f.name===u.name);
-      if(sf)sf.status='ok';
-    });
-
-    devRenderFiles();
-    devSetNode('upload-to-project','done');
-    await devRefreshLog();
-  }catch(err){
-    devFiles.filter(f=>f.status==='staged').forEach(f=>f.status='err');
-    devRenderFiles();
-    devSetNode('upload-to-project','error');
-    await devRefreshLog();
-    alert(`upload-to-project failed:\n\n${err.message}`);
-    console.error(err);
-  }
+    const d=await r.json();if(!r.ok)throw new Error(d.error);
+    (d.uploaded||[]).forEach(u=>{const sf=devFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
+    devRenderFiles();devSetNode('upload-to-project','done');await devRefreshLog();
+  }catch(err){devFiles.filter(f=>f.status==='staged').forEach(f=>f.status='err');devRenderFiles();devSetNode('upload-to-project','error');await devRefreshLog();alert(`upload-to-project failed:\n\n${err.message}`);}
 }
 
 function devMarkReviewDone(){
-  const node=document.getElementById('fn-review');
-  const status=document.getElementById('fs-review');
+  const node=document.getElementById('fn-review');const status=document.getElementById('fs-review');
   if(node){node.classList.remove('manual');node.classList.add('done');}
   if(status){status.className='fc-node-status done';status.textContent='✓';}
-  const btn=node?.querySelector('.fc-node-btn');
-  if(btn){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
+  const btn=node?.querySelector('.fc-node-btn');if(btn){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
   devShowSnippet('review');
 }
 
 function devResolveStateValue(state,keys=[]){
-  for(const key of keys){
-    if(!key)continue;
-    const parts=key.split('.');
-    let cur=state;
-    let found=true;
-    for(const p of parts){
-      if(cur&&typeof cur==='object'&&p in cur)cur=cur[p];
-      else{found=false;break;}
-    }
-    if(found&&cur!==undefined&&cur!==null&&String(cur)!=='')return cur;
-  }
-  return '';
+  for(const key of keys){if(!key)continue;const parts=key.split('.');let cur=state;let found=true;for(const p of parts){if(cur&&typeof cur==='object'&&p in cur)cur=cur[p];else{found=false;break;}}if(found&&cur!==undefined&&cur!==null&&String(cur)!=='')return cur;}return'';
 }
-
 function devRenderStatePanel(state){
   const cards=[
     {label:'Project ID',value:devResolveStateValue(state,['projectId','project.id'])},
     {label:'Session ID',value:devResolveStateValue(state,['sessionId','session.id'])},
-    {label:'Webhook ID',value:devResolveStateValue(state,['webhookId','subscriptionId','webhook.id','subscription.id'])},
-    {label:'Uploaded Files',value:devResolveStateValue(state,['fileIds.length','files.length'])||devFiles.filter(f=>f.status==='ok').length||''},
+    {label:'Webhook ID',value:devResolveStateValue(state,['webhookId','subscriptionId'])},
+    {label:'Uploaded Files',value:devFiles.filter(f=>f.status==='ok').length||''},
     {label:'External Document ID',value:document.getElementById('devDocId').value.trim()||'DOC-001 (placeholder)',wide:true},
     {label:'Session Description',value:document.getElementById('devDesc').value.trim()||'Design review (placeholder)',wide:true}
   ];
-
-  const html=cards.map(card=>{
-    const value=(card.value===0||card.value)?String(card.value):'—';
-    return `<div class="dev-state-card ${card.wide?'wide':''}"><div class="dev-state-label">${esc(card.label)}</div><div class="dev-state-value mono">${esc(value)}</div></div>`;
-  }).join('');
-
-  document.getElementById('devStateGrid').innerHTML=html;
-}
-
-function devSelectNode(endpoint){
-  document.querySelectorAll('.fc-node.selected').forEach(n=>n.classList.remove('selected'));
-  const node=document.querySelector(`.fc-node[data-endpoint="${endpoint}"]`);
-  if(node)node.classList.add('selected');
-}
-
-function devSnippetText(item){
-  return `${item.endpoint}
-
-${item.desc}
-
-${item.code}`;
+  document.getElementById('devStateGrid').innerHTML=cards.map(card=>`<div class="dev-state-card ${card.wide?'wide':''}"><div class="dev-state-label">${esc(card.label)}</div><div class="dev-state-value mono">${esc(String(card.value===0||card.value?card.value:'—'))}</div></div>`).join('');
 }
 
 function devShowSnippet(endpoint,lock=false){
-  if(lock){
-    devSnippetLocked=true;
-    devCurrentSnippet=endpoint;
-    devSelectNode(endpoint);
-  }
-  const active = lock ? endpoint : (devSnippetLocked ? devCurrentSnippet : endpoint);
+  if(lock){devSnippetLocked=true;devCurrentSnippet=endpoint;document.querySelectorAll('.fc-node.selected').forEach(n=>n.classList.remove('selected'));const node=document.querySelector(`.fc-node[data-endpoint="${endpoint}"]`);if(node)node.classList.add('selected');}
+  const active=lock?endpoint:(devSnippetLocked?devCurrentSnippet:endpoint);
   const item=DEV_SNIPPETS[active]||DEV_SNIPPETS['setup-project'];
   document.getElementById('devSnippetEndpoint').textContent=item.endpoint;
-  document.getElementById('devSnippetDesc').textContent=item.desc + (devSnippetLocked ? '  Click another tile to switch the pinned reference.' : '');
+  document.getElementById('devSnippetDesc').textContent=item.desc;
   document.getElementById('devSnippetCode').textContent=item.code;
 }
 
-async function devCopySnippet(){
-  const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];
-  try{
-    await navigator.clipboard.writeText(devSnippetText(item));
-    const btn=document.getElementById('devCopySnippetBtn');
-    btn.textContent='✓ Copied';
-    setTimeout(()=>{btn.textContent='⎘ Copy';},1800);
-  }catch{}
-}
-
-function devDownloadSnippet(){
-  const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];
-  const blob=new Blob([devSnippetText(item)],{type:'text/plain;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const safe=(item.endpoint||'bluebeam-endpoint').replace(/[^a-z0-9-_]+/gi,'-').toLowerCase();
-  a.href=url;
-  a.download=`${safe}-reference.txt`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-
-async function devCopyLogs(){
-  const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')]
-    .map(r=>r.innerText.trim())
-    .join('\n');
-  if(!rows)return;
-  try{await navigator.clipboard.writeText(rows);}catch{}
-}
-
-async function devCopyWorkflowSummary(){
-  const summary=`Bluebeam Studio Roundtrip Reference App
-
-Setup
-- Seed or verify Studio Project structure
-- Upload PDFs into the project
-
-Session
-- Trigger session orchestration
-- Create Session
-- Register webhook
-- Check out documents into the Session
-- Invite reviewers
-
-Extraction
-- Run downstream processing
-- Finalize and snapshot artifacts
-- Pull structured markup outputs back into the UI
-
-Resources
-- Dev Portal: https://developers.bluebeam.com/s/?language=en_US
-- Getting Started: https://support.bluebeam.com/developer/getting-started-dev-portal.html
-- GitHub Repo: https://github.com/placeholder-org/bluebeam-roundtrip-reference`;
-  try{
-    await navigator.clipboard.writeText(summary);
-  }catch{}
-}
-
-function devInitNodeHover(){
-  document.querySelectorAll('.fc-node[data-endpoint]').forEach(node=>{
-    node.addEventListener('mouseenter',()=>{ if(!devSnippetLocked) devShowSnippet(node.dataset.endpoint); });
-    node.addEventListener('focusin',()=>{ if(!devSnippetLocked) devShowSnippet(node.dataset.endpoint); });
-    node.addEventListener('click',(e)=>{
-      if(e.target.closest('.fc-node-btn')) return;
-      devShowSnippet(node.dataset.endpoint,true);
-    });
-    node.setAttribute('tabindex','0');
-    node.addEventListener('keydown',(e)=>{
-      if(e.key==='Enter' || e.key===' '){
-        e.preventDefault();
-        devShowSnippet(node.dataset.endpoint,true);
-      }
-    });
-  });
-}
+function devSnippetText(item){return`${item.endpoint}\n\n${item.desc}\n\n${item.code}`;}
+async function devCopySnippet(){const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];try{await navigator.clipboard.writeText(devSnippetText(item));const btn=document.getElementById('devCopySnippetBtn');btn.textContent='✓ Copied';setTimeout(()=>{btn.textContent='⎘ Copy';},1800);}catch{}}
+function devDownloadSnippet(){const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];const blob=new Blob([devSnippetText(item)],{type:'text/plain;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');const safe=(item.endpoint||'endpoint').replace(/[^a-z0-9-_]+/gi,'-').toLowerCase();a.href=url;a.download=`${safe}-reference.txt`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+async function devCopyLogs(){const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')].map(r=>r.innerText.trim()).join('\n');if(!rows)return;try{await navigator.clipboard.writeText(rows);}catch{}}
+async function devCopyWorkflowSummary(){const s=`Bluebeam Studio Roundtrip Reference App\n\nSetup\n- Seed or verify Studio Project structure\n- Upload PDFs into the project\n\nSession\n- Trigger session orchestration\n- Create Session\n- Register webhook\n- Check out documents into the Session\n- Invite reviewers\n\nExtraction\n- Run downstream processing\n- Finalize and snapshot artifacts\n- Pull structured markup outputs back into the UI\n\nResources\n- Dev Portal: https://developers.bluebeam.com/s/?language=en_US\n- Getting Started: https://support.bluebeam.com/developer/getting-started-dev-portal.html\n- GitHub Repo: https://github.com/placeholder-org/bluebeam-roundtrip-reference`;try{await navigator.clipboard.writeText(s);}catch{}}
 
 async function devRefreshLog(){
-  const state=await fetch('/poc/state').then(r=>r.json());
-  devLastState=state;
-  devRenderStatePanel(state||{});
+  const state=await fetch('/poc/state').then(r=>r.json());devLastState=state;devRenderStatePanel(state||{});
   if(state.log?.length){
-    document.getElementById('devLogEntries').innerHTML=[...state.log].reverse().slice(0,40).map(e=>{
-      const t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});
-      return`<div class="dev-log-entry"><span class="dev-log-time">${t}</span><span class="dev-log-msg ${e.type||'info'}">${esc(e.msg)}</span></div>`;
-    }).join('');
-  }else{
-    document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';
-  }
+    document.getElementById('devLogEntries').innerHTML=[...state.log].reverse().slice(0,40).map(e=>{const t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});return`<div class="dev-log-entry"><span class="dev-log-time">${t}</span><span class="dev-log-msg ${e.type||'info'}">${esc(e.msg)}</span></div>`;}).join('');
+  }else{document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';}
 }
 
 function devRenderDevMarkups(){
@@ -1907,82 +1906,36 @@ function devRenderDevMarkups(){
   document.getElementById('devJsonContent').innerHTML=syntaxHL(JSON.stringify(devMarkups,null,2));
 }
 function devRenderDevTable(){
-  const sorted=[...devMarkups].sort((a,b)=>{
-    const av=String(a[devSortKey]??''),bv=String(b[devSortKey]??'');
-    return devSortDir==='asc'
-      ?av.localeCompare(bv,undefined,{numeric:true})
-      :bv.localeCompare(av,undefined,{numeric:true});
-  });
-
-  document.getElementById('devMarkupTbody').innerHTML=sorted.map(m=>{
-    const dt=m.DateCreated?new Date(m.DateCreated).toLocaleDateString():'—';
-    return`<tr><td>${m.Page??'—'}</td><td>${esc(m.Type||'—')}</td><td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td><td>${esc(m.Author||'—')}</td><td>${esc(m.Status||'—')}</td><td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td><td>${esc(m.Layer||'—')}</td><td>${esc(m._sourceFile||'—')}</td><td>${dt}</td></tr>`;
-  }).join('');
+  const sorted=[...devMarkups].sort((a,b)=>{const av=String(a[devSortKey]??''),bv=String(b[devSortKey]??'');return devSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});});
+  document.getElementById('devMarkupTbody').innerHTML=sorted.map(m=>{const dt=m.DateCreated?new Date(m.DateCreated).toLocaleDateString():'—';return`<tr><td>${m.Page??'—'}</td><td>${esc(m.Type||'—')}</td><td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td><td>${esc(m.Author||'—')}</td><td>${esc(m.Status||'—')}</td><td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td><td>${esc(m.Layer||'—')}</td><td>${esc(m._sourceFile||'—')}</td><td>${dt}</td></tr>`;}).join('');
 }
-function devSort(k){
-  devSortDir=(devSortKey===k&&devSortDir==='asc')?'desc':'asc';
-  devSortKey=k;
-  if(devMarkups.length)devRenderDevTable();
-}
-function devSetView(v){
-  devView=v;
-  document.getElementById('devBtnTable').classList.toggle('active',v==='table');
-  document.getElementById('devBtnJson').classList.toggle('active',v==='json');
-  document.getElementById('devTableView').style.display=v==='table'?'block':'none';
-  document.getElementById('devJsonView').style.display=v==='json'?'block':'none';
-}
-async function devCopyJson(){
-  if(!devMarkups.length)return;
-  try{
-    await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));
-    const b=document.getElementById('devCopyBtn');
-    b.textContent='✓ Copied';
-    setTimeout(()=>{b.textContent='⎘ Copy JSON';},2000);
-  }catch{}
-}
+function devSort(k){devSortDir=(devSortKey===k&&devSortDir==='asc')?'desc':'asc';devSortKey=k;if(devMarkups.length)devRenderDevTable();}
+function devSetView(v){devView=v;document.getElementById('devBtnTable').classList.toggle('active',v==='table');document.getElementById('devBtnJson').classList.toggle('active',v==='json');document.getElementById('devTableView').style.display=v==='table'?'block':'none';document.getElementById('devJsonView').style.display=v==='json'?'block':'none';}
+async function devCopyJson(){if(!devMarkups.length)return;try{await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));const b=document.getElementById('devCopyBtn');b.textContent='✓ Copied';setTimeout(()=>{b.textContent='⎘ Copy JSON';},2000);}catch{}}
 
 async function devReset(){
-  await api('reset');
-  devFiles=[];
-  devMarkups=[];
-  devRenderFiles();
+  await api('reset');devFiles=[];devMarkups=[];devRenderFiles();
   document.querySelectorAll('#devChipBox .chip:not(.primary)').forEach(c=>c.remove());
   document.getElementById('devMarkupSection').style.display='none';
   document.getElementById('devDownloads').style.display='none';
-
-  [
-    'setup-project',
-    'upload-to-project',
-    'trigger',
-    'create-session',
-    'register-webhook',
-    'checkout-to-session',
-    'invite-reviewers',
-    'downstream-process',
-    'finalize',
-    'snapshot',
-    'cleanup'
-  ].forEach(ep=>devSetNode(ep,'idle'));
-
-  const rev=document.getElementById('fn-review');
-  if(rev){
-    rev.className='fc-node manual';
-    const s=document.getElementById('fs-review');
-    if(s){s.className='fc-node-status idle';s.textContent='·';}
-    const b=rev.querySelector('.fc-node-btn');
-    if(b){b.className='fc-node-btn manual-btn';b.textContent='Mark Done';}
-  }
-
-  devSnippetLocked=false;
-  devCurrentSnippet='setup-project';
-  devShowSnippet('setup-project',true);
-
+  ['setup-project','upload-to-project','trigger','create-session','register-webhook','checkout-to-session','invite-reviewers','downstream-process','finalize','snapshot','cleanup'].forEach(ep=>devSetNode(ep,'idle'));
+  const rev=document.getElementById('fn-review');if(rev){rev.className='fc-node manual';const s=document.getElementById('fs-review');if(s){s.className='fc-node-status idle';s.textContent='·';}const b=rev.querySelector('.fc-node-btn');if(b){b.className='fc-node-btn manual-btn';b.textContent='Mark Done';}}
+  devSnippetLocked=false;devCurrentSnippet='setup-project';devShowSnippet('setup-project',true);
   document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:12px;font-family:var(--mono);">Run a node to see output...</div>';
 }
 
-devInitNodeHover();
-devShowSnippet('setup-project',true);
-devRenderStatePanel({});
+// ── Init ───────────────────────────────────────────────────────────────────
+(function init(){
+  document.querySelectorAll('.fc-node[data-endpoint]').forEach(node=>{
+    node.addEventListener('mouseenter',()=>{if(!devSnippetLocked)devShowSnippet(node.dataset.endpoint);});
+    node.addEventListener('click',(e)=>{if(e.target.closest('.fc-node-btn'))return;devShowSnippet(node.dataset.endpoint,true);});
+    node.setAttribute('tabindex','0');
+    node.addEventListener('keydown',(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();devShowSnippet(node.dataset.endpoint,true);}});
+  });
+  devShowSnippet('setup-project',true);
+  devRenderStatePanel({});
+  t2ValidateId();
+})();
 </script>
 </body>
 </html>
