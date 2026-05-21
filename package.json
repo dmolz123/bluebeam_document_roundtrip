@@ -17,6 +17,7 @@
     "xml2js": "^0.6.2",
     "node-fetch": "^2.7.0",
     "pdf-lib": "^1.17.1",
+    "better-sqlite3": "^9.4.3",
     "sqlite3": "^5.1.7"
   },
   "description": ""
