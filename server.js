@@ -2,55 +2,64 @@
  * Bluebeam Studio API — Document Roundtrip PoC
  * Proof-of-concept reference implementation. Not for production use.
  *
- * XML-FALLBACK VERSION + STATE MODEL INJECTION + SQLITE DB LAYER:
- *   - All existing roundtrip flow preserved
- *   - SQLite persistence via db.js (better-sqlite3)
- *   - atkins_project_id flows through configure → all downstream writes
- *   - New GET /poc/projects/:atkinsId/snapshot for Tab 2 dashboard
- *   - New GET /poc/projects for project list
- *   - Polling scheduler: sessions with polling_interval > 0 auto-refresh snapshots
+ * CHANGES IN THIS VERSION:
+ *   - /poc/configure: accepts sessionEndDate in body; no longer overwrites it on every call
+ *   - /poc/hydrate:   NEW — rehydrates in-memory pocState from DB after a server restart
+ *   - /poc/auth/refresh: NEW — accepts a Bluebeam OAuth refresh token and rotates the
+ *                        tokenManager's access token without a server restart
  *
- * Roundtrip flow:
+ * Full roundtrip flow:
  *   0a. /poc/setup-project          — Create folders + upload custom-columns.xml (once)
- *   0b. /poc/upload-to-project      — Optionally inject state model + upload PDF(s) from UI → project review folder
- *   0c. /poc/apply-custom-columns   — Apply custom-columns.xml to each uploaded file (optional / not used in UI)
+ *   0b. /poc/upload-to-project      — Optionally inject state model + upload PDF(s) → project + DB
+ *   0c. /poc/apply-custom-columns   — Apply custom-columns.xml to each file (optional, not in UI)
+ *    H. /poc/hydrate                — Restore pocState from DB after restart (use before downstream steps)
  *   1.  /poc/trigger                — Simulate source-system workflow event
- *   2.  /poc/create-session         — Create Studio Session + write to DB
+ *   2.  /poc/create-session         — Create Studio Session + DB write + schedule poller
  *   3.  /poc/register-webhook       — Subscribe to session events
- *   4.  /poc/checkout-to-session    — Check project file(s) out into session + update DB files table
+ *   4.  /poc/checkout-to-session    — Check project files out into session + update DB files table
  *   5.  /poc/invite-reviewers       — Invite reviewers
  *   6.  (Review in Bluebeam Revu — no API step)
- *   7.  /poc/checkin                — Check session file(s) back into project
+ *   7.  /poc/checkin                — Check session files back into project
  *   8.  /poc/export-markups         — Run exportmarkups job → XML in project
- *   9.  /poc/run-markuplist-job     — Compatibility route; now extracts structured data from exported XML
- *   9b. /poc/downstream-process     — Combined downstream step: checkin + export + XML parse + DB snapshot
- *   10. /poc/finalize               — Finalize session
+ *   9.  /poc/run-markuplist-job     — Compatibility route; extracts structured data from exported XML
+ *   9b. /poc/downstream-process     — Combined: checkin + export + XML parse + DB snapshot
+ *   10. /poc/finalize               — Finalize session + update DB status
  *   11. /poc/snapshot               — Snapshot + download marked-up PDF
- *   12. /poc/cleanup                — Delete webhook + session
+ *   12. /poc/cleanup                — Delete webhook + session + clear poller
  *
  * DB endpoints:
- *   GET /poc/projects                        — List all Atkins projects in DB
- *   GET /poc/projects/:atkinsId/snapshot     — Full project snapshot for Tab 2 dashboard
+ *   GET  /poc/projects                       — List all Atkins projects in DB
+ *   GET  /poc/projects/:atkinsId/snapshot    — Full project snapshot for Tab 2 dashboard
+ *
+ * Auth:
+ *   POST /poc/auth/refresh                   — Rotate access token via refresh token
+ *
+ * Utility:
+ *   GET  /health                             — Server + DB status
+ *   GET  /poc/state                          — Current in-memory pocState + demoStub
+ *   POST /poc/hydrate                        — Restore pocState from DB after restart
+ *   POST /poc/reset                          — Clear in-memory state
+ *   POST /poc/configure                      — Update demoStub + upsert project in DB
  */
 
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
-const multer = require('multer');
+const express  = require('express');
+const cors     = require('cors');
+const fs       = require('fs');
+const path     = require('path');
+const multer   = require('multer');
 const { parseStringPromise } = require('xml2js');
 const { PDFDocument, PDFName, PDFDict, PDFArray, PDFString } = require('pdf-lib');
 const TokenManager = require('./tokenManager');
-const db = require('./db');
+const db           = require('./db');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const app    = express();
+const PORT   = process.env.PORT || 3000;
 const upload = multer({ storage: multer.memoryStorage() });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // API CONFIGURATION
-// -----------------------------------------------------------------------------
+// =============================================================================
 const API_V1 = 'https://api.bluebeam.com/publicapi/v1';
 const API_V2 = 'https://api.bluebeam.com/publicapi/v2';
 const CLIENT_ID = process.env.BB_CLIENT_ID;
@@ -59,25 +68,20 @@ const WEBHOOK_CALLBACK_URL =
   process.env.WEBHOOK_CALLBACK_URL ||
   `http://localhost:${PORT}/webhook/studio-events`;
 
-// Hardcoded project ID for this PoC
+// Hardcoded Studio Project ID for this PoC
 const POC_PROJECT_ID = '712-566-288';
 
 // Project folder names
-const FOLDER_RESOURCES = 'resources';
-const FOLDER_REVIEW_DOCS = 'review-documents';
+const FOLDER_RESOURCES     = 'resources';
+const FOLDER_REVIEW_DOCS   = 'review-documents';
 const FOLDER_MARKUP_EXPORTS = 'markup-exports';
 
-// Path to the custom columns XML bundled with this repo
+// Path to custom columns XML bundled with this repo
 const CUSTOM_COLUMNS_XML_PATH = path.join(__dirname, 'resources', 'custom-columns.xml');
 
-// Optional standalone markup config
-const MARKUP_SESSION_ID = process.env.MARKUP_SESSION_ID || '';
-const MARKUP_FILE_ID = process.env.MARKUP_FILE_ID || '';
-const MARKUP_FILE_NAME = process.env.MARKUP_FILE_NAME || 'Sample Drawing.pdf';
-
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STATE MODEL — 5-step QC Review
-// -----------------------------------------------------------------------------
+// =============================================================================
 const STATE_MODELS_TO_REMOVE = [
   '5_step_QC_Review',
   'Incorrect_Review_Model',
@@ -86,33 +90,33 @@ const STATE_MODELS_TO_REMOVE = [
 ];
 
 const QC_STATE_MODEL = {
-  cName: '5_step_QC_Review',
-  cUIName: '5-step QC Review',
+  cName:    '5_step_QC_Review',
+  cUIName:  '5-step QC Review',
   states: [
-    { key: 'Step3_Agree',            label: 'Step 3 - Agree' },
-    { key: 'Step3_Disagree',         label: 'Step 3 - Disagree' },
-    { key: 'Step3_Address_Future',   label: 'Step 3 - Address in Future Submittal' },
-    { key: 'Step4_Revisions_Made',   label: 'Step 4 - Revisions Made' },
-    { key: 'Step5_Verified_Concur',  label: 'Step 5 - Revisions Verified/Concur' },
-    { key: 'Step5_Incomplete_Disagr',label: 'Step 5 - Revisions Incomplete/Disagree' }
+    { key: 'Step3_Agree',             label: 'Step 3 - Agree' },
+    { key: 'Step3_Disagree',          label: 'Step 3 - Disagree' },
+    { key: 'Step3_Address_Future',    label: 'Step 3 - Address in Future Submittal' },
+    { key: 'Step4_Revisions_Made',    label: 'Step 4 - Revisions Made' },
+    { key: 'Step5_Verified_Concur',   label: 'Step 5 - Revisions Verified/Concur' },
+    { key: 'Step5_Incomplete_Disagr', label: 'Step 5 - Revisions Incomplete/Disagree' }
   ],
   defaultState: 'Step3_Agree'
 };
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // PDF STATE MODEL INJECTION
-// -----------------------------------------------------------------------------
+// =============================================================================
 async function injectStateModel(pdfBuffer) {
   const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
-  const ctx = pdfDoc.context;
-  const cat = pdfDoc.catalog;
+  const ctx    = pdfDoc.context;
+  const cat    = pdfDoc.catalog;
 
   const removeCalls = STATE_MODELS_TO_REMOVE
     .map(name => `try{Collab.removeStateModel("${name}");}catch(e){}`)
     .join('\n');
 
   const statesObj = QC_STATE_MODEL.states
-    .map(state => `    "${state.key}": { cUIName: "${state.label}" }`)
+    .map(s => `    "${s.key}": { cUIName: "${s.label}" }`)
     .join(',\n');
 
   const js = `${removeCalls}
@@ -127,13 +131,13 @@ ${statesObj}
   });
 } catch(e) {}`.trim();
 
-  const jsBytes = Buffer.from(js, 'utf-8');
+  const jsBytes  = Buffer.from(js, 'utf-8');
   const jsStream = ctx.stream(jsBytes, { Type: 'JavaScript', Length: jsBytes.length });
-  const jsRef = ctx.register(jsStream);
+  const jsRef    = ctx.register(jsStream);
 
-  const modelKey = `BB_StateModel_${QC_STATE_MODEL.cName}`;
-  const jsAction = ctx.obj({ S: PDFName.of('JavaScript'), JS: jsRef });
-  const jsActRef = ctx.register(jsAction);
+  const modelKey  = `BB_StateModel_${QC_STATE_MODEL.cName}`;
+  const jsAction  = ctx.obj({ S: PDFName.of('JavaScript'), JS: jsRef });
+  const jsActRef  = ctx.register(jsAction);
 
   let namesDict = cat.lookupMaybe(PDFName.of('Names'), PDFDict);
   if (!namesDict) {
@@ -165,41 +169,42 @@ ${statesObj}
   return Buffer.from(await pdfDoc.save());
 }
 
-// -----------------------------------------------------------------------------
-// DEMO STUB
-// -----------------------------------------------------------------------------
+// =============================================================================
+// DEMO STUB — project/session configuration carried across requests
+// =============================================================================
 let demoStub = {
-  atkinsProjectId:  process.env.DEMO_ATKINS_PROJECT_ID || '',
-  documentId:       process.env.DEMO_DOCUMENT_ID || 'DOC-001',
-  description:      process.env.DEMO_DESCRIPTION || 'Design review — coordination update',
-  projectName:      '',
-  region:           '',
-  reviewType:       '',
-  qaCategory:       '',
-  discipline:       '',
-  pollingInterval:  0,
-  reviewers:        [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }],
-  sessionEndDate:   new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  atkinsProjectId: process.env.DEMO_ATKINS_PROJECT_ID || '',
+  documentId:      process.env.DEMO_DOCUMENT_ID        || 'DOC-001',
+  description:     process.env.DEMO_DESCRIPTION         || 'Design review — coordination update',
+  projectName:     '',
+  region:          '',
+  reviewType:      '',
+  qaCategory:      '',
+  discipline:      '',
+  pollingInterval: 0,
+  reviewers:       [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }],
+  // Default: +7 days. Only overwritten when sessionEndDate is explicitly passed to /poc/configure.
+  sessionEndDate:  new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 };
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // IN-MEMORY STATE
-// -----------------------------------------------------------------------------
+// =============================================================================
 let pocState = {
-  sessionId:         null,
-  subscriptionId:    null,
-  projectSetupDone:  false,
-  folderIds:         {},
+  sessionId:           null,
+  subscriptionId:      null,
+  projectSetupDone:    false,
+  folderIds:           {},
   customColumnsFileId: null,
-  projectFiles:      [],
-  sessionFileIds:    [],
-  markupExports:     [],
-  markups:           [],
-  markupJobId:       null,
-  status:            'idle',
-  log:               [],
-  createdAt:         null,
-  webhookEvents:     []
+  projectFiles:        [],
+  sessionFileIds:      [],
+  markupExports:       [],
+  markups:             [],
+  markupJobId:         null,
+  status:              'idle',
+  log:                 [],
+  createdAt:           null,
+  webhookEvents:       []
 };
 
 function logStep(msg, type = 'info') {
@@ -213,30 +218,28 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('public'));
 
-const fetch = (...args) =>
-  import('node-fetch').then(({ default: fetch }) => fetch(...args));
-
+const fetch        = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 const tokenManager = new TokenManager();
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // HELPERS
-// -----------------------------------------------------------------------------
+// =============================================================================
 function resetPocState() {
   pocState = {
-    sessionId:         null,
-    subscriptionId:    null,
-    projectSetupDone:  false,
-    folderIds:         {},
+    sessionId:           null,
+    subscriptionId:      null,
+    projectSetupDone:    false,
+    folderIds:           {},
     customColumnsFileId: null,
-    projectFiles:      [],
-    sessionFileIds:    [],
-    markupExports:     [],
-    markups:           [],
-    markupJobId:       null,
-    status:            'idle',
-    log:               [],
-    createdAt:         null,
-    webhookEvents:     []
+    projectFiles:        [],
+    sessionFileIds:      [],
+    markupExports:       [],
+    markups:             [],
+    markupJobId:         null,
+    status:              'idle',
+    log:                 [],
+    createdAt:           null,
+    webhookEvents:       []
   };
 }
 
@@ -246,10 +249,10 @@ function isLocalhost(url) {
 
 function authHeaders(accessToken, extra = {}) {
   return {
-    Authorization: `Bearer ${accessToken}`,
-    client_id: CLIENT_ID,
+    Authorization:  `Bearer ${accessToken}`,
+    client_id:      CLIENT_ID,
     'Content-Type': 'application/json',
-    Accept: 'application/json',
+    Accept:         'application/json',
     ...extra
   };
 }
@@ -260,18 +263,16 @@ function sleep(ms) {
 
 async function pollJob(url, headers, maxAttempts = 20, intervalMs = 3000) {
   const inProgress = new Set([100, 130, 150]);
-
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     await sleep(intervalMs);
-    const res = await fetch(url, { headers });
+    const res  = await fetch(url, { headers });
     const data = await res.json();
     const status = data.Status ?? data.JobStatus;
-    const msg = data.StatusMessage ?? data.JobStatusMessage ?? '';
+    const msg    = data.StatusMessage ?? data.JobStatusMessage ?? '';
     logStep(`Job poll ${attempt}/${maxAttempts}: status=${status} ${msg}`.trim(), 'info');
     if (status === 200) return data;
     if (!inProgress.has(status)) throw new Error(`Job failed (status=${status}): ${msg}`);
   }
-
   throw new Error(`Job did not complete after ${maxAttempts} attempts`);
 }
 
@@ -280,19 +281,17 @@ async function listProjectFolders(accessToken) {
     headers: authHeaders(accessToken)
   });
   if (!resp.ok) throw new Error(`Failed to list folders: ${resp.status} - ${await resp.text()}`);
-  const data = await resp.json();
-  return data.ProjectFolders || [];
+  return (await resp.json()).ProjectFolders || [];
 }
 
 async function createFolder(name, accessToken) {
   const resp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/folders`, {
-    method: 'POST',
+    method:  'POST',
     headers: authHeaders(accessToken),
-    body: JSON.stringify({ Name: name })
+    body:    JSON.stringify({ Name: name })
   });
   if (!resp.ok) throw new Error(`Failed to create folder "${name}": ${resp.status} - ${await resp.text()}`);
-  const data = await resp.json();
-  return data.Id;
+  return (await resp.json()).Id;
 }
 
 async function uploadFileToProject(fileBuffer, fileName, accessToken, folderId = null) {
@@ -302,28 +301,26 @@ async function uploadFileToProject(fileBuffer, fileName, accessToken, folderId =
   if (folderId) metaBody.ParentFolderId = folderId;
 
   const metaResp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/files`, {
-    method: 'POST',
+    method:  'POST',
     headers: authHeaders(accessToken),
-    body: JSON.stringify(metaBody)
+    body:    JSON.stringify(metaBody)
   });
-
   if (!metaResp.ok) {
     throw new Error(`Metadata block failed for "${fileName}": ${metaResp.status} - ${await metaResp.text()}`);
   }
 
-  const meta = await metaResp.json();
-  const projectFileId = meta.Id;
-  const uploadUrl = meta.UploadUrl;
+  const meta              = await metaResp.json();
+  const projectFileId     = meta.Id;
+  const uploadUrl         = meta.UploadUrl;
   const uploadContentType = meta.UploadContentType || 'application/pdf';
 
   logStep(`Metadata block created: projectFileId=${projectFileId}`, 'success');
 
   const s3Resp = await fetch(uploadUrl, {
-    method: 'PUT',
+    method:  'PUT',
     headers: { 'Content-Type': uploadContentType, 'x-amz-server-side-encryption': 'AES256' },
-    body: fileBuffer
+    body:    fileBuffer
   });
-
   if (!s3Resp.ok) throw new Error(`S3 upload failed for "${fileName}": ${s3Resp.status}`);
   logStep('S3 upload complete', 'success');
 
@@ -331,7 +328,6 @@ async function uploadFileToProject(fileBuffer, fileName, accessToken, folderId =
     `${API_V1}/projects/${POC_PROJECT_ID}/files/${projectFileId}/confirm-upload`,
     { method: 'POST', headers: authHeaders(accessToken), body: '{}' }
   );
-
   if (!confirmResp.ok) {
     throw new Error(`Confirm upload failed for "${fileName}": ${confirmResp.status} - ${await confirmResp.text()}`);
   }
@@ -345,12 +341,11 @@ async function listProjectFiles(accessToken) {
     headers: authHeaders(accessToken)
   });
   if (!resp.ok) throw new Error(`Failed to list project files: ${resp.status} - ${await resp.text()}`);
-  const data = await resp.json();
-  return data.ProjectFiles || [];
+  return (await resp.json()).ProjectFiles || [];
 }
 
 async function getProjectFileByPath(accessToken, filePath) {
-  const url = `${API_V1}/projects/${POC_PROJECT_ID}/files/by-path?path=${encodeURIComponent(filePath)}`;
+  const url  = `${API_V1}/projects/${POC_PROJECT_ID}/files/by-path?path=${encodeURIComponent(filePath)}`;
   const resp = await fetch(url, { headers: authHeaders(accessToken) });
   if (!resp.ok) throw new Error(`Failed to get file by path: ${resp.status} - ${await resp.text()}`);
   return resp.json();
@@ -367,15 +362,18 @@ async function waitForProjectFileSettlement(accessToken, projectFileId, fileName
 
     if (match) {
       lastSeen = match;
-      const observed = [`path=${match.Path || '(n/a)'}`, `name=${match.Name || '(n/a)'}`];
-      if (typeof match.Version !== 'undefined')       observed.push(`version=${match.Version}`);
-      if (typeof match.IsCheckedOut !== 'undefined')  observed.push(`isCheckedOut=${match.IsCheckedOut}`);
-      if (typeof match.CheckedOut !== 'undefined')    observed.push(`checkedOut=${match.CheckedOut}`);
-      if (typeof match.ParentFolderId !== 'undefined')observed.push(`parentFolderId=${match.ParentFolderId}`);
+      const observed = [
+        `path=${match.Path || '(n/a)'}`,
+        `name=${match.Name || '(n/a)'}`
+      ];
+      if (typeof match.Version !== 'undefined')        observed.push(`version=${match.Version}`);
+      if (typeof match.IsCheckedOut !== 'undefined')   observed.push(`isCheckedOut=${match.IsCheckedOut}`);
+      if (typeof match.CheckedOut !== 'undefined')     observed.push(`checkedOut=${match.CheckedOut}`);
+      if (typeof match.ParentFolderId !== 'undefined') observed.push(`parentFolderId=${match.ParentFolderId}`);
 
       logStep(`Project file re-query ${attempt}/${attempts}: found "${fileName}" (${observed.join(', ')})`, 'info');
 
-      const checkedOutFlags = [match.IsCheckedOut, match.CheckedOut].filter(v => typeof v !== 'undefined');
+      const checkedOutFlags      = [match.IsCheckedOut, match.CheckedOut].filter(v => typeof v !== 'undefined');
       const explicitlyCheckedOut = checkedOutFlags.some(v => v === true || String(v).toLowerCase() === 'true');
 
       if (!explicitlyCheckedOut) {
@@ -399,19 +397,19 @@ async function waitForProjectFileSettlement(accessToken, projectFileId, fileName
 
 async function waitForProjectFileReadyByPath(accessToken, filePath, expectedRevisionId = null) {
   for (let attempt = 1; attempt <= 8; attempt++) {
-    const file = await getProjectFileByPath(accessToken, filePath);
+    const file        = await getProjectFileByPath(accessToken, filePath);
+    const revisionOk  = expectedRevisionId == null || Number(file.RevisionID) >= Number(expectedRevisionId);
+    const ready       = revisionOk && !file.InSession && !file.IsLocked;
     logStep(`by-path re-query ${attempt}/8: revision=${file.RevisionID}, inSession=${file.InSession}, isLocked=${file.IsLocked}`, 'info');
-    const revisionOk = expectedRevisionId == null || Number(file.RevisionID) >= Number(expectedRevisionId);
-    const ready = revisionOk && !file.InSession && !file.IsLocked;
     if (ready) { await sleep(3000); return file; }
     await sleep(4000);
   }
   throw new Error(`Project file did not become ready by path: ${filePath}`);
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // XML PARSING HELPERS
-// -----------------------------------------------------------------------------
+// =============================================================================
 function lowerKeyMap(obj) {
   const out = {};
   for (const [k, v] of Object.entries(obj || {})) out[k.toLowerCase()] = v;
@@ -437,7 +435,7 @@ function scalar(val) {
 
 function normalizeMarkupRecord(record, sourceFile) {
   const mapped = lowerKeyMap(record);
-  const known = {
+  const known  = {
     Id:           scalar(firstDefined(mapped, ['id', 'markupid', 'markup_id'])),
     Author:       scalar(firstDefined(mapped, ['author', 'createdby', 'user', 'username'])),
     Type:         scalar(firstDefined(mapped, ['type', 'markuptype'])),
@@ -461,7 +459,7 @@ function normalizeMarkupRecord(record, sourceFile) {
     'datemodified','moddate','modified','modifieddate','color','checked','locked','custom'
   ]);
 
-  const custom = {};
+  const custom   = {};
   const rawCustom = mapped.custom;
   if (rawCustom && typeof rawCustom === 'object' && !Array.isArray(rawCustom)) {
     for (const [k, v] of Object.entries(rawCustom)) {
@@ -476,10 +474,10 @@ function normalizeMarkupRecord(record, sourceFile) {
   for (const [k, v] of Object.entries(mapped)) {
     if (!skip.has(k)) {
       if (v && typeof v === 'object' && !Array.isArray(v)) {
-        for (const [nestedK, nestedV] of Object.entries(v)) {
-          const sv = scalar(nestedV);
+        for (const [nk, nv] of Object.entries(v)) {
+          const sv = scalar(nv);
           if (typeof sv !== 'undefined' && sv !== null && String(sv).trim() !== '') {
-            extended[`${k}.${nestedK}`] = String(sv).trim();
+            extended[`${k}.${nk}`] = String(sv).trim();
           }
         }
       } else {
@@ -497,7 +495,7 @@ function normalizeMarkupRecord(record, sourceFile) {
 function looksLikeMarkupRecord(obj) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
   const keys = Object.keys(lowerKeyMap(obj));
-  const hits = ['author','subject','comment','status','page','layer','type','markupid','id','markuptype']
+  const hits  = ['author','subject','comment','status','page','layer','type','markupid','id','markuptype']
     .filter(k => keys.includes(k)).length;
   return hits >= 2;
 }
@@ -514,7 +512,7 @@ function extractMarkupCandidates(node, sourceFile, results = []) {
 }
 
 async function downloadExportedMarkupXml(accessToken, exportFileName) {
-  const xmlPath = `/${FOLDER_MARKUP_EXPORTS}/${exportFileName}`;
+  const xmlPath  = `/${FOLDER_MARKUP_EXPORTS}/${exportFileName}`;
   const fileMeta = await getProjectFileByPath(accessToken, xmlPath);
   if (!fileMeta.DownloadUrl) throw new Error(`DownloadUrl missing for exported XML: ${xmlPath}`);
   logStep(`Downloading exported XML from path=${xmlPath} (fileId=${fileMeta.Id})...`, 'info');
@@ -524,10 +522,10 @@ async function downloadExportedMarkupXml(accessToken, exportFileName) {
 }
 
 async function parseBluebeamExportXml(xmlText, sourceFile) {
-  const parsed = await parseStringPromise(xmlText, { explicitArray: false, mergeAttrs: true, trim: true });
+  const parsed     = await parseStringPromise(xmlText, { explicitArray: false, mergeAttrs: true, trim: true });
   const candidates = extractMarkupCandidates(parsed, sourceFile);
-  const seen = new Set();
-  const unique = [];
+  const seen       = new Set();
+  const unique     = [];
   for (const item of candidates) {
     const key = [item.Id||'', item.Author||'', item.Subject||'', item.Comment||'', item.Page||'', item.DateCreated||''].join('|');
     if (!seen.has(key)) { seen.add(key); unique.push(item); }
@@ -535,15 +533,15 @@ async function parseBluebeamExportXml(xmlText, sourceFile) {
   return unique;
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // DOWNSTREAM HELPERS
-// -----------------------------------------------------------------------------
+// =============================================================================
 async function performCheckin(accessToken) {
-  if (!pocState.sessionId) throw new Error('No active session');
-  if (pocState.sessionFileIds.length === 0) throw new Error('No session files — run checkout-to-session first');
+  if (!pocState.sessionId)              throw new Error('No active session');
+  if (pocState.sessionFileIds.length === 0) throw new Error('No session files — run checkout-to-session first (or /poc/hydrate after restart)');
 
   pocState.status = 'checking-in';
-  const results = [];
+  const results   = [];
 
   for (const sf of pocState.sessionFileIds) {
     logStep(`Checking in "${sf.name}" (sessionFileId=${sf.sessionFileId})...`, 'info');
@@ -572,15 +570,16 @@ async function performCheckin(accessToken) {
 }
 
 async function performExportMarkups(accessToken) {
-  if (pocState.sessionFileIds.length === 0) throw new Error('No session files — run checkout-to-session first');
+  if (pocState.sessionFileIds.length === 0) throw new Error('No session files — run checkout-to-session first (or /poc/hydrate after restart)');
 
   logStep('Exporting markups to XML...', 'info');
   const results = [];
 
+  // Re-resolve markup-exports folder ID if missing (e.g. after hydration)
   if (!pocState.folderIds[FOLDER_MARKUP_EXPORTS]) {
     logStep('markup-exports folder ID not set — re-querying folders...', 'info');
     const folders = await listProjectFolders(accessToken);
-    const found = folders.find(f => f.Name === FOLDER_MARKUP_EXPORTS);
+    const found   = folders.find(f => f.Name === FOLDER_MARKUP_EXPORTS);
     if (found) pocState.folderIds[FOLDER_MARKUP_EXPORTS] = found.Id;
     else throw new Error(`Folder "${FOLDER_MARKUP_EXPORTS}" not found — run setup-project first`);
   }
@@ -592,9 +591,9 @@ async function performExportMarkups(accessToken) {
     const jobResp = await fetch(
       `${API_V1}/projects/${POC_PROJECT_ID}/files/${sf.projectFileId}/jobs/exportmarkups`,
       {
-        method: 'POST',
+        method:  'POST',
         headers: authHeaders(accessToken),
-        body: JSON.stringify({ OutputFileName: exportFileName, OutputPath: FOLDER_MARKUP_EXPORTS, Priority: 0 })
+        body:    JSON.stringify({ OutputFileName: exportFileName, OutputPath: FOLDER_MARKUP_EXPORTS, Priority: 0 })
       }
     );
 
@@ -608,15 +607,14 @@ async function performExportMarkups(accessToken) {
     const { Id: jobId } = await jobResp.json();
     logStep(`exportmarkups job submitted: jobId=${jobId} — polling (15s interval)...`, 'success');
 
-    const pollUrl = `${API_V1}/jobs/${jobId}`;
-    await pollJob(pollUrl, authHeaders(accessToken), 15, 15000);
+    await pollJob(`${API_V1}/jobs/${jobId}`, authHeaders(accessToken), 15, 15000);
 
     logStep(`Markup XML exported: ${exportFileName}`, 'success');
     logStep('Allowing exported markup artifacts to settle for 5s...', 'info');
     await sleep(5000);
 
     const existingIndex = pocState.markupExports.findIndex(m => m.exportFileName === exportFileName);
-    const exportRecord = { name: sf.name, exportFileName, projectPath: FOLDER_MARKUP_EXPORTS };
+    const exportRecord  = { name: sf.name, exportFileName, projectPath: FOLDER_MARKUP_EXPORTS };
     if (existingIndex >= 0) pocState.markupExports[existingIndex] = exportRecord;
     else pocState.markupExports.push(exportRecord);
 
@@ -627,9 +625,9 @@ async function performExportMarkups(accessToken) {
 }
 
 async function performMarkupExtractionFromXml(accessToken) {
-  if (!pocState.sessionFileIds.length) throw new Error('No session files — run checkout-to-session first');
+  if (!pocState.sessionFileIds.length) throw new Error('No session files — run checkout-to-session first (or /poc/hydrate after restart)');
 
-  pocState.status = 'extracting-markups';
+  pocState.status  = 'extracting-markups';
   pocState.markups = [];
 
   for (const sf of pocState.sessionFileIds) {
@@ -651,7 +649,7 @@ async function performMarkupExtractionFromXml(accessToken) {
     const exportFileName = `Markups-${sf.projectFileId}.xml`;
     logStep(`Downloading and parsing exported XML for "${sf.name}"...`, 'info');
 
-    const xmlText = await downloadExportedMarkupXml(accessToken, exportFileName);
+    const xmlText    = await downloadExportedMarkupXml(accessToken, exportFileName);
     const fileMarkups = await parseBluebeamExportXml(xmlText, sf.name);
 
     pocState.markups.push(...fileMarkups);
@@ -663,18 +661,12 @@ async function performMarkupExtractionFromXml(accessToken) {
   return pocState.markups;
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // POLLING SCHEDULER
-// -----------------------------------------------------------------------------
-// Map of bluebeam_session_id → NodeJS timer reference
+// =============================================================================
 const activePollers = new Map();
 
-/**
- * Schedule or reschedule a polling job for a session.
- * intervalHours = 0 clears any existing timer.
- */
 function scheduleSessionPoller(bluebeamSessionId, atkinsProjectId, intervalHours) {
-  // Clear any existing timer for this session
   if (activePollers.has(bluebeamSessionId)) {
     clearInterval(activePollers.get(bluebeamSessionId));
     activePollers.delete(bluebeamSessionId);
@@ -691,10 +683,9 @@ function scheduleSessionPoller(bluebeamSessionId, atkinsProjectId, intervalHours
     try {
       const accessToken = await tokenManager.getValidAccessToken();
 
-      // Only export + extract — don't checkin during auto-poll (non-destructive)
-      const tempState = pocState;
-      if (tempState.sessionId !== bluebeamSessionId) {
-        logStep(`[POLLER] Session ${bluebeamSessionId} not current in-memory session — skipping export, saving last known snapshot`, 'warn');
+      // Non-destructive: export + extract only, no checkin
+      if (pocState.sessionId !== bluebeamSessionId) {
+        logStep(`[POLLER] Session ${bluebeamSessionId} not current in-memory session — saving last known snapshot`, 'warn');
         db.updateSessionPolled(bluebeamSessionId);
         return;
       }
@@ -703,11 +694,10 @@ function scheduleSessionPoller(bluebeamSessionId, atkinsProjectId, intervalHours
       await sleep(3000);
       const markups = await performMarkupExtractionFromXml(accessToken);
 
-      // Save snapshot to DB
       db.insertSnapshot({
         atkinsProjectId,
         bluebeamSessionId,
-        markupCount: markups.length,
+        markupCount:  markups.length,
         snapshotJson: JSON.stringify(markups)
       });
 
@@ -721,16 +711,9 @@ function scheduleSessionPoller(bluebeamSessionId, atkinsProjectId, intervalHours
   activePollers.set(bluebeamSessionId, timer);
 }
 
-/**
- * On startup, re-register pollers for any sessions that have polling_interval > 0.
- * This ensures pollers survive a server restart.
- */
 function restorePollers() {
   try {
-    const sessions = db.db.prepare(
-      'SELECT * FROM sessions WHERE polling_interval > 0'
-    ).all();
-
+    const sessions = db.db.prepare('SELECT * FROM sessions WHERE polling_interval > 0').all();
     if (sessions.length) {
       logStep(`Restoring ${sessions.length} polling scheduler(s) from DB...`, 'info');
       for (const s of sessions) {
@@ -742,35 +725,55 @@ function restorePollers() {
   }
 }
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // HEALTH CHECK
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.get('/health', (req, res) => {
-  let dbStatus = 'ok';
+  let dbStatus    = 'ok';
   let projectCount = 0;
+  let sessionCount = 0;
+
   try {
     projectCount = db.db.prepare('SELECT COUNT(*) as c FROM projects').get().c;
+    sessionCount = db.db.prepare('SELECT COUNT(*) as c FROM sessions').get().c;
   } catch (err) {
     dbStatus = `error: ${err.message}`;
   }
 
   res.json({
-    status: 'healthy',
+    status:    'healthy',
     projectId: POC_PROJECT_ID,
-    db: { status: dbStatus, projectCount, path: process.env.DB_PATH || './poc.db' },
+    db: {
+      status:       dbStatus,
+      projectCount,
+      sessionCount,
+      path:         process.env.DB_PATH || './poc.db'
+    },
     pollers: activePollers.size,
+    pocState: {
+      status:           pocState.status,
+      sessionId:        pocState.sessionId,
+      projectFiles:     pocState.projectFiles.length,
+      sessionFiles:     pocState.sessionFileIds.length,
+      markups:          pocState.markups.length,
+      projectSetupDone: pocState.projectSetupDone
+    },
     config: {
-      hasClientId: Boolean(CLIENT_ID),
-      webhookCallbackUrl: WEBHOOK_CALLBACK_URL,
-      webhookIsLocalhost: isLocalhost(WEBHOOK_CALLBACK_URL),
+      hasClientId:            Boolean(CLIENT_ID),
+      webhookCallbackUrl:     WEBHOOK_CALLBACK_URL,
+      webhookIsLocalhost:     isLocalhost(WEBHOOK_CALLBACK_URL),
       customColumnsXmlExists: fs.existsSync(CUSTOM_COLUMNS_XML_PATH),
-      stateModel: { enabled: true, name: QC_STATE_MODEL.cUIName, states: QC_STATE_MODEL.states.length }
+      stateModel: {
+        enabled: true,
+        name:    QC_STATE_MODEL.cUIName,
+        states:  QC_STATE_MODEL.states.length
+      }
     }
   });
 });
 
 // =============================================================================
-// POC ROUTES
+// POC UTILITY ROUTES
 // =============================================================================
 app.get('/poc/state', (req, res) => {
   res.json({ ...pocState, stub: demoStub, projectId: POC_PROJECT_ID });
@@ -779,10 +782,68 @@ app.get('/poc/state', (req, res) => {
 app.get('/poc/stub', (req, res) => res.json(demoStub));
 
 // -----------------------------------------------------------------------------
+// AUTH REFRESH
+// Accepts a Bluebeam OAuth refresh token from the UI and rotates the
+// tokenManager's access token without requiring a server restart.
+// The token is never logged or echoed back.
+// -----------------------------------------------------------------------------
+app.post('/poc/auth/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body || {};
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'refreshToken is required in request body' });
+    }
+
+    // tokenManager must expose a refreshWithToken(token) method.
+    // If your tokenManager does not yet have this method, see the note below.
+    if (typeof tokenManager.refreshWithToken !== 'function') {
+      return res.status(501).json({
+        error: 'tokenManager does not implement refreshWithToken(token). ' +
+               'Add this method to tokenManager.js — see server.js comments.'
+      });
+    }
+
+    await tokenManager.refreshWithToken(refreshToken);
+    logStep('Access token rotated via UI-supplied refresh token', 'success');
+
+    res.json({ success: true, message: 'Token refreshed successfully' });
+  } catch (err) {
+    logStep(`Token refresh failed: ${err.message}`, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/*
+ * NOTE — tokenManager.js addition required:
+ * Add this method to your TokenManager class so the route above works:
+ *
+ *   async refreshWithToken(refreshToken) {
+ *     const params = new URLSearchParams({
+ *       grant_type:    'refresh_token',
+ *       refresh_token: refreshToken,
+ *       client_id:     process.env.BB_CLIENT_ID,
+ *       client_secret: process.env.BB_CLIENT_SECRET
+ *     });
+ *     const resp = await fetch('https://authserver.bluebeam.com/auth/token', {
+ *       method:  'POST',
+ *       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+ *       body:    params
+ *     });
+ *     if (!resp.ok) throw new Error(`Token exchange failed: ${resp.status} - ${await resp.text()}`);
+ *     const data = await resp.json();
+ *     // Store the new access token however your tokenManager currently stores it,
+ *     // e.g.:  this.accessToken = data.access_token;
+ *     //        this.expiresAt   = Date.now() + (data.expires_in * 1000);
+ *     //        if (data.refresh_token) this.refreshToken = data.refresh_token;
+ *     return data;
+ *   }
+ */
+
+// -----------------------------------------------------------------------------
 // CONFIGURE
-// Accepts atkinsProjectId, region, reviewType, qaCategory, discipline,
-// pollingInterval in addition to existing fields.
-// Writes/updates the projects table.
+// Accepts all project/session metadata fields including sessionEndDate.
+// sessionEndDate is ONLY updated when explicitly provided — it is never
+// overwritten with a hardcoded +7 days calculation on every call.
 // -----------------------------------------------------------------------------
 app.post('/poc/configure', (req, res) => {
   const {
@@ -795,19 +856,32 @@ app.post('/poc/configure', (req, res) => {
     reviewType,
     qaCategory,
     discipline,
-    pollingInterval
+    pollingInterval,
+    sessionEndDate      // ← wired from UI rwDeadline field
   } = req.body || {};
 
-  if (documentId)       demoStub.documentId      = documentId;
-  if (description)      demoStub.description     = description;
-  if (atkinsProjectId)  demoStub.atkinsProjectId = atkinsProjectId;
-  if (projectName)      demoStub.projectName     = projectName;
-  if (region)           demoStub.region          = region;
-  if (reviewType)       demoStub.reviewType      = reviewType;
-  if (qaCategory)       demoStub.qaCategory      = qaCategory;
-  if (discipline)       demoStub.discipline      = discipline;
+  if (documentId)      demoStub.documentId      = documentId;
+  if (description)     demoStub.description     = description;
+  if (atkinsProjectId) demoStub.atkinsProjectId = atkinsProjectId;
+  if (projectName)     demoStub.projectName     = projectName;
+  if (region)          demoStub.region          = region;
+  if (reviewType)      demoStub.reviewType      = reviewType;
+  if (qaCategory)      demoStub.qaCategory      = qaCategory;
+  if (discipline)      demoStub.discipline      = discipline;
+
   if (typeof pollingInterval !== 'undefined') {
     demoStub.pollingInterval = parseInt(pollingInterval) || 0;
+  }
+
+  // Only update sessionEndDate when the caller explicitly provides it.
+  // The demoStub initializer already sets a sensible +7 day default.
+  if (sessionEndDate) {
+    try {
+      demoStub.sessionEndDate = new Date(sessionEndDate).toISOString();
+      logStep(`sessionEndDate set to: ${demoStub.sessionEndDate}`, 'info');
+    } catch (_) {
+      logStep(`Invalid sessionEndDate value ignored: ${sessionEndDate}`, 'warn');
+    }
   }
 
   if (reviewerEmail && reviewerEmail !== 'dmolz@bluebeam.com') {
@@ -817,17 +891,15 @@ app.post('/poc/configure', (req, res) => {
     }
   }
 
-  demoStub.sessionEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-  // Persist project identity to DB if we have an Atkins project ID
+  // Persist project identity to DB
   if (demoStub.atkinsProjectId) {
     db.upsertProject({
-      atkinsProjectId:  demoStub.atkinsProjectId,
+      atkinsProjectId:   demoStub.atkinsProjectId,
       bluebeamProjectId: POC_PROJECT_ID,
-      projectName:      demoStub.projectName  || demoStub.description || null,
-      region:           demoStub.region       || null,
-      reviewType:       demoStub.reviewType   || null,
-      qaCategory:       demoStub.qaCategory   || null
+      projectName:       demoStub.projectName  || demoStub.description || null,
+      region:            demoStub.region       || null,
+      reviewType:        demoStub.reviewType   || null,
+      qaCategory:        demoStub.qaCategory   || null
     });
     logStep(`Project upserted in DB: ${demoStub.atkinsProjectId}`, 'info');
   }
@@ -851,9 +923,150 @@ app.post('/poc/reset', (req, res) => {
   res.json({ success: true });
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
+// HYDRATE — restore pocState from DB after a server restart
+// =============================================================================
+/**
+ * POST /poc/hydrate
+ *
+ * Body (one of):
+ *   { atkinsProjectId: "ATK-2026-1233" }   — loads most-recent session for project
+ *   { bluebeamSessionId: "674-939-402" }    — loads a specific session
+ *   {}                                       — loads globally most-recent session
+ *
+ * After a Render.com (or any PaaS) cold start, pocState is empty even though
+ * the Bluebeam session may still be live. This endpoint:
+ *   1. Queries the DB for the target session + its files
+ *   2. Restores pocState: sessionId, status, projectFiles, sessionFileIds
+ *   3. Restores demoStub: all project/session metadata
+ *   4. Re-resolves Studio Project folder IDs via the BB API (needed for
+ *      exportmarkups job) — skipped gracefully if token is not yet valid
+ *   5. Re-schedules the session poller if polling_interval > 0
+ */
+app.post('/poc/hydrate', async (req, res) => {
+  try {
+    const { atkinsProjectId, bluebeamSessionId } = req.body || {};
+
+    // ── 1. Find the target session in DB ────────────────────────────────────
+    let session;
+
+    if (bluebeamSessionId) {
+      session = db.db.prepare(
+        'SELECT * FROM sessions WHERE bluebeam_session_id = ?'
+      ).get(bluebeamSessionId);
+      if (!session) throw new Error(`Session not found in DB: ${bluebeamSessionId}`);
+    } else if (atkinsProjectId) {
+      session = db.db.prepare(
+        `SELECT * FROM sessions
+         WHERE atkins_project_id = ?
+         ORDER BY created_at DESC
+         LIMIT 1`
+      ).get(atkinsProjectId);
+      if (!session) throw new Error(`No sessions found in DB for project: ${atkinsProjectId}`);
+    } else {
+      // No targeting — use globally most-recent session
+      session = db.db.prepare(
+        'SELECT * FROM sessions ORDER BY created_at DESC LIMIT 1'
+      ).get();
+      if (!session) throw new Error('No sessions found in DB. Start a review first.');
+    }
+
+    logStep(`Hydrating from DB: session=${session.bluebeam_session_id}, project=${session.atkins_project_id}`, 'info');
+
+    // ── 2. Restore pocState ──────────────────────────────────────────────────
+    pocState.sessionId  = session.bluebeam_session_id;
+    pocState.status     = session.status || 'active';
+    pocState.createdAt  = session.created_at;
+
+    // Load project files + session file IDs from DB files table
+    const dbFiles = db.db.prepare(
+      'SELECT * FROM files WHERE bluebeam_session_id = ?'
+    ).all(session.bluebeam_session_id);
+
+    // Also pull files that are in the project but not yet in a session
+    // (covers the case where checkout ran but DB file record has null session)
+    const dbProjectFiles = db.db.prepare(
+      `SELECT * FROM files
+       WHERE (bluebeam_session_id = ? OR bluebeam_session_id IS NULL)
+         AND atkins_project_id = ?`
+    ).all(session.bluebeam_session_id, session.atkins_project_id);
+
+    pocState.projectFiles = dbProjectFiles.map(f => ({
+      projectFileId: f.bluebeam_project_file_id,
+      name:          f.file_name,
+      size:          f.file_size || 0
+    }));
+
+    pocState.sessionFileIds = dbFiles
+      .filter(f => f.bluebeam_session_file_id)
+      .map(f => ({
+        sessionFileId: f.bluebeam_session_file_id,
+        projectFileId: f.bluebeam_project_file_id,
+        name:          f.file_name
+      }));
+
+    logStep(`Restored ${pocState.projectFiles.length} project file(s), ${pocState.sessionFileIds.length} session file(s)`, 'success');
+
+    // ── 3. Restore demoStub ──────────────────────────────────────────────────
+    const project = db.getProject(session.atkins_project_id);
+    if (project) {
+      demoStub.atkinsProjectId = project.atkins_project_id;
+      demoStub.projectName     = project.project_name || '';
+      demoStub.region          = project.region       || '';
+      demoStub.reviewType      = project.review_type  || '';
+      demoStub.qaCategory      = project.qa_category  || '';
+    } else {
+      demoStub.atkinsProjectId = session.atkins_project_id;
+    }
+
+    demoStub.discipline      = session.discipline       || '';
+    demoStub.pollingInterval = session.polling_interval || 0;
+    demoStub.documentId      = session.review_name      || demoStub.documentId;
+
+    // ── 4. Re-resolve Studio Project folder IDs ──────────────────────────────
+    let folderResolutionStatus = 'skipped';
+    try {
+      const accessToken = await tokenManager.getValidAccessToken();
+      const folders     = await listProjectFolders(accessToken);
+      folders.forEach(f => { pocState.folderIds[f.Name] = f.Id; });
+      pocState.projectSetupDone = true;
+      folderResolutionStatus    = 'ok';
+      logStep(`Folder IDs resolved: ${Object.entries(pocState.folderIds).map(([n, id]) => `${n}=${id}`).join(', ')}`, 'success');
+    } catch (folderErr) {
+      // Not fatal — folder IDs will be re-resolved lazily inside performExportMarkups
+      logStep(`Could not re-resolve folder IDs (token may not be ready): ${folderErr.message}`, 'warn');
+    }
+
+    // ── 5. Re-schedule poller if needed ──────────────────────────────────────
+    if (demoStub.pollingInterval > 0 && !activePollers.has(pocState.sessionId)) {
+      scheduleSessionPoller(pocState.sessionId, demoStub.atkinsProjectId, demoStub.pollingInterval);
+      logStep(`Poller re-scheduled: every ${demoStub.pollingInterval}h`, 'info');
+    }
+
+    logStep(`Hydration complete — ready for downstream processing`, 'success');
+
+    res.json({
+      success:               true,
+      sessionId:             pocState.sessionId,
+      atkinsProjectId:       demoStub.atkinsProjectId,
+      projectFiles:          pocState.projectFiles.length,
+      sessionFiles:          pocState.sessionFileIds.length,
+      folderResolutionStatus,
+      pollerScheduled:       activePollers.has(pocState.sessionId),
+      folderIds:             pocState.folderIds,
+      projectFilesDetail:    pocState.projectFiles,
+      sessionFilesDetail:    pocState.sessionFileIds,
+      state:                 pocState
+    });
+  } catch (err) {
+    logStep(`Hydration failed: ${err.message}`, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =============================================================================
 // STEP 0a — Project Setup
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/setup-project', async (req, res) => {
   try {
     if (!fs.existsSync(CUSTOM_COLUMNS_XML_PATH)) {
@@ -862,9 +1075,8 @@ app.post('/poc/setup-project', async (req, res) => {
 
     logStep('Running project setup...', 'info');
     const accessToken = await tokenManager.getValidAccessToken();
-
-    const existing = await listProjectFolders(accessToken);
-    const folderMap = {};
+    const existing    = await listProjectFolders(accessToken);
+    const folderMap   = {};
     existing.forEach(f => { folderMap[f.Name] = f.Id; });
 
     const needed = [FOLDER_RESOURCES, FOLDER_REVIEW_DOCS, FOLDER_MARKUP_EXPORTS];
@@ -881,7 +1093,7 @@ app.post('/poc/setup-project', async (req, res) => {
       }
     }
 
-    const allFiles = await listProjectFiles(accessToken);
+    const allFiles    = await listProjectFiles(accessToken);
     const existingXml = allFiles.find(f =>
       f.Name === 'custom-columns.xml' && f.ParentFolderId === pocState.folderIds[FOLDER_RESOURCES]
     );
@@ -892,7 +1104,7 @@ app.post('/poc/setup-project', async (req, res) => {
     } else {
       logStep('Uploading custom-columns.xml to resources folder...', 'info');
       const xmlBuffer = fs.readFileSync(CUSTOM_COLUMNS_XML_PATH);
-      const result = await uploadFileToProject(xmlBuffer, 'custom-columns.xml', accessToken, pocState.folderIds[FOLDER_RESOURCES]);
+      const result    = await uploadFileToProject(xmlBuffer, 'custom-columns.xml', accessToken, pocState.folderIds[FOLDER_RESOURCES]);
       pocState.customColumnsFileId = result.projectFileId;
       logStep(`custom-columns.xml uploaded (fileId=${pocState.customColumnsFileId})`, 'success');
     }
@@ -900,7 +1112,12 @@ app.post('/poc/setup-project', async (req, res) => {
     pocState.projectSetupDone = true;
     logStep('Project setup complete', 'success');
 
-    res.json({ success: true, folderIds: pocState.folderIds, customColumnsFileId: pocState.customColumnsFileId, state: pocState });
+    res.json({
+      success:             true,
+      folderIds:           pocState.folderIds,
+      customColumnsFileId: pocState.customColumnsFileId,
+      state:               pocState
+    });
   } catch (err) {
     pocState.status = 'error';
     logStep(err.message, 'error');
@@ -908,21 +1125,20 @@ app.post('/poc/setup-project', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 0b — Upload PDF(s)
-// Writes each uploaded file to the DB files table.
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) throw new Error('No files received');
 
-    pocState.status = 'uploading';
-    const injectModel = req.body.injectStateModel === 'true';
+    pocState.status      = 'uploading';
+    const injectModel    = req.body.injectStateModel === 'true';
     logStep(`Received ${req.files.length} file(s) for upload (injectStateModel=${injectModel})`, 'info');
 
-    const accessToken = await tokenManager.getValidAccessToken();
+    const accessToken    = await tokenManager.getValidAccessToken();
     const reviewFolderId = pocState.folderIds[FOLDER_REVIEW_DOCS] || null;
-    const uploaded = [];
+    const uploaded       = [];
 
     for (const file of req.files) {
       let buffer = file.buffer;
@@ -937,12 +1153,11 @@ app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
       uploaded.push(result);
       pocState.projectFiles.push(result);
 
-      // ── DB write ──
       db.insertFile({
         atkinsProjectId:       demoStub.atkinsProjectId || 'UNKNOWN',
         bluebeamProjectId:     POC_PROJECT_ID,
         bluebeamProjectFileId: result.projectFileId,
-        bluebeamSessionId:     null,         // not in a session yet
+        bluebeamSessionId:     null,
         bluebeamSessionFileId: null,
         fileName:              result.name,
         fileSize:              result.size
@@ -963,9 +1178,9 @@ app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
-// STEP 0c — Apply Custom Columns (optional / not used in UI)
-// -----------------------------------------------------------------------------
+// =============================================================================
+// STEP 0c — Apply Custom Columns (optional, not used in UI)
+// =============================================================================
 app.post('/poc/apply-custom-columns', async (req, res) => {
   try {
     if (!pocState.customColumnsFileId) throw new Error('custom-columns.xml not uploaded — run setup-project first');
@@ -973,7 +1188,7 @@ app.post('/poc/apply-custom-columns', async (req, res) => {
 
     logStep('Applying custom columns to project files...', 'info');
     const accessToken = await tokenManager.getValidAccessToken();
-    const results = [];
+    const results     = [];
 
     for (const pf of pocState.projectFiles) {
       logStep(`Submitting importcustomcolumns job for "${pf.name}"...`, 'info');
@@ -981,14 +1196,14 @@ app.post('/poc/apply-custom-columns', async (req, res) => {
       const jobResp = await fetch(
         `${API_V1}/projects/${POC_PROJECT_ID}/files/${pf.projectFileId}/jobs/importcustomcolumns`,
         {
-          method: 'POST',
+          method:  'POST',
           headers: authHeaders(accessToken),
-          body: JSON.stringify({
-            CurrentPassword: '',
+          body:    JSON.stringify({
+            CurrentPassword:     '',
             CustomColumnsFileID: parseInt(pocState.customColumnsFileId, 10),
-            OutputFileName: pf.name,
-            OutputPath: FOLDER_REVIEW_DOCS,
-            Priority: 0
+            OutputFileName:      pf.name,
+            OutputPath:          FOLDER_REVIEW_DOCS,
+            Priority:            0
           })
         }
       );
@@ -1015,12 +1230,12 @@ app.post('/poc/apply-custom-columns', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 1 — Trigger
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/trigger', (req, res) => {
-  pocState.status = 'triggered';
-  pocState.log = [];
+  pocState.status  = 'triggered';
+  pocState.log     = [];
   logStep(`Workflow event received — document: ${demoStub.documentId}`, 'info');
   logStep(`Atkins Project: ${demoStub.atkinsProjectId || '(not set)'}`, 'info');
   logStep(`Files: ${pocState.projectFiles.map(f => f.name).join(', ') || '(none)'}`, 'info');
@@ -1030,46 +1245,45 @@ app.post('/poc/trigger', (req, res) => {
   res.json({ success: true, state: pocState });
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 2 — Create Session
-// Writes session record to DB and schedules poller if interval > 0.
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/create-session', async (req, res) => {
   try {
-    pocState.status = 'creating';
+    pocState.status  = 'creating';
     logStep('Creating Bluebeam Studio Session...', 'info');
 
     const accessToken = await tokenManager.getValidAccessToken();
     const sessionName = `${demoStub.documentId}_Review_${new Date().toISOString().slice(0, 10)}`;
 
     const resp = await fetch(`${API_V1}/sessions`, {
-      method: 'POST',
+      method:  'POST',
       headers: authHeaders(accessToken),
-      body: JSON.stringify({
-        Name: sessionName,
-        Notification: true,
-        Restricted: true,
+      body:    JSON.stringify({
+        Name:           sessionName,
+        Notification:   true,
+        Restricted:     true,
         SessionEndDate: demoStub.sessionEndDate,
         DefaultPermissions: [
-          { Type: 'Markup',      Allow: 'Allow' },
-          { Type: 'SaveCopy',    Allow: 'Allow' },
-          { Type: 'PrintCopy',   Allow: 'Allow' },
-          { Type: 'MarkupAlert', Allow: 'Allow' },
-          { Type: 'AddDocuments',Allow: 'Deny'  }
+          { Type: 'Markup',       Allow: 'Allow' },
+          { Type: 'SaveCopy',     Allow: 'Allow' },
+          { Type: 'PrintCopy',    Allow: 'Allow' },
+          { Type: 'MarkupAlert',  Allow: 'Allow' },
+          { Type: 'AddDocuments', Allow: 'Deny'  }
         ]
       })
     });
 
     if (!resp.ok) throw new Error(`Session creation failed: ${resp.status} - ${await resp.text()}`);
 
-    const data = await resp.json();
-    pocState.sessionId = data.Id;
-    pocState.createdAt = new Date().toISOString();
+    const data          = await resp.json();
+    pocState.sessionId  = data.Id;
+    pocState.createdAt  = new Date().toISOString();
 
     logStep(`Session created: ID=${pocState.sessionId}`, 'success');
     logStep(`Session name: ${sessionName}`, 'info');
+    logStep(`Session end date: ${demoStub.sessionEndDate}`, 'info');
 
-    // ── DB write ──
     db.insertSession({
       atkinsProjectId:   demoStub.atkinsProjectId || 'UNKNOWN',
       bluebeamSessionId: pocState.sessionId,
@@ -1080,13 +1294,8 @@ app.post('/poc/create-session', async (req, res) => {
     });
     logStep(`Session written to DB: ${pocState.sessionId}`, 'info');
 
-    // Schedule poller if interval is set
     if (demoStub.pollingInterval > 0) {
-      scheduleSessionPoller(
-        pocState.sessionId,
-        demoStub.atkinsProjectId || 'UNKNOWN',
-        demoStub.pollingInterval
-      );
+      scheduleSessionPoller(pocState.sessionId, demoStub.atkinsProjectId || 'UNKNOWN', demoStub.pollingInterval);
     }
 
     res.json({ success: true, sessionId: pocState.sessionId, state: pocState });
@@ -1097,16 +1306,16 @@ app.post('/poc/create-session', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 3 — Register Webhook
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/register-webhook', async (req, res) => {
   try {
     if (!pocState.sessionId) throw new Error('No active session — run create-session first');
 
     if (isLocalhost(WEBHOOK_CALLBACK_URL)) {
       logStep('Webhook skipped — WEBHOOK_CALLBACK_URL is localhost (Bluebeam requires public HTTPS)', 'warn');
-      logStep('Set WEBHOOK_CALLBACK_URL to a public HTTPS URL (e.g. ngrok) to enable webhooks', 'warn');
+      logStep('Set WEBHOOK_CALLBACK_URL env var to a public HTTPS URL (e.g. ngrok) to enable webhooks', 'warn');
       return res.json({ success: true, skipped: true, state: pocState });
     }
 
@@ -1114,15 +1323,19 @@ app.post('/poc/register-webhook', async (req, res) => {
     const accessToken = await tokenManager.getValidAccessToken();
 
     const resp = await fetch(`${API_V2}/subscriptions`, {
-      method: 'POST',
+      method:  'POST',
       headers: authHeaders(accessToken),
-      body: JSON.stringify({ sourceType: 'session', resourceId: pocState.sessionId, callbackURI: WEBHOOK_CALLBACK_URL })
+      body:    JSON.stringify({
+        sourceType:  'session',
+        resourceId:  pocState.sessionId,
+        callbackURI: WEBHOOK_CALLBACK_URL
+      })
     });
 
     if (!resp.ok) throw new Error(`Webhook registration failed: ${resp.status} - ${await resp.text()}`);
 
-    const data = await resp.json();
-    pocState.subscriptionId = data.subscriptionId;
+    const data               = await resp.json();
+    pocState.subscriptionId  = data.subscriptionId;
 
     logStep(`Webhook registered: subscriptionId=${pocState.subscriptionId}`, 'success');
     logStep(`Callback URL: ${WEBHOOK_CALLBACK_URL}`, 'info');
@@ -1134,20 +1347,19 @@ app.post('/poc/register-webhook', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 4 — Checkout to Session
-// Updates the DB files table with session file IDs after checkout.
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/checkout-to-session', async (req, res) => {
   try {
-    if (!pocState.sessionId) throw new Error('No active session — run create-session first');
+    if (!pocState.sessionId)              throw new Error('No active session — run create-session first');
     if (pocState.projectFiles.length === 0) throw new Error('No project files — run upload-to-project first');
 
     pocState.status = 'checking-out';
     logStep(`Checking ${pocState.projectFiles.length} file(s) out to session ${pocState.sessionId}...`, 'info');
 
     const accessToken = await tokenManager.getValidAccessToken();
-    const checked = [];
+    const checked     = [];
 
     for (const pf of pocState.projectFiles) {
       logStep(`Checking out "${pf.name}" (projectFileId=${pf.projectFileId})...`, 'info');
@@ -1198,8 +1410,8 @@ app.post('/poc/checkout-to-session', async (req, res) => {
       }
 
       const sessionFilesData = await sessionFilesResp.json();
-      const sessionFiles = sessionFilesData.SessionFiles || sessionFilesData.Files || [];
-      const match = sessionFiles.find(f => f.ProjectFileId === pf.projectFileId || f.Name === pf.name);
+      const sessionFiles     = sessionFilesData.SessionFiles || sessionFilesData.Files || [];
+      const match            = sessionFiles.find(f => f.ProjectFileId === pf.projectFileId || f.Name === pf.name);
 
       if (!match) {
         logStep(`Could not find session file entry for "${pf.name}" after checkout`, 'warn');
@@ -1210,7 +1422,6 @@ app.post('/poc/checkout-to-session', async (req, res) => {
       pocState.sessionFileIds.push(entry);
       checked.push(entry);
 
-      // ── DB write ──
       db.updateFileSession({
         sessionId:     pocState.sessionId,
         sessionFileId: match.Id,
@@ -1228,9 +1439,9 @@ app.post('/poc/checkout-to-session', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 5 — Invite Reviewers
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/invite-reviewers', async (req, res) => {
   try {
     if (!pocState.sessionId) throw new Error('No active session');
@@ -1239,7 +1450,7 @@ app.post('/poc/invite-reviewers', async (req, res) => {
     logStep(`Inviting ${demoStub.reviewers.length} reviewer(s)...`, 'info');
 
     const accessToken = await tokenManager.getValidAccessToken();
-    const results = [];
+    const results     = [];
 
     for (const reviewer of demoStub.reviewers) {
       const endpoint = reviewer.hasStudioAccount
@@ -1249,10 +1460,10 @@ app.post('/poc/invite-reviewers', async (req, res) => {
       logStep(`Inviting ${reviewer.email} via ${reviewer.hasStudioAccount ? 'direct-add' : 'email-invite'}`, 'info');
 
       const resp = await fetch(endpoint, {
-        method: 'POST',
+        method:  'POST',
         headers: authHeaders(accessToken),
-        body: JSON.stringify({
-          Email: reviewer.email,
+        body:    JSON.stringify({
+          Email:   reviewer.email,
           Message: `You have been invited to review ${demoStub.documentId}: ${demoStub.description}`
         })
       });
@@ -1278,13 +1489,13 @@ app.post('/poc/invite-reviewers', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
-// STEP 7 — Check In
-// -----------------------------------------------------------------------------
+// =============================================================================
+// STEP 7 — Check In (standalone)
+// =============================================================================
 app.post('/poc/checkin', async (req, res) => {
   try {
     const accessToken = await tokenManager.getValidAccessToken();
-    const results = await performCheckin(accessToken);
+    const results     = await performCheckin(accessToken);
     res.json({ success: true, results, state: pocState });
   } catch (err) {
     pocState.status = 'error';
@@ -1293,13 +1504,13 @@ app.post('/poc/checkin', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
-// STEP 8 — Export Markups
-// -----------------------------------------------------------------------------
+// =============================================================================
+// STEP 8 — Export Markups (standalone)
+// =============================================================================
 app.post('/poc/export-markups', async (req, res) => {
   try {
     const accessToken = await tokenManager.getValidAccessToken();
-    const results = await performExportMarkups(accessToken);
+    const results     = await performExportMarkups(accessToken);
     res.json({ success: true, results, markupExports: pocState.markupExports, state: pocState });
   } catch (err) {
     pocState.status = 'error';
@@ -1308,9 +1519,9 @@ app.post('/poc/export-markups', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 9 — Compatibility Route (XML-backed extraction)
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/run-markuplist-job', async (req, res) => {
   try {
     const accessToken = await tokenManager.getValidAccessToken();
@@ -1327,14 +1538,21 @@ app.post('/poc/run-markuplist-job', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 9b — Combined Downstream Processing
-// Saves DB snapshot after extraction.
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/downstream-process', async (req, res) => {
   try {
-    if (!pocState.sessionId) throw new Error('No active session');
-    if (pocState.sessionFileIds.length === 0) throw new Error('No session files — run checkout-to-session first');
+    if (!pocState.sessionId) {
+      throw new Error(
+        'No active session in memory. If the server was restarted, run POST /poc/hydrate first to restore state from the DB.'
+      );
+    }
+    if (pocState.sessionFileIds.length === 0) {
+      throw new Error(
+        'No session files in memory. If the server was restarted, run POST /poc/hydrate first to restore file references from the DB.'
+      );
+    }
 
     logStep('Starting downstream processing...', 'info');
     const accessToken = await tokenManager.getValidAccessToken();
@@ -1349,7 +1567,6 @@ app.post('/poc/downstream-process', async (req, res) => {
 
     const markups = await performMarkupExtractionFromXml(accessToken);
 
-    // ── DB write: snapshot ──
     db.insertSnapshot({
       atkinsProjectId:   demoStub.atkinsProjectId || 'UNKNOWN',
       bluebeamSessionId: pocState.sessionId,
@@ -1357,21 +1574,20 @@ app.post('/poc/downstream-process', async (req, res) => {
       snapshotJson:      JSON.stringify(markups)
     });
 
-    // ── DB write: update session last_polled_at ──
     db.updateSessionPolled(pocState.sessionId);
 
     logStep(`Snapshot saved to DB — ${markups.length} markup(s)`, 'success');
     logStep('Downstream processing complete', 'success');
 
     res.json({
-      success: true,
+      success:        true,
       checkinResults,
       exportResults,
-      count: markups.length,
+      count:          markups.length,
       markups,
       extractionMode: 'exportmarkups-xml',
-      markupExports: pocState.markupExports,
-      state: pocState
+      markupExports:  pocState.markupExports,
+      state:          pocState
     });
   } catch (err) {
     pocState.status = 'error';
@@ -1380,10 +1596,9 @@ app.post('/poc/downstream-process', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 10 — Finalize Session
-// Updates session status in DB.
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/finalize', async (req, res) => {
   try {
     if (!pocState.sessionId) throw new Error('No active session');
@@ -1392,21 +1607,19 @@ app.post('/poc/finalize', async (req, res) => {
     logStep(`Setting session ${pocState.sessionId} to Finalizing...`, 'info');
 
     const accessToken = await tokenManager.getValidAccessToken();
-    const resp = await fetch(`${API_V1}/sessions/${pocState.sessionId}`, {
-      method: 'PUT',
+    const resp        = await fetch(`${API_V1}/sessions/${pocState.sessionId}`, {
+      method:  'PUT',
       headers: authHeaders(accessToken),
-      body: JSON.stringify({
-        Name: `${demoStub.documentId}_Review_${new Date().toISOString().slice(0, 10)}`,
-        Restricted: true,
+      body:    JSON.stringify({
+        Name:           `${demoStub.documentId}_Review_${new Date().toISOString().slice(0, 10)}`,
+        Restricted:     true,
         SessionEndDate: demoStub.sessionEndDate
       })
     });
 
     if (!resp.ok) throw new Error(`Finalize failed: ${resp.status} - ${await resp.text()}`);
 
-    // ── DB write ──
     db.updateSessionStatus(pocState.sessionId, 'finalized');
-
     logStep('Session finalized', 'success');
     res.json({ success: true, state: pocState });
   } catch (err) {
@@ -1416,18 +1629,18 @@ app.post('/poc/finalize', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 11 — Snapshot PDF
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/snapshot', async (req, res) => {
   try {
     if (!pocState.sessionId || pocState.sessionFileIds.length === 0) {
-      throw new Error('No active session or no files');
+      throw new Error('No active session or no files. Run /poc/hydrate if server was restarted.');
     }
 
-    pocState.status = 'snapshotting';
+    pocState.status   = 'snapshotting';
     const accessToken = await tokenManager.getValidAccessToken();
-    const downloads = [];
+    const downloads   = [];
 
     for (const sf of pocState.sessionFileIds) {
       logStep(`Requesting snapshot for "${sf.name}"...`, 'info');
@@ -1437,13 +1650,16 @@ app.post('/poc/snapshot', async (req, res) => {
         { method: 'POST', headers: authHeaders(accessToken) }
       );
 
-      if (!snapResp.ok) { logStep(`Snapshot request failed for "${sf.name}": ${snapResp.status}`, 'warn'); continue; }
+      if (!snapResp.ok) {
+        logStep(`Snapshot request failed for "${sf.name}": ${snapResp.status}`, 'warn');
+        continue;
+      }
 
       let downloadUrl = null;
       for (let i = 0; i < 20; i++) {
         await sleep(5000);
         const pollToken = await tokenManager.getValidAccessToken();
-        const pollResp = await fetch(
+        const pollResp  = await fetch(
           `${API_V1}/sessions/${pocState.sessionId}/files/${sf.sessionFileId}/snapshot`,
           { headers: authHeaders(pollToken) }
         );
@@ -1451,7 +1667,7 @@ app.post('/poc/snapshot', async (req, res) => {
         const d = await pollResp.json();
         logStep(`Snapshot poll ${i + 1}: ${d.Status}`, 'info');
         if (d.Status === 'Complete') { downloadUrl = d.DownloadUrl; break; }
-        if (d.Status === 'Error') throw new Error(`Snapshot error: ${d.Message}`);
+        if (d.Status === 'Error')    throw new Error(`Snapshot error: ${d.Message}`);
       }
 
       if (!downloadUrl) { logStep(`Snapshot timed out for "${sf.name}"`, 'warn'); continue; }
@@ -1481,10 +1697,9 @@ app.post('/poc/snapshot', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STEP 12 — Cleanup
-// Updates session status and clears the poller.
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/cleanup', async (req, res) => {
   try {
     if (!pocState.sessionId) throw new Error('No active session to clean up');
@@ -1503,12 +1718,11 @@ app.post('/poc/cleanup', async (req, res) => {
     });
     logStep(sessResp.ok ? 'Session deleted' : `Session delete: ${sessResp.status}`, sessResp.ok ? 'success' : 'warn');
 
-    // ── DB write + clear poller ──
     db.updateSessionStatus(pocState.sessionId, 'cleaned');
-    scheduleSessionPoller(pocState.sessionId, null, 0); // clears timer
+    scheduleSessionPoller(pocState.sessionId, null, 0); // clear poller
 
     logStep('Cleanup complete', 'success');
-    pocState.sessionId = null;
+    pocState.sessionId      = null;
     pocState.subscriptionId = null;
     res.json({ success: true, state: pocState });
   } catch (err) {
@@ -1517,14 +1731,14 @@ app.post('/poc/cleanup', async (req, res) => {
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // STANDALONE: inject state model into a single PDF for testing
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/poc/inject-state-model', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const modified = await injectStateModel(req.file.buffer);
-    const outName = req.file.originalname.replace(/\.pdf$/i, '') + '_state_injected.pdf';
+    const outName  = req.file.originalname.replace(/\.pdf$/i, '') + '_state_injected.pdf';
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${outName}"`);
     res.setHeader('Content-Length', modified.length);
@@ -1535,7 +1749,7 @@ app.post('/poc/inject-state-model', upload.single('file'), async (req, res) => {
 });
 
 // =============================================================================
-// DB QUERY ENDPOINTS (used by Tab 2 dashboard)
+// DB QUERY ENDPOINTS
 // =============================================================================
 
 // GET /poc/projects — list all Atkins projects in DB
@@ -1549,34 +1763,30 @@ app.get('/poc/projects', (req, res) => {
 });
 
 // GET /poc/projects/:atkinsId/snapshot
-// Returns project metadata, all sessions with their latest snapshot, and all files.
-// This is the primary Tab 2 data endpoint.
 app.get('/poc/projects/:atkinsId/snapshot', (req, res) => {
   try {
     const { atkinsId } = req.params;
-
-    const project  = db.getProject(atkinsId);
-    const sessions = db.getSessionsByProject(atkinsId);
-    const files    = db.getFilesByProject(atkinsId);
+    const project      = db.getProject(atkinsId);
+    const sessions     = db.getSessionsByProject(atkinsId);
+    const files        = db.getFilesByProject(atkinsId);
 
     if (!project && !sessions.length) {
       return res.status(404).json({
         error: `No data found for project ${atkinsId}`,
-        hint: 'Start a review from Tab 1 with this Atkins Project ID to populate data.'
+        hint:  'Start a review from Tab 1 with this Atkins Project ID to populate data.'
       });
     }
 
-    // Attach latest snapshot to each session
     const sessionsWithSnapshots = sessions.map(s => {
-      const snap = db.getLatestSnapshotBySession(atkinsId, s.bluebeam_session_id);
-      let markups = [];
+      const snap    = db.getLatestSnapshotBySession(atkinsId, s.bluebeam_session_id);
+      let markups   = [];
       if (snap && snap.snapshot_json) {
         try { markups = JSON.parse(snap.snapshot_json); } catch (_) {}
       }
       return {
         ...s,
-        markup_count:   snap ? snap.markup_count : 0,
-        last_snapshot:  snap ? snap.created_at   : null,
+        markup_count:  snap ? snap.markup_count : 0,
+        last_snapshot: snap ? snap.created_at   : null,
         markups,
         files: files.filter(f => f.bluebeam_session_id === s.bluebeam_session_id)
       };
@@ -1585,21 +1795,21 @@ app.get('/poc/projects/:atkinsId/snapshot', (req, res) => {
     const totalMarkups = sessionsWithSnapshots.reduce((sum, s) => sum + (s.markup_count || 0), 0);
 
     res.json({
-      project:       project || { atkins_project_id: atkinsId },
-      sessions:      sessionsWithSnapshots,
+      project:      project || { atkins_project_id: atkinsId },
+      sessions:     sessionsWithSnapshots,
       files,
       totalMarkups,
-      sessionCount:  sessions.length,
-      fileCount:     files.length
+      sessionCount: sessions.length,
+      fileCount:    files.length
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // WEBHOOK LISTENER
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.post('/webhook/studio-events', (req, res) => {
   const p = req.body || {};
   logStep(`Webhook: ${p.ResourceType || 'unknown'} / ${p.EventType || 'unknown'}`, 'webhook');
@@ -1607,26 +1817,35 @@ app.post('/webhook/studio-events', (req, res) => {
   res.sendStatus(200);
 });
 
-// -----------------------------------------------------------------------------
-// STANDALONE ENDPOINTS
-// -----------------------------------------------------------------------------
+// =============================================================================
+// STANDALONE MARKUP API
+// =============================================================================
 app.get('/api/project-markups', (req, res) => {
   if (!pocState.markups.length) {
     return res.status(404).json({ error: 'No markup data. Run downstream processing first.' });
   }
   res.json(pocState.markups.map(m => ({
-    MarkupId: m.Id, Author: m.Author, Type: m.Type, Subject: m.Subject,
-    Comment: m.Comment, Status: m.Status, Layer: m.Layer, Page: m.Page,
-    DateCreated: m.DateCreated, DateModified: m.DateModified, Color: m.Color,
-    Checked: m.Checked, Locked: m.Locked,
+    MarkupId:           m.Id,
+    Author:             m.Author,
+    Type:               m.Type,
+    Subject:            m.Subject,
+    Comment:            m.Comment,
+    Status:             m.Status,
+    Layer:              m.Layer,
+    Page:               m.Page,
+    DateCreated:        m.DateCreated,
+    DateModified:       m.DateModified,
+    Color:              m.Color,
+    Checked:            m.Checked,
+    Locked:             m.Locked,
     ExtendedProperties: m.ExtendedProperties || {},
-    SourceFile: m._sourceFile
+    SourceFile:         m._sourceFile
   })));
 });
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // START
-// -----------------------------------------------------------------------------
+// =============================================================================
 app.listen(PORT, () => {
   console.log(`\nBluebeam Studio PoC  →  http://localhost:${PORT}`);
   console.log(`Project: ${POC_PROJECT_ID}`);
@@ -1638,8 +1857,9 @@ app.listen(PORT, () => {
 
   console.log(`\nFLOW:`);
   console.log(`  POST /poc/setup-project         — 0a: Create folders + upload custom-columns.xml`);
-  console.log(`  POST /poc/upload-to-project     — 0b: Optional state model injection + upload PDFs → project + DB`);
+  console.log(`  POST /poc/upload-to-project     — 0b: State model injection + upload PDFs → project + DB`);
   console.log(`  POST /poc/apply-custom-columns  — 0c: Apply custom columns (optional)`);
+  console.log(`  POST /poc/hydrate               — H:  Restore pocState from DB after restart`);
   console.log(`  POST /poc/trigger               — 1:  Workflow event`);
   console.log(`  POST /poc/create-session        — 2:  Create session + DB write + schedule poller`);
   console.log(`  POST /poc/register-webhook      — 3:  Register webhook`);
@@ -1649,14 +1869,19 @@ app.listen(PORT, () => {
   console.log(`  POST /poc/checkin               — 7:  Check in session files`);
   console.log(`  POST /poc/export-markups        — 8:  Export markups to XML`);
   console.log(`  POST /poc/run-markuplist-job    — 9:  XML-backed extraction`);
-  console.log(`  POST /poc/downstream-process    — 9b: Check in + export + XML extract + DB snapshot`);
+  console.log(`  POST /poc/downstream-process    — 9b: Checkin + export + XML extract + DB snapshot`);
   console.log(`  POST /poc/finalize              — 10: Finalize session + update DB status`);
   console.log(`  POST /poc/snapshot              — 11: Snapshot + download PDF`);
   console.log(`  POST /poc/cleanup               — 12: Delete webhook + session + clear poller`);
+  console.log(`\nAUTH:`);
+  console.log(`  POST /poc/auth/refresh          — Rotate access token via refresh token`);
   console.log(`\nDB ENDPOINTS:`);
   console.log(`  GET  /poc/projects                     — List all projects`);
-  console.log(`  GET  /poc/projects/:atkinsId/snapshot  — Full project snapshot for Tab 2\n`);
+  console.log(`  GET  /poc/projects/:atkinsId/snapshot  — Full project snapshot for Tab 2`);
+  console.log(`\nUTILITY:`);
+  console.log(`  GET  /health                           — Server + DB + pocState status`);
+  console.log(`  GET  /poc/state                        — Current in-memory state`);
+  console.log(`  POST /poc/reset                        — Clear in-memory state\n`);
 
-  // Re-register any polling schedulers persisted from a previous run
   restorePollers();
 });
