@@ -3,6 +3,8 @@
  * Proof-of-concept reference implementation. Not for production use.
  *
  * CHANGES IN THIS VERSION:
+ *   - /poc/upload-to-project: state model injection is now ON by default.
+ *     Pass injectStateModel=false in the multipart body to skip.
  *   - /poc/configure: accepts sessionEndDate in body; no longer overwrites it on every call
  *   - /poc/hydrate:   NEW — rehydrates in-memory pocState from DB after a server restart
  *   - /poc/auth/refresh: NEW — accepts a Bluebeam OAuth refresh token and rotates the
@@ -10,7 +12,7 @@
  *
  * Full roundtrip flow:
  *   0a. /poc/setup-project          — Create folders + upload custom-columns.xml (once)
- *   0b. /poc/upload-to-project      — Optionally inject state model + upload PDF(s) → project + DB
+ *   0b. /poc/upload-to-project      — Inject state model (default ON) + upload PDF(s) → project + DB
  *   0c. /poc/apply-custom-columns   — Apply custom-columns.xml to each file (optional, not in UI)
  *    H. /poc/hydrate                — Restore pocState from DB after restart (use before downstream steps)
  *   1.  /poc/trigger                — Simulate source-system workflow event
@@ -82,9 +84,12 @@ const CUSTOM_COLUMNS_XML_PATH = path.join(__dirname, 'resources', 'custom-column
 // =============================================================================
 // STATE MODEL — 5-step QC Review
 // =============================================================================
+
+// cName identifiers of custom models to REMOVE before injecting the correct one.
+// Add any incorrect/demo model names here so they are wiped on each run.
 const STATE_MODELS_TO_REMOVE = [
-  '5_step_QC_Review',
-  'Incorrect_Review_Model',
+  '5_step_QC_Review',       // our own model — ensures idempotency on re-runs
+  'Incorrect_Review_Model', // demo "wrong" model that will be pre-loaded to show removal
   'Bad_Model',
   'Old_Review'
 ];
@@ -104,13 +109,21 @@ const QC_STATE_MODEL = {
 };
 
 // =============================================================================
-// PDF STATE MODEL INJECTION
+// PDF STATE MODEL INJECTION (pdf-lib — no Bluebeam API required)
 // =============================================================================
+
+/**
+ * Injects a Collab.addStateModel() call as a document-level JS action.
+ * First removes all known custom models (STATE_MODELS_TO_REMOVE) so the PDF
+ * always starts from a clean state — ensures idempotency on re-runs.
+ * Bluebeam's built-in models (Review, Migration) are unaffected.
+ */
 async function injectStateModel(pdfBuffer) {
   const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
   const ctx    = pdfDoc.context;
   const cat    = pdfDoc.catalog;
 
+  // Build removal calls for all known custom models
   const removeCalls = STATE_MODELS_TO_REMOVE
     .map(name => `try{Collab.removeStateModel("${name}");}catch(e){}`)
     .join('\n');
@@ -683,7 +696,6 @@ function scheduleSessionPoller(bluebeamSessionId, atkinsProjectId, intervalHours
     try {
       const accessToken = await tokenManager.getValidAccessToken();
 
-      // Non-destructive: export + extract only, no checkin
       if (pocState.sessionId !== bluebeamSessionId) {
         logStep(`[POLLER] Session ${bluebeamSessionId} not current in-memory session — saving last known snapshot`, 'warn');
         db.updateSessionPolled(bluebeamSessionId);
@@ -764,9 +776,10 @@ app.get('/health', (req, res) => {
       webhookIsLocalhost:     isLocalhost(WEBHOOK_CALLBACK_URL),
       customColumnsXmlExists: fs.existsSync(CUSTOM_COLUMNS_XML_PATH),
       stateModel: {
-        enabled: true,
-        name:    QC_STATE_MODEL.cUIName,
-        states:  QC_STATE_MODEL.states.length
+        enabled:       true,
+        name:          QC_STATE_MODEL.cUIName,
+        states:        QC_STATE_MODEL.states.length,
+        modelsRemoved: STATE_MODELS_TO_REMOVE
       }
     }
   });
@@ -783,9 +796,6 @@ app.get('/poc/stub', (req, res) => res.json(demoStub));
 
 // -----------------------------------------------------------------------------
 // AUTH REFRESH
-// Accepts a Bluebeam OAuth refresh token from the UI and rotates the
-// tokenManager's access token without requiring a server restart.
-// The token is never logged or echoed back.
 // -----------------------------------------------------------------------------
 app.post('/poc/auth/refresh', async (req, res) => {
   try {
@@ -794,8 +804,6 @@ app.post('/poc/auth/refresh', async (req, res) => {
       return res.status(400).json({ error: 'refreshToken is required in request body' });
     }
 
-    // tokenManager must expose a refreshWithToken(token) method.
-    // If your tokenManager does not yet have this method, see the note below.
     if (typeof tokenManager.refreshWithToken !== 'function') {
       return res.status(501).json({
         error: 'tokenManager does not implement refreshWithToken(token). ' +
@@ -813,37 +821,8 @@ app.post('/poc/auth/refresh', async (req, res) => {
   }
 });
 
-/*
- * NOTE — tokenManager.js addition required:
- * Add this method to your TokenManager class so the route above works:
- *
- *   async refreshWithToken(refreshToken) {
- *     const params = new URLSearchParams({
- *       grant_type:    'refresh_token',
- *       refresh_token: refreshToken,
- *       client_id:     process.env.BB_CLIENT_ID,
- *       client_secret: process.env.BB_CLIENT_SECRET
- *     });
- *     const resp = await fetch('https://authserver.bluebeam.com/auth/token', {
- *       method:  'POST',
- *       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
- *       body:    params
- *     });
- *     if (!resp.ok) throw new Error(`Token exchange failed: ${resp.status} - ${await resp.text()}`);
- *     const data = await resp.json();
- *     // Store the new access token however your tokenManager currently stores it,
- *     // e.g.:  this.accessToken = data.access_token;
- *     //        this.expiresAt   = Date.now() + (data.expires_in * 1000);
- *     //        if (data.refresh_token) this.refreshToken = data.refresh_token;
- *     return data;
- *   }
- */
-
 // -----------------------------------------------------------------------------
 // CONFIGURE
-// Accepts all project/session metadata fields including sessionEndDate.
-// sessionEndDate is ONLY updated when explicitly provided — it is never
-// overwritten with a hardcoded +7 days calculation on every call.
 // -----------------------------------------------------------------------------
 app.post('/poc/configure', (req, res) => {
   const {
@@ -857,7 +836,7 @@ app.post('/poc/configure', (req, res) => {
     qaCategory,
     discipline,
     pollingInterval,
-    sessionEndDate      // ← wired from UI rwDeadline field
+    sessionEndDate
   } = req.body || {};
 
   if (documentId)      demoStub.documentId      = documentId;
@@ -873,8 +852,6 @@ app.post('/poc/configure', (req, res) => {
     demoStub.pollingInterval = parseInt(pollingInterval) || 0;
   }
 
-  // Only update sessionEndDate when the caller explicitly provides it.
-  // The demoStub initializer already sets a sensible +7 day default.
   if (sessionEndDate) {
     try {
       demoStub.sessionEndDate = new Date(sessionEndDate).toISOString();
@@ -891,7 +868,6 @@ app.post('/poc/configure', (req, res) => {
     }
   }
 
-  // Persist project identity to DB
   if (demoStub.atkinsProjectId) {
     db.upsertProject({
       atkinsProjectId:   demoStub.atkinsProjectId,
@@ -926,28 +902,10 @@ app.post('/poc/reset', (req, res) => {
 // =============================================================================
 // HYDRATE — restore pocState from DB after a server restart
 // =============================================================================
-/**
- * POST /poc/hydrate
- *
- * Body (one of):
- *   { atkinsProjectId: "ATK-2026-1233" }   — loads most-recent session for project
- *   { bluebeamSessionId: "674-939-402" }    — loads a specific session
- *   {}                                       — loads globally most-recent session
- *
- * After a Render.com (or any PaaS) cold start, pocState is empty even though
- * the Bluebeam session may still be live. This endpoint:
- *   1. Queries the DB for the target session + its files
- *   2. Restores pocState: sessionId, status, projectFiles, sessionFileIds
- *   3. Restores demoStub: all project/session metadata
- *   4. Re-resolves Studio Project folder IDs via the BB API (needed for
- *      exportmarkups job) — skipped gracefully if token is not yet valid
- *   5. Re-schedules the session poller if polling_interval > 0
- */
 app.post('/poc/hydrate', async (req, res) => {
   try {
     const { atkinsProjectId, bluebeamSessionId } = req.body || {};
 
-    // ── 1. Find the target session in DB ────────────────────────────────────
     let session;
 
     if (bluebeamSessionId) {
@@ -964,7 +922,6 @@ app.post('/poc/hydrate', async (req, res) => {
       ).get(atkinsProjectId);
       if (!session) throw new Error(`No sessions found in DB for project: ${atkinsProjectId}`);
     } else {
-      // No targeting — use globally most-recent session
       session = db.db.prepare(
         'SELECT * FROM sessions ORDER BY created_at DESC LIMIT 1'
       ).get();
@@ -973,18 +930,14 @@ app.post('/poc/hydrate', async (req, res) => {
 
     logStep(`Hydrating from DB: session=${session.bluebeam_session_id}, project=${session.atkins_project_id}`, 'info');
 
-    // ── 2. Restore pocState ──────────────────────────────────────────────────
     pocState.sessionId  = session.bluebeam_session_id;
     pocState.status     = session.status || 'active';
     pocState.createdAt  = session.created_at;
 
-    // Load project files + session file IDs from DB files table
     const dbFiles = db.db.prepare(
       'SELECT * FROM files WHERE bluebeam_session_id = ?'
     ).all(session.bluebeam_session_id);
 
-    // Also pull files that are in the project but not yet in a session
-    // (covers the case where checkout ran but DB file record has null session)
     const dbProjectFiles = db.db.prepare(
       `SELECT * FROM files
        WHERE (bluebeam_session_id = ? OR bluebeam_session_id IS NULL)
@@ -1007,7 +960,6 @@ app.post('/poc/hydrate', async (req, res) => {
 
     logStep(`Restored ${pocState.projectFiles.length} project file(s), ${pocState.sessionFileIds.length} session file(s)`, 'success');
 
-    // ── 3. Restore demoStub ──────────────────────────────────────────────────
     const project = db.getProject(session.atkins_project_id);
     if (project) {
       demoStub.atkinsProjectId = project.atkins_project_id;
@@ -1023,7 +975,6 @@ app.post('/poc/hydrate', async (req, res) => {
     demoStub.pollingInterval = session.polling_interval || 0;
     demoStub.documentId      = session.review_name      || demoStub.documentId;
 
-    // ── 4. Re-resolve Studio Project folder IDs ──────────────────────────────
     let folderResolutionStatus = 'skipped';
     try {
       const accessToken = await tokenManager.getValidAccessToken();
@@ -1033,11 +984,9 @@ app.post('/poc/hydrate', async (req, res) => {
       folderResolutionStatus    = 'ok';
       logStep(`Folder IDs resolved: ${Object.entries(pocState.folderIds).map(([n, id]) => `${n}=${id}`).join(', ')}`, 'success');
     } catch (folderErr) {
-      // Not fatal — folder IDs will be re-resolved lazily inside performExportMarkups
       logStep(`Could not re-resolve folder IDs (token may not be ready): ${folderErr.message}`, 'warn');
     }
 
-    // ── 5. Re-schedule poller if needed ──────────────────────────────────────
     if (demoStub.pollingInterval > 0 && !activePollers.has(pocState.sessionId)) {
       scheduleSessionPoller(pocState.sessionId, demoStub.atkinsProjectId, demoStub.pollingInterval);
       logStep(`Poller re-scheduled: every ${demoStub.pollingInterval}h`, 'info');
@@ -1127,14 +1076,20 @@ app.post('/poc/setup-project', async (req, res) => {
 
 // =============================================================================
 // STEP 0b — Upload PDF(s)
+// State model injection is ON by default.
+// Pass injectStateModel=false in the multipart body to skip injection.
 // =============================================================================
 app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) throw new Error('No files received');
 
     pocState.status      = 'uploading';
-    const injectModel    = req.body.injectStateModel === 'true';
+    // Default TRUE — pass injectStateModel=false explicitly to skip
+    const injectModel    = req.body.injectStateModel !== 'false';
     logStep(`Received ${req.files.length} file(s) for upload (injectStateModel=${injectModel})`, 'info');
+    if (injectModel) {
+      logStep(`State model injection: will remove [${STATE_MODELS_TO_REMOVE.join(', ')}] and inject "${QC_STATE_MODEL.cUIName}"`, 'info');
+    }
 
     const accessToken    = await tokenManager.getValidAccessToken();
     const reviewFolderId = pocState.folderIds[FOLDER_REVIEW_DOCS] || null;
@@ -1144,7 +1099,7 @@ app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
       let buffer = file.buffer;
 
       if (injectModel) {
-        logStep(`Injecting 5-step QC Review state model into "${file.originalname}"...`, 'info');
+        logStep(`Injecting "${QC_STATE_MODEL.cUIName}" state model into "${file.originalname}"...`, 'info');
         buffer = await injectStateModel(buffer);
         logStep(`State model injected into "${file.originalname}" (${buffer.length} bytes)`, 'success');
       }
@@ -1719,7 +1674,7 @@ app.post('/poc/cleanup', async (req, res) => {
     logStep(sessResp.ok ? 'Session deleted' : `Session delete: ${sessResp.status}`, sessResp.ok ? 'success' : 'warn');
 
     db.updateSessionStatus(pocState.sessionId, 'cleaned');
-    scheduleSessionPoller(pocState.sessionId, null, 0); // clear poller
+    scheduleSessionPoller(pocState.sessionId, null, 0);
 
     logStep('Cleanup complete', 'success');
     pocState.sessionId      = null;
@@ -1752,7 +1707,6 @@ app.post('/poc/inject-state-model', upload.single('file'), async (req, res) => {
 // DB QUERY ENDPOINTS
 // =============================================================================
 
-// GET /poc/projects — list all Atkins projects in DB
 app.get('/poc/projects', (req, res) => {
   try {
     const projects = db.listProjects();
@@ -1762,7 +1716,6 @@ app.get('/poc/projects', (req, res) => {
   }
 });
 
-// GET /poc/projects/:atkinsId/snapshot
 app.get('/poc/projects/:atkinsId/snapshot', (req, res) => {
   try {
     const { atkinsId } = req.params;
@@ -1853,11 +1806,12 @@ app.listen(PORT, () => {
 
   if (isLocalhost(WEBHOOK_CALLBACK_URL)) console.log('⚠  Webhook will be skipped (localhost URL)');
 
-  console.log(`\nState Model: "${QC_STATE_MODEL.cUIName}" (${QC_STATE_MODEL.states.length} states)`);
+  console.log(`\nState Model: "${QC_STATE_MODEL.cUIName}" (${QC_STATE_MODEL.states.length} states) — injection ON by default`);
+  console.log(`Models removed before injection: ${STATE_MODELS_TO_REMOVE.join(', ')}`);
 
   console.log(`\nFLOW:`);
   console.log(`  POST /poc/setup-project         — 0a: Create folders + upload custom-columns.xml`);
-  console.log(`  POST /poc/upload-to-project     — 0b: State model injection + upload PDFs → project + DB`);
+  console.log(`  POST /poc/upload-to-project     — 0b: State model injection (default ON) + upload PDFs → project + DB`);
   console.log(`  POST /poc/apply-custom-columns  — 0c: Apply custom columns (optional)`);
   console.log(`  POST /poc/hydrate               — H:  Restore pocState from DB after restart`);
   console.log(`  POST /poc/trigger               — 1:  Workflow event`);
