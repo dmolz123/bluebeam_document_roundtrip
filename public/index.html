@@ -7,7 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  /* AtkinsRéalis brand */
   --ar-teal:    #00B5AD;
   --ar-teal-h:  #009990;
   --ar-teal-l:  #e0f7f6;
@@ -17,7 +16,6 @@
   --ar-navy-l:  #e8edf2;
   --ar-orange:  #E8612C;
   --ar-orange-l:#fdf0eb;
-  /* semantic */
   --accent:     var(--ar-teal);
   --accent-h:   var(--ar-teal-h);
   --accent-l:   var(--ar-teal-l);
@@ -40,17 +38,12 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
 body{background:var(--bg);color:var(--text);font-family:var(--sans);height:100%;display:flex;flex-direction:column;}
-
-/* ── BRAND BAR ── */
 .brand-bar{height:3px;background:linear-gradient(90deg,var(--ar-navy) 0%,var(--ar-teal) 60%,var(--ar-orange) 100%);flex-shrink:0;}
-
-/* ── HEADER ── */
 header{background:var(--ar-navy);border-bottom:1px solid rgba(255,255,255,0.08);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0;}
 .header-brand{display:flex;align-items:center;gap:12px;}
-.header-logo{width:32px;height:32px;display:flex;align-items:center;justify-content:center;}
 .header-logo svg{width:32px;height:32px;}
 .header-wordmark{display:flex;flex-direction:column;gap:1px;}
-.header-title{font-size:13px;font-weight:600;color:#ffffff;letter-spacing:0.01em;}
+.header-title{font-size:13px;font-weight:600;color:#fff;letter-spacing:0.01em;}
 .header-sub{font-size:10px;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.1em;}
 .header-right{display:flex;align-items:center;gap:10px;}
 .header-project-badge{background:rgba(0,181,173,0.15);border:1px solid rgba(0,181,173,0.3);color:var(--ar-teal);font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;letter-spacing:0.04em;font-family:var(--mono);}
@@ -62,29 +55,20 @@ header{background:var(--ar-navy);border-bottom:1px solid rgba(255,255,255,0.08);
 .auth-status-dot.unknown{background:var(--text-3);}
 .auth-status-label{font-size:11px;color:rgba(255,255,255,0.5);cursor:pointer;transition:color 0.15s;}
 .auth-status-label:hover{color:rgba(255,255,255,0.9);}
-
-/* ── TABS ── */
 .tab-bar{background:var(--ar-navy);border-bottom:2px solid rgba(255,255,255,0.07);display:flex;padding:0 28px;flex-shrink:0;}
 .tab-btn{padding:11px 18px;background:none;border:none;border-bottom:2px solid transparent;color:rgba(255,255,255,0.45);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all 0.15s;margin-bottom:-2px;letter-spacing:0.02em;text-transform:uppercase;}
 .tab-btn:hover{color:rgba(255,255,255,0.8);}
-.tab-btn.active{color:#ffffff;border-bottom-color:var(--ar-teal);}
+.tab-btn.active{color:#fff;border-bottom-color:var(--ar-teal);}
 .tab-content{display:none;flex:1;overflow:hidden;min-height:0;}
 .tab-content.active{display:flex;flex-direction:column;}
-
-/* ── SHARED PAGE WRAP ── */
 .page-wrap{flex:1;overflow-y:auto;padding:32px 28px;}
 .page-inner{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:20px;}
 .page-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:2px;}
 .page-sub{font-size:13px;color:var(--text-2);line-height:1.55;}
-
-/* ── CARDS ── */
 .card{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:24px;}
 .card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:8px;}
 .card-title-icon{width:26px;height:26px;background:var(--ar-teal-l);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
-.card-title-icon.navy{background:var(--ar-navy-l);}
 .card-title-icon.orange{background:var(--ar-orange-l);}
-
-/* ── AUTH CARD ── */
 .auth-card{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
 .auth-card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;cursor:pointer;user-select:none;transition:background 0.15s;}
 .auth-card-header:hover{background:var(--bg);}
@@ -94,10 +78,9 @@ header{background:var(--ar-navy);border-bottom:1px solid rgba(255,255,255,0.08);
 .auth-card-body{border-top:1px solid var(--border);padding:20px;display:none;flex-direction:column;gap:14px;}
 .auth-card-body.open{display:flex;}
 .auth-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.auth-token-wrap{position:relative;}
 .auth-token-wrap textarea{width:100%;padding:10px 14px;border:1px solid var(--border-2);border-radius:8px;font-family:var(--mono);font-size:11px;color:var(--text);background:var(--bg);resize:none;height:72px;outline:none;transition:border-color 0.15s;}
 .auth-token-wrap textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,181,173,0.1);}
-.auth-btn-row{display:flex;gap:8px;align-items:center;}
+.auth-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .btn-auth{padding:8px 16px;border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all 0.15s;white-space:nowrap;}
 .btn-auth-primary{background:var(--ar-teal);color:white;}
 .btn-auth-primary:hover{background:var(--ar-teal-h);}
@@ -107,39 +90,24 @@ header{background:var(--ar-navy);border-bottom:1px solid rgba(255,255,255,0.08);
 .auth-meta-item{font-size:11px;color:var(--text-3);font-family:var(--mono);}
 .auth-meta-item span{color:var(--text-2);font-weight:500;}
 .auth-meta-item.ok span{color:var(--green);}
-.auth-meta-item.warn span{color:var(--warn);}
-.auth-meta-item.err span{color:var(--error);}
-
-/* ── FORM ── */
 .field{display:flex;flex-direction:column;gap:5px;}
-.field+.field{margin-top:14px;}
-.field-row{display:grid;gap:14px;align-items:end;}
+.field-row{display:grid;gap:14px;align-items:start;}
 .field-row.cols-2{grid-template-columns:1fr 1fr;}
 .field-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
 label{font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.07em;}
-input[type="text"],input[type="email"],input[type="date"],select,textarea{
-  width:100%;padding:9px 12px;border:1px solid var(--border-2);border-radius:8px;min-height:40px;
-  font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);
-  transition:border-color 0.15s,box-shadow 0.15s;outline:none;
-}
+input[type="text"],input[type="email"],input[type="date"],select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border-2);border-radius:8px;min-height:40px;font-family:var(--sans);font-size:13px;color:var(--text);background:var(--white);transition:border-color 0.15s,box-shadow 0.15s;outline:none;}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,181,173,0.1);}
 input.input-error{border-color:var(--error)!important;box-shadow:0 0 0 3px rgba(220,38,38,0.1)!important;}
 input.input-ok{border-color:var(--green)!important;}
 select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px;}
 textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .field-hint{font-size:11px;color:var(--text-3);margin-top:3px;line-height:1.4;}
-.field-error{font-size:11px;color:var(--error);margin-top:3px;font-weight:500;}
-.field-ok{font-size:11px;color:var(--green);margin-top:3px;font-weight:500;}
-
-/* Project ID */
 .project-id-wrap{position:relative;}
 .project-id-wrap input{padding-right:80px;font-family:var(--mono);font-size:13px;letter-spacing:0.03em;}
 .project-id-status{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:600;white-space:nowrap;}
 .project-id-status.ok{color:var(--green);}
 .project-id-status.err{color:var(--error);}
 .project-id-status.hint{color:var(--text-3);}
-
-/* ── DROP ZONE ── */
 .drop-zone{border:2px dashed var(--border-2);border-radius:10px;padding:24px 20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;background:var(--bg);}
 .drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--ar-teal-ll);}
 .drop-zone input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
@@ -147,8 +115,10 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .drop-zone-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;}
 .drop-zone-title span{color:var(--accent);}
 .drop-zone-hint{font-size:11px;color:var(--text-3);font-family:var(--mono);}
-
-/* ── STAGED FILES ── */
+.inject-toggle{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--ar-teal-l);border:1px solid rgba(0,181,173,0.25);border-radius:8px;margin-top:10px;cursor:pointer;width:fit-content;}
+.inject-toggle input[type="checkbox"]{width:15px;height:15px;accent-color:var(--ar-teal);cursor:pointer;flex-shrink:0;}
+.inject-toggle-label{font-size:12px;font-weight:500;color:var(--ar-navy);cursor:pointer;user-select:none;}
+.inject-toggle-hint{font-size:10px;color:var(--ar-teal-h);margin-left:2px;}
 .staged-files{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 .staged-files-header{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;padding:7px 12px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-3);}
 .staged-file{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:9px 12px;background:var(--white);border-bottom:1px solid var(--border);font-size:12px;transition:background 0.1s;}
@@ -166,18 +136,14 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .sf-session-badge{font-size:10px;font-family:var(--mono);color:var(--accent);background:var(--ar-teal-l);padding:2px 6px;border-radius:4px;white-space:nowrap;}
 .sf-remove{background:none;border:none;color:var(--text-3);cursor:pointer;padding:2px 5px;border-radius:4px;font-size:15px;line-height:1;transition:all 0.15s;}
 .sf-remove:hover{color:var(--error);background:var(--error-l);}
-
-/* Session rollup bar */
 .session-rollup{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:10px;}
 .session-rollup-left{display:flex;align-items:center;gap:10px;}
-.session-rollup-id{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);background:var(--ar-teal-l);padding:3px 9px;border-radius:6px;cursor:pointer;transition:background 0.15s;}
+.session-rollup-id{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--accent);background:var(--ar-teal-l);padding:3px 9px;border-radius:6px;cursor:pointer;}
 .session-rollup-id:hover{background:#c5eeec;}
 .session-rollup-count{font-size:12px;color:var(--text-2);}
 .session-rollup-count strong{color:var(--text);}
 .session-rollup-statuses{display:flex;gap:5px;}
 .rollup-pill{font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;}
-
-/* ── REVIEWER CHIPS ── */
 .chip-box{border:1px solid var(--border-2);border-radius:8px;padding:7px 9px;display:flex;flex-wrap:wrap;gap:5px;min-height:40px;cursor:text;transition:border-color 0.15s,box-shadow 0.15s;background:var(--white);}
 .chip-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,181,173,0.1);}
 .chip{display:inline-flex;align-items:center;gap:4px;background:var(--ar-teal-l);border:1px solid rgba(0,181,173,0.25);border-radius:5px;padding:2px 8px;font-size:11px;font-weight:500;color:var(--ar-teal-h);}
@@ -188,8 +154,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .csv-label{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--accent);cursor:pointer;font-weight:500;position:relative;margin-top:5px;}
 .csv-label:hover{text-decoration:underline;}
 .csv-label input{position:absolute;inset:0;opacity:0;cursor:pointer;}
-
-/* ── BUTTONS ── */
 .btn-primary{width:100%;padding:12px;background:var(--ar-teal);color:white;border:none;border-radius:9px;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;}
 .btn-primary:hover:not(:disabled){background:var(--ar-teal-h);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,181,173,0.25);}
 .btn-primary:disabled{background:#b0d4d2;cursor:not-allowed;transform:none;box-shadow:none;}
@@ -205,8 +169,11 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .btn-outline:disabled{opacity:0.4;cursor:not-allowed;}
 .btn-copy{padding:4px 10px;background:none;border:1px solid var(--border);border-radius:5px;font-size:11px;color:var(--text-2);cursor:pointer;transition:all 0.15s;font-family:var(--sans);}
 .btn-copy:hover{border-color:var(--accent);color:var(--accent);}
-
-/* ── STEP CHECKLIST ── */
+.btn-csv{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;background:var(--white);color:var(--green);border:1px solid var(--green);border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
+.btn-csv:hover{background:var(--green-l);}
+.btn-csv:disabled{opacity:0.4;cursor:not-allowed;}
+.table-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.table-toolbar-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;flex-wrap:wrap;}
 .step-list{display:flex;flex-direction:column;gap:6px;}
 .step-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
 .step-row:last-child{border-bottom:none;}
@@ -217,16 +184,12 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
 .step-row-label{flex:1;color:var(--text);}
 .step-row-label.muted{color:var(--text-3);}
-.step-row-api{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;}
-
-/* ── SESSION BANNER ── */
+.step-row-api{font-family:var(--mono);font-size:10px;color:var(--text-3);background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;white-space:nowrap;}
 .session-banner{background:var(--white);border:2px solid var(--green);border-radius:12px;padding:18px 22px;}
 .session-banner-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:var(--green);margin-bottom:5px;}
 .session-id-row{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
 .session-id{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:0.05em;}
 .session-hint{font-size:12px;color:var(--text-2);}
-
-/* ── SUMMARY CARDS ── */
 .summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 .sum-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px;}
 .sum-val{font-size:26px;font-weight:700;color:var(--accent);font-family:var(--mono);line-height:1;}
@@ -234,8 +197,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .sum-val.warn{color:var(--warn);}
 .sum-val.error{color:var(--error);}
 .sum-label{font-size:11px;color:var(--text-2);margin-top:3px;}
-
-/* ── PIE ── */
 .pie-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;align-items:center;}
 .pie-wrap{display:flex;justify-content:center;align-items:center;min-height:220px;}
 .pie-chart{width:200px;height:200px;border-radius:50%;position:relative;border:1px solid var(--border);background:conic-gradient(var(--accent) 0deg 360deg);}
@@ -249,14 +210,10 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .pie-label{color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .pie-count,.pie-pct{font-family:var(--mono);font-size:10px;color:var(--text-3);}
 .pie-empty{color:var(--text-3);font-size:11px;padding:6px 0;}
-
-/* ── RESULTS TABLE ── */
 .results-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
 .results-table{width:100%;border-collapse:collapse;font-size:11px;}
 .results-table th{text-align:left;padding:9px 12px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-2);white-space:nowrap;cursor:pointer;user-select:none;}
 .results-table th:hover{color:var(--text);}
-.results-table th.sort-asc::after{content:' ↑';color:var(--accent);}
-.results-table th.sort-desc::after{content:' ↓';color:var(--accent);}
 .results-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
 .results-table tr:last-child td{border-bottom:none;}
 .results-table tr:hover td{background:#f5fafa;}
@@ -267,31 +224,22 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .pill-red{background:var(--error-l);color:var(--error);}
 .pill-gray{background:var(--bg);color:var(--text-2);border:1px solid var(--border);}
 .pill-navy{background:var(--ar-navy-l);color:var(--ar-navy);}
-
-/* ── TOAST ── */
 #toastContainer{position:fixed;bottom:24px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:9999;pointer-events:none;}
 .toast{background:var(--ar-navy);color:white;padding:10px 16px;border-radius:8px;font-size:12px;font-weight:500;display:flex;align-items:center;gap:8px;max-width:360px;pointer-events:auto;opacity:0;transform:translateY(8px);transition:all 0.25s ease;border-left:3px solid var(--ar-teal);}
 .toast.show{opacity:1;transform:translateY(0);}
 .toast.err{border-left-color:var(--error);}
 .toast.warn{border-left-color:var(--warn);}
 .toast.ok{border-left-color:var(--green);}
-.toast-close{background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:14px;padding:0;margin-left:auto;pointer-events:auto;}
-
-/* ══════════════════════════════════════
-   TAB 2 — REVIEW DATA
-══════════════════════════════════════ */
-.t2-lookup-bar{display:flex;align-items:flex-end;gap:10px;}
-.t2-lookup-bar .field{flex:1;}
+.toast-close{background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:14px;padding:0;margin-left:auto;}
+/* TAB 2 */
+.t2-lookup-bar{display:flex;align-items:flex-start;gap:10px;}
 .t2-projects-select-wrap{display:flex;flex-direction:column;gap:5px;flex:1;}
 .t2-projects-select-wrap label{font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.07em;}
-.t2-poll-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--border);margin-top:12px;}
-.t2-poll-label{font-size:12px;color:var(--text-2);flex:1;}
-.t2-poll-label strong{color:var(--text);}
+.t2-poll-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--border);margin-top:12px;flex-wrap:wrap;}
 .t2-sync-meta{font-size:11px;color:var(--text-3);font-family:var(--mono);}
 .t2-sync-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:var(--green);}
 .t2-sync-badge::before{content:'';display:block;width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-dot 2s ease infinite;}
 @keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:0.35;}}
-
 .t2-overview{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 .t2-ov-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px;}
 .t2-ov-val{font-size:28px;font-weight:700;font-family:var(--mono);line-height:1;}
@@ -300,7 +248,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .t2-ov-val.warn{color:var(--warn);}
 .t2-ov-val.gray{color:var(--text-3);}
 .t2-ov-label{font-size:11px;color:var(--text-2);margin-top:3px;}
-
 .session-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
 .session-table{width:100%;border-collapse:collapse;font-size:12px;}
 .session-table th{text-align:left;padding:9px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-2);white-space:nowrap;}
@@ -316,7 +263,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .session-file-item:last-child{border-bottom:none;}
 .session-file-name{flex:1;font-weight:500;color:var(--text);}
 .session-file-size{color:var(--text-3);font-family:var(--mono);}
-
 .poll-controls{display:flex;align-items:center;gap:8px;}
 .poll-select{padding:6px 28px 6px 10px;border:1px solid var(--border-2);border-radius:7px;font-family:var(--sans);font-size:12px;color:var(--text);background:var(--white);outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;}
 .poll-select:focus{border-color:var(--accent);}
@@ -324,26 +270,26 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .poll-indicator.active{background:var(--green);animation:pulse-dot 2s ease infinite;}
 .poll-running-label{font-size:11px;color:var(--text-3);}
 .poll-running-label.active{color:var(--green);}
-
 .empty-state{text-align:center;padding:44px 32px;color:var(--text-3);}
 .empty-state-icon{font-size:36px;margin-bottom:10px;}
 .empty-state-title{font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:5px;}
 .empty-state-sub{font-size:12px;line-height:1.5;}
-
-/* ══════════════════════════════════════
-   DEVELOPER CONSOLE TAB — FIXED STICKY
-══════════════════════════════════════ */
+/* DEV CONSOLE */
 .dev-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
-.dev-config-bar{background:var(--white);border-bottom:1px solid var(--border);padding:14px 24px;display:grid;grid-template-columns:minmax(160px,200px) minmax(160px,1fr) minmax(160px,1fr) minmax(220px,1.5fr) auto;gap:14px;align-items:stretch;flex-shrink:0;}
-.dev-config-field{display:flex;flex-direction:column;gap:5px;min-width:0;}
-.dev-config-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-2);}
-.dev-config-sub{font-size:10px;color:var(--text-3);min-height:14px;line-height:1.3;}
+.dev-config-bar{background:var(--white);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:flex-start;gap:10px;flex-shrink:0;flex-wrap:nowrap;overflow-x:auto;}
+.dev-config-field{display:flex;flex-direction:column;gap:4px;flex-shrink:0;}
+.dev-config-field.f-files{width:160px;}
+.dev-config-field.f-docid{width:130px;}
+.dev-config-field.f-desc{width:150px;}
+.dev-config-field.f-rev{flex:1;min-width:180px;max-width:340px;}
+.dev-config-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-2);white-space:nowrap;height:16px;display:flex;align-items:center;}
+.dev-config-sub{font-size:10px;color:var(--text-3);line-height:1.3;margin-top:1px;}
 .dev-input{padding:9px 10px;border:1px solid var(--border-2);border-radius:7px;font-family:var(--sans);font-size:12px;color:var(--text);background:var(--white);outline:none;width:100%;transition:border-color 0.15s;min-height:40px;height:40px;}
 .dev-input:focus{border-color:var(--accent);}
-.dev-chip-box{border:1px solid var(--border-2);border-radius:7px;padding:6px 7px;display:flex;flex-wrap:wrap;gap:4px;min-height:40px;cursor:text;background:var(--white);transition:border-color 0.15s;align-items:center;}
+.dev-chip-box{border:1px solid var(--border-2);border-radius:7px;padding:0 7px;display:flex;flex-wrap:nowrap;gap:4px;height:40px;min-height:40px;max-height:40px;overflow:hidden;cursor:text;background:var(--white);transition:border-color 0.15s;align-items:center;}
 .dev-chip-box:focus-within{border-color:var(--accent);}
 .dev-chip-input{background:none;border:none;outline:none;font-family:var(--sans);font-size:12px;color:var(--text);flex:1;min-width:100px;padding:1px 0;}
-.dev-upload-zone{border:1px dashed var(--border-2);border-radius:7px;padding:8px 12px;display:flex;align-items:center;gap:7px;cursor:pointer;position:relative;background:var(--bg);min-width:140px;transition:all 0.15s;min-height:40px;}
+.dev-upload-zone{border:1px dashed var(--border-2);border-radius:7px;padding:8px 12px;display:flex;align-items:center;gap:7px;cursor:pointer;position:relative;background:var(--bg);transition:all 0.15s;min-height:40px;}
 .dev-upload-zone:hover{border-color:var(--accent);background:var(--ar-teal-ll);}
 .dev-upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
 .dev-upload-zone-text{font-size:11px;color:var(--text-2);}
@@ -351,28 +297,30 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .dev-staged-file{font-size:10px;color:var(--text-2);font-family:var(--mono);display:flex;align-items:center;gap:5px;}
 .dev-staged-ok{color:var(--green);}
 .dev-staged-err{color:var(--error);}
-.dev-action-btns{display:flex;gap:7px;align-self:end;height:40px;}
-.dev-btn{padding:9px 14px;border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;border:none;white-space:nowrap;min-height:40px;}
+.dev-inject-row{display:flex;align-items:center;gap:5px;margin-top:4px;}
+.dev-inject-check{width:13px;height:13px;accent-color:var(--ar-teal);cursor:pointer;flex-shrink:0;}
+.dev-inject-lbl{font-size:10px;color:var(--text-2);cursor:pointer;user-select:none;}
+.dev-action-btns{display:flex;gap:6px;align-items:center;flex-shrink:0;margin-top:20px;}
+.dev-action-btns-inner{display:flex;gap:7px;}
+.dev-config-subrow{background:var(--white);border-bottom:1px solid var(--border);padding:4px 20px 8px;display:flex;align-items:center;gap:16px;flex-shrink:0;}
+.dev-btn{padding:9px 14px;border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;border:none;white-space:nowrap;min-height:40px;height:40px;display:inline-flex;align-items:center;}
 .dev-btn-primary{background:var(--ar-teal);color:white;}
 .dev-btn-primary:hover:not(:disabled){background:var(--ar-teal-h);}
 .dev-btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
 .dev-btn-ghost{background:var(--white);color:var(--text-2);border:1px solid var(--border);}
 .dev-btn-ghost:hover{border-color:var(--error);color:var(--error);}
-
-/* KEY FIX: proper sticky sidebar */
 .dev-shell{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px;}
 .dev-main-scroll{min-height:0;overflow-y:auto;padding:18px 22px 24px;}
 .dev-main{display:flex;flex-direction:column;gap:16px;}
 .dev-sidebar{background:var(--white);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0;overflow-y:auto;}
-
 .dev-panel{background:var(--white);border:1px solid var(--border);border-radius:11px;padding:14px;}
 .dev-panel-title{font-size:11px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
-.dev-panel-hint{font-size:11px;color:var(--text-3);line-height:1.4;}
+.dev-panel-hint{font-size:11px;color:var(--text-3);font-weight:400;text-transform:none;letter-spacing:0;}
 .dev-collapsible{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
 .dev-collapsible summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 16px;font-size:13px;font-weight:600;color:var(--text);}
 .dev-collapsible summary::-webkit-details-marker{display:none;}
 .dev-collapsible summary .dev-summary-meta{font-size:11px;font-weight:500;color:var(--text-3);}
-.dev-collapsible[open] summary{border-bottom:1px solid var(--border);background:linear-gradient(180deg,#ffffff 0%,#f8fbfb 100%);}
+.dev-collapsible[open] summary{border-bottom:1px solid var(--border);background:linear-gradient(180deg,#fff 0%,#f8fbfb 100%);}
 .dev-readme-body{padding:16px;display:flex;flex-direction:column;gap:16px;}
 .dev-readme-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}
 .dev-readme-card{border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--bg);}
@@ -394,7 +342,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .dev-state-label{font-size:9px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;}
 .dev-state-value{font-size:12px;font-weight:600;color:var(--text);word-break:break-word;}
 .dev-state-value.mono{font-family:var(--mono);font-size:11px;}
-.dev-state-card.wide{grid-column:1 / -1;}
+.dev-state-card.wide{grid-column:1/-1;}
 .dev-state-empty{font-size:11px;color:var(--text-3);}
 .dev-snippet-meta{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:8px;}
 .dev-snippet-endpoint{font-family:var(--mono);font-size:10px;color:var(--accent);background:var(--ar-teal-l);padding:2px 7px;border-radius:999px;display:inline-flex;align-items:center;}
@@ -403,9 +351,10 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .dev-copy-snippet{padding:5px 9px;border:1px solid var(--border);background:var(--white);border-radius:6px;font-size:11px;color:var(--text-2);cursor:pointer;}
 .dev-copy-snippet:hover{border-color:var(--accent);color:var(--accent);}
 .dev-canvas{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:auto;padding:20px;}
-.dev-canvas-inner{display:flex;flex-direction:column;gap:28px;max-width:960px;margin:0 auto;}
-
-/* DB INFO PANEL */
+.dev-canvas-inner{display:flex;flex-direction:column;gap:24px;max-width:960px;margin:0 auto;}
+.db-badge{display:inline-flex;align-items:center;gap:3px;font-size:9px;font-weight:700;font-family:var(--mono);padding:1px 5px;border-radius:4px;background:var(--ar-navy-l);color:var(--ar-navy);border:1px solid rgba(28,53,87,0.15);}
+.db-badge.write{background:#f0fdf4;color:#15803d;border-color:#bbf7d0;}
+.db-badge.read{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe;}
 .db-info-panel{background:var(--white);border-top:1px solid var(--border);padding:14px 16px;flex-shrink:0;}
 .db-info-title{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;}
 .db-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
@@ -413,17 +362,17 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .db-info-item span{color:var(--text-2);font-weight:600;}
 .db-info-item.ok span{color:var(--green);}
 .db-info-item.warn span{color:var(--warn);}
-
 .phase{display:flex;flex-direction:column;gap:0;}
 .phase-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
 .phase-badge{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;}
+.phase-badge.auth{background:#fef3c7;color:#92400e;}
 .phase-badge.setup{background:#e0e7ff;color:#3730a3;}
 .phase-badge.session{background:var(--ar-teal-l);color:var(--ar-navy);}
 .phase-badge.extract{background:var(--ar-orange-l);color:#7c2e0a;}
 .phase-line{flex:1;height:1px;background:var(--border);}
-.node-grid{display:flex;flex-wrap:wrap;gap:10px;position:relative;}
-.phase-arrow{display:flex;justify-content:center;align-items:center;padding:6px 0;color:var(--text-3);font-size:16px;}
-.fc-node{background:var(--white);border:2px solid var(--border);border-radius:11px;padding:12px 14px;min-width:156px;max-width:200px;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;}
+.node-grid{display:flex;flex-wrap:wrap;gap:10px;}
+.phase-arrow{display:flex;justify-content:center;align-items:center;padding:4px 0;color:var(--text-3);font-size:16px;}
+.fc-node{background:var(--white);border:2px solid var(--border);border-radius:11px;padding:11px 13px;min-width:148px;max-width:190px;cursor:pointer;transition:all 0.2s;position:relative;user-select:none;}
 .fc-node:hover{border-color:var(--accent);box-shadow:0 5px 16px rgba(0,181,173,0.12);transform:translateY(-1px);}
 .fc-node.selected{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,181,173,0.12);}
 .fc-node.running{border-color:var(--warn);background:#fffbeb;}
@@ -437,11 +386,12 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .fc-node-status.done{background:var(--green);color:white;}
 .fc-node-status.error{background:var(--error);color:white;}
 @keyframes pulse-node{0%,100%{transform:scale(1);}50%{transform:scale(1.2);}}
-.fc-node-icon{font-size:16px;margin-bottom:5px;}
+.fc-node-icon{font-size:15px;margin-bottom:4px;}
 .fc-node-title{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;}
 .fc-node.done .fc-node-title{color:var(--green);}
 .fc-node.error .fc-node-title{color:var(--error);}
-.fc-node-api{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-bottom:5px;}
+.fc-node-api{font-family:var(--mono);font-size:9px;color:var(--text-3);margin-bottom:3px;}
+.fc-node-db{margin-bottom:5px;display:flex;gap:3px;flex-wrap:wrap;min-height:16px;}
 .fc-node-btn{display:block;width:100%;padding:4px 0;background:var(--ar-teal);color:white;border:none;border-radius:5px;font-family:var(--sans);font-size:10px;font-weight:500;cursor:pointer;transition:all 0.15s;text-align:center;}
 .fc-node-btn:hover{background:var(--ar-teal-h);}
 .fc-node-btn:disabled{background:var(--border);color:var(--text-3);cursor:not-allowed;}
@@ -463,7 +413,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .dev-log-msg.webhook{color:var(--accent);}
 .dev-markup-section{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:18px;flex-shrink:0;}
 .dev-markup-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
-.dev-markup-count{font-size:11px;color:var(--text-2);margin-left:auto;font-family:var(--mono);}
+.dev-markup-count{font-size:11px;color:var(--text-2);font-family:var(--mono);}
 .dev-markup-count span{color:var(--green);font-weight:600;}
 .view-toggle{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden;}
 .view-toggle button{padding:4px 12px;background:var(--white);border:none;color:var(--text-2);font-family:var(--sans);font-size:11px;cursor:pointer;transition:all 0.15s;}
@@ -471,31 +421,16 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .json-view{background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:12px;overflow:auto;max-height:280px;font-family:var(--mono);font-size:10px;line-height:1.6;}
 .json-key{color:#1d4ed8;}.json-str{color:#059669;}.json-num{color:#d97706;}.json-bool{color:#7c3aed;}.json-null{color:var(--text-3);}
 .markup-empty{color:var(--text-3);font-size:12px;padding:14px 0;text-align:center;}
-
-/* SIDEBAR SECTIONS */
 .sidebar-section{padding:14px 16px;border-bottom:1px solid var(--border);}
 .sidebar-section:last-child{border-bottom:none;}
 .sidebar-section-title{font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
-
-@media (max-width:1200px){
-  .dev-shell{grid-template-columns:minmax(0,1fr);}
-  .dev-sidebar{border-left:none;border-top:1px solid var(--border);max-height:460px;}
-  .dev-readme-grid,.dev-link-grid{grid-template-columns:1fr;}
-}
-@media (max-width:768px){
-  .dev-config-bar{padding:14px;grid-template-columns:1fr;}
-  .summary-row,.t2-overview{grid-template-columns:repeat(2,1fr);}
-  .pie-grid{grid-template-columns:1fr;}
-}
+@media(max-width:1200px){.dev-shell{grid-template-columns:minmax(0,1fr);}.dev-sidebar{border-left:none;border-top:1px solid var(--border);max-height:460px;}.dev-readme-grid,.dev-link-grid{grid-template-columns:1fr;}.dev-config-bar{flex-wrap:wrap;}.dev-config-field.w-doc,.dev-config-field.w-desc,.dev-config-field.w-rev{flex:1;min-width:140px;width:auto;}}
+@media(max-width:768px){.dev-config-bar{padding:14px;}.summary-row,.t2-overview{grid-template-columns:repeat(2,1fr);}.pie-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
-
-<!-- Toast container -->
 <div id="toastContainer"></div>
-
 <div class="brand-bar"></div>
-
 <header>
   <div class="header-brand">
     <div class="header-logo">
@@ -518,26 +453,21 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
     <span class="header-poc-badge">PoC</span>
   </div>
 </header>
-
 <div class="tab-bar">
   <button class="tab-btn active" onclick="switchTab('rw')">Review Setup</button>
   <button class="tab-btn" onclick="switchTab('data')">Review Data</button>
   <button class="tab-btn" onclick="switchTab('dev')">Developer Console</button>
 </div>
 
-<!-- ═══════════════════════════════════════
-     TAB 1 — REVIEW PROCESS: SETUP
-═══════════════════════════════════════ -->
+<!-- ═══ TAB 1 — REVIEW SETUP ═══ -->
 <div class="tab-content active" id="tab-rw">
-<div class="page-wrap">
-<div class="page-inner">
-
+<div class="page-wrap"><div class="page-inner">
   <div>
     <div class="page-title">Start a Document Review</div>
     <div class="page-sub">Configure your AtkinsRéalis project, upload drawings, add reviewers, and launch the Bluebeam Studio Session. Run downstream processing after review to pull markup metadata into the dashboard.</div>
   </div>
 
-  <!-- ── Auth Panel ── -->
+  <!-- Auth -->
   <div class="auth-card" id="authCard-rw">
     <div class="auth-card-header" onclick="toggleAuthPanel('rw')">
       <div class="auth-card-left">
@@ -545,45 +475,39 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         <span class="auth-card-title">Authentication</span>
         <span class="auth-card-status" id="authStatus-rw">Status unknown — click to check</span>
       </div>
-      <span style="font-size:18px;color:var(--text-3);transition:transform 0.2s;" id="authChevron-rw">▾</span>
+      <span style="font-size:18px;color:var(--text-3);" id="authChevron-rw">▾</span>
     </div>
     <div class="auth-card-body" id="authBody-rw">
       <div class="auth-row">
         <div class="field">
           <label>Refresh Token</label>
-          <div class="auth-token-wrap">
-            <textarea id="refreshToken-rw" placeholder="Paste Bluebeam OAuth refresh token here…" spellcheck="false"></textarea>
-          </div>
+          <div class="auth-token-wrap"><textarea id="refreshToken-rw" placeholder="Paste Bluebeam OAuth refresh token here…" spellcheck="false"></textarea></div>
           <div class="field-hint">Token is sent to POST /poc/auth/refresh on the server and never stored in the browser.</div>
         </div>
         <div class="field">
           <label>DB / Connection Info</label>
-          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--text-2);line-height:1.7;" id="authDbInfo-rw">
-            Loading…
-          </div>
+          <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:11px;color:var(--text-2);line-height:1.7;" id="authDbInfo-rw">Loading…</div>
         </div>
       </div>
       <div class="auth-btn-row">
         <button class="btn-auth btn-auth-primary" onclick="authRefreshToken('rw')">↻ Refresh Token</button>
         <button class="btn-auth btn-auth-ghost" onclick="authTestConnection('rw')">⚡ Test Connection</button>
         <div class="auth-meta-row" style="margin-left:8px;" id="authMeta-rw">
-          <div class="auth-meta-item" id="authMetaProject-rw">Project: <span>—</span></div>
+          <div class="auth-meta-item ok" id="authMetaProject-rw">Project: <span>—</span></div>
           <div class="auth-meta-item" id="authMetaPollers-rw">Pollers: <span>—</span></div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ── Project Identity ── -->
+  <!-- Project Identity -->
   <div class="card">
     <div class="card-title"><div class="card-title-icon">🏗️</div>Project Identity</div>
     <div class="field-row cols-2">
       <div class="field">
         <label>Atkins Project ID <span style="color:var(--error)">*</span></label>
         <div class="project-id-wrap">
-          <input type="text" id="rwAtkinsId" placeholder="ATK-2024-0001"
-                 oninput="rwValidateProjectId()"
-                 style="font-family:var(--mono);font-size:13px;letter-spacing:0.03em;">
+          <input type="text" id="rwAtkinsId" placeholder="ATK-2024-0001" oninput="rwValidateProjectId()" style="font-family:var(--mono);font-size:13px;letter-spacing:0.03em;">
           <span class="project-id-status hint" id="rwAtkinsIdStatus">e.g. ATK-2024-0001</span>
         </div>
         <div class="field-hint" id="rwAtkinsIdHint">Format: ATK-YYYY-NNNN</div>
@@ -598,55 +522,33 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         <label>Region</label>
         <select id="rwRegion">
           <option value="">— Select Region —</option>
-          <optgroup label="Americas">
-            <option>North America – East</option>
-            <option>North America – West</option>
-            <option>Latin America</option>
-          </optgroup>
-          <optgroup label="Europe & Africa">
-            <option>UK & Ireland</option>
-            <option>Continental Europe</option>
-            <option>Middle East & Africa</option>
-          </optgroup>
-          <optgroup label="Asia-Pacific">
-            <option>Asia Pacific</option>
-            <option>Australia & New Zealand</option>
-          </optgroup>
+          <optgroup label="Americas"><option>North America – East</option><option>North America – West</option><option>Latin America</option></optgroup>
+          <optgroup label="Europe & Africa"><option>UK &amp; Ireland</option><option>Continental Europe</option><option>Middle East &amp; Africa</option></optgroup>
+          <optgroup label="Asia-Pacific"><option>Asia Pacific</option><option>Australia &amp; New Zealand</option></optgroup>
         </select>
       </div>
       <div class="field">
         <label>Review Type</label>
         <select id="rwReviewType">
           <option value="">— Select Type —</option>
-          <option>IFC – Issued for Construction</option>
-          <option>IFR – Issued for Review</option>
-          <option>IFT – Issued for Tender</option>
-          <option>IFA – Issued for Approval</option>
-          <option>AFC – Approved for Construction</option>
-          <option>Coordination Review</option>
-          <option>Peer Review</option>
-          <option>Internal Check</option>
-          <option>Regulatory Submission</option>
+          <option>IFC – Issued for Construction</option><option>IFR – Issued for Review</option><option>IFT – Issued for Tender</option>
+          <option>IFA – Issued for Approval</option><option>AFC – Approved for Construction</option>
+          <option>Coordination Review</option><option>Peer Review</option><option>Internal Check</option><option>Regulatory Submission</option>
         </select>
       </div>
       <div class="field">
         <label>QA/QC Category</label>
         <select id="rwQaCategory">
           <option value="">— Select Category —</option>
-          <option>Design Quality Check</option>
-          <option>Constructability Review</option>
-          <option>Code Compliance</option>
-          <option>Safety in Design</option>
-          <option>Environmental Review</option>
-          <option>Technical Assurance</option>
-          <option>Drawing Register Check</option>
-          <option>As-Built Verification</option>
+          <option>Design Quality Check</option><option>Constructability Review</option><option>Code Compliance</option>
+          <option>Safety in Design</option><option>Environmental Review</option><option>Technical Assurance</option>
+          <option>Drawing Register Check</option><option>As-Built Verification</option>
         </select>
       </div>
     </div>
   </div>
 
-  <!-- ── Documents ── -->
+  <!-- Documents -->
   <div class="card">
     <div class="card-title"><div class="card-title-icon">📄</div>Documents</div>
     <div class="drop-zone" id="rwDropZone"
@@ -658,6 +560,11 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       <div class="drop-zone-title"><span>Click to browse</span> or drag &amp; drop</div>
       <div class="drop-zone-hint">PDF files only · multiple supported</div>
     </div>
+    <label class="inject-toggle" for="rwInjectModel">
+      <input type="checkbox" id="rwInjectModel" checked>
+      <span class="inject-toggle-label">Inject 5-step QC Review state model into PDF on upload</span>
+      <span class="inject-toggle-hint">(recommended)</span>
+    </label>
     <div id="rwStagedFilesWrap" style="display:none;margin-top:10px;">
       <div class="staged-files">
         <div class="staged-files-header"><span>File</span><span>Size</span><span>Status</span><span></span></div>
@@ -673,78 +580,63 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
     </div>
   </div>
 
-  <!-- ── Review Details ── -->
+  <!-- Review Details -->
   <div class="card">
     <div class="card-title"><div class="card-title-icon">📋</div>Review Details</div>
     <div class="field-row cols-2">
-      <div class="field">
-        <label>Review Name</label>
-        <input type="text" id="rwName" placeholder="e.g. Phase 2 Coordination Review">
-      </div>
+      <div class="field"><label>Review Name</label><input type="text" id="rwName" placeholder="e.g. Phase 2 Coordination Review"></div>
       <div class="field">
         <label>Discipline</label>
         <select id="rwDiscipline">
           <option value="">— Select —</option>
-          <option>Architectural</option><option>Structural</option>
-          <option>Mechanical</option><option>Electrical</option>
-          <option>Plumbing</option><option>Civil</option>
-          <option>Fire Protection</option><option>Geotechnical</option>
-          <option>Landscape</option><option>Interior Design</option>
-          <option>Technology / AV / Security</option>
-          <option>General / Multi-Discipline</option>
+          <option>Architectural</option><option>Structural</option><option>Mechanical</option><option>Electrical</option>
+          <option>Plumbing</option><option>Civil</option><option>Fire Protection</option><option>Geotechnical</option>
+          <option>Landscape</option><option>Interior Design</option><option>Technology / AV / Security</option><option>General / Multi-Discipline</option>
         </select>
       </div>
     </div>
-    <div class="field" style="margin-top:14px;">
-      <label>Description</label>
-      <input type="text" id="rwDesc" placeholder="Brief description of what's being reviewed">
-    </div>
+    <div class="field" style="margin-top:14px;"><label>Description</label><input type="text" id="rwDesc" placeholder="Brief description of what's being reviewed"></div>
     <div class="field-row cols-2" style="margin-top:14px;">
       <div class="field">
-        <label>Session End Date <span style="color:var(--text-3);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;">(→ SessionEndDate on create-session)</span></label>
+        <label>Session End Date <span style="color:var(--text-3);font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;">(→ SessionEndDate)</span></label>
         <input type="date" id="rwDeadline">
       </div>
       <div class="field">
         <label>Polling Interval</label>
         <select id="rwPolling">
-          <option value="0">Manual only</option>
-          <option value="1">Every hour</option>
-          <option value="4">Every 4 hours</option>
-          <option value="8" selected>Every 8 hours</option>
-          <option value="24">Daily</option>
+          <option value="0">Manual only</option><option value="1">Every hour</option>
+          <option value="4">Every 4 hours</option><option value="8" selected>Every 8 hours</option><option value="24">Daily</option>
         </select>
       </div>
     </div>
   </div>
 
-  <!-- ── Reviewers ── -->
+  <!-- Reviewers -->
   <div class="card">
     <div class="card-title"><div class="card-title-icon">👥</div>Reviewers</div>
     <div class="field">
       <label>Reviewer Emails</label>
       <div class="chip-box" id="rwChipBox" onclick="document.getElementById('rwChipInput').focus()">
         <span class="chip primary">dmolz@bluebeam.com</span>
-        <input class="chip-input" id="rwChipInput" type="email"
-               placeholder="Add email address, press Enter"
-               onkeydown="rwChipKey(event)">
+        <input class="chip-input" id="rwChipInput" type="email" placeholder="Add email address, press Enter" onkeydown="rwChipKey(event)">
       </div>
       <div class="field-hint">Press Enter or comma to add. The primary reviewer is always included.</div>
       <label class="csv-label">＋ Import from CSV<input type="file" accept=".csv,text/csv" onchange="rwImportCsv(event)"></label>
     </div>
   </div>
 
-  <!-- ── Actions ── -->
-  <div style="display:flex;flex-direction:column;gap:8px;" id="rwActions">
+  <!-- Actions — single full-width button, no misalignment -->
+  <div id="rwActions">
     <button class="btn-primary" id="rwStartBtn" onclick="rwStart()">Start Review</button>
   </div>
 
-  <!-- ── Progress ── -->
+  <!-- Progress -->
   <div id="rwProgressSection" style="display:none;flex-direction:column;gap:14px;">
     <div class="card" id="rwProgressCard">
       <div class="card-title"><div class="card-title-icon">⚙️</div>Setting Up Review</div>
-      <div class="step-list" id="rwStepList">
+      <div class="step-list">
         <div class="step-row"><div class="step-dot" id="sd-setup">1</div><div class="step-row-label muted" id="sl-setup">Project setup</div><span class="step-row-api">setup-project</span></div>
-        <div class="step-row"><div class="step-dot" id="sd-upload">2</div><div class="step-row-label muted" id="sl-upload">Upload documents to project</div><span class="step-row-api">upload-to-project</span></div>
+        <div class="step-row"><div class="step-dot" id="sd-upload">2</div><div class="step-row-label muted" id="sl-upload">Upload &amp; inject state model into documents</div><span class="step-row-api">upload-to-project</span></div>
         <div class="step-row"><div class="step-dot" id="sd-session">3</div><div class="step-row-label muted" id="sl-session">Create Studio Session</div><span class="step-row-api">create-session</span></div>
         <div class="step-row"><div class="step-dot" id="sd-checkout">4</div><div class="step-row-label muted" id="sl-checkout">Check out documents to session</div><span class="step-row-api">checkout-to-session</span></div>
         <div class="step-row"><div class="step-dot" id="sd-invite">5</div><div class="step-row-label muted" id="sl-invite">Invite reviewers</div><span class="step-row-api">invite-reviewers</span></div>
@@ -755,13 +647,13 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       <div class="session-banner-label">✓ Session Active — Open in Bluebeam Revu</div>
       <div class="session-id-row">
         <div class="session-id" id="rwSessionId">—</div>
-        <button class="btn-copy" onclick="copyText(document.getElementById('rwSessionId').textContent, this)">Copy</button>
+        <button class="btn-copy" onclick="copyText(document.getElementById('rwSessionId').textContent,this)">Copy</button>
       </div>
       <div class="session-hint">Go to Bluebeam Revu → Studio → Sessions and enter this ID to join.</div>
     </div>
 
     <div class="card" id="rwDownstreamCard" style="display:none;">
-      <div class="card-title"><div class="card-title-icon" style="background:var(--ar-orange-l);">🔄</div>Post-Review Processing</div>
+      <div class="card-title"><div class="card-title-icon orange">🔄</div>Post-Review Processing</div>
       <div style="font-size:12px;color:var(--text-2);line-height:1.6;margin-bottom:14px;">After reviewers finish in Revu, run the downstream flow to update the project copy, export markups, and pull metadata into the dashboard.</div>
       <button class="btn-success" id="rwDownstreamBtn" onclick="rwRunDownstream()">Update Project Copy &amp; Pull Metadata</button>
       <div class="step-list" id="rwDownstreamSteps" style="margin-top:16px;display:none;">
@@ -779,20 +671,20 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       </div>
       <div class="card">
         <div class="card-title"><div class="card-title-icon">🥧</div>Status Distribution</div>
-        <div class="pie-grid">
-          <div class="pie-wrap"><div class="pie-chart" id="rwStatusPie"></div></div>
-          <div class="pie-legend" id="rwStatusLegend"></div>
-        </div>
+        <div class="pie-grid"><div class="pie-wrap"><div class="pie-chart" id="rwStatusPie"></div></div><div class="pie-legend" id="rwStatusLegend"></div></div>
       </div>
       <div class="card">
         <div class="card-title"><div class="card-title-icon">👷</div>Breakdown by Responsibility</div>
-        <div class="pie-grid">
-          <div class="pie-wrap"><div class="pie-chart" id="rwResponsibilityPie"></div></div>
-          <div class="pie-legend" id="rwResponsibilityLegend"></div>
-        </div>
+        <div class="pie-grid"><div class="pie-wrap"><div class="pie-chart" id="rwResponsibilityPie"></div></div><div class="pie-legend" id="rwResponsibilityLegend"></div></div>
       </div>
       <div class="card">
         <div class="card-title"><div class="card-title-icon">📝</div>Markup Details</div>
+        <div class="table-toolbar">
+          <div class="table-toolbar-left">
+            <span style="font-size:12px;color:var(--text-2);" id="rwMarkupCountLabel">0 markups</span>
+          </div>
+          <button class="btn-csv" onclick="exportCSV(rwMarkups,'review-markups')">⬇ Export CSV</button>
+        </div>
         <div class="results-wrap">
           <table class="results-table">
             <thead><tr>
@@ -815,54 +707,39 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 
     <button class="btn-ghost" onclick="rwReset()">↺ Start a New Review</button>
   </div>
-
-</div>
-</div>
+</div></div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     TAB 2 — REVIEW PROCESS: DATA
-═══════════════════════════════════════ -->
+<!-- ═══ TAB 2 — REVIEW DATA ═══ -->
 <div class="tab-content" id="tab-data">
-<div class="page-wrap">
-<div class="page-inner" style="max-width:920px;">
-
+<div class="page-wrap"><div class="page-inner" style="max-width:920px;">
   <div>
     <div class="page-title">Review Process: Data</div>
     <div class="page-sub">Look up an AtkinsRéalis Project ID to see all associated sessions, pull a current metadata snapshot, and configure automatic polling. Data is read from the snapshot database.</div>
   </div>
 
-  <!-- ── Project Lookup ── -->
   <div class="card">
     <div class="card-title"><div class="card-title-icon">🔎</div>Project Lookup</div>
-
     <div class="t2-lookup-bar">
-      <!-- Known projects dropdown -->
       <div class="t2-projects-select-wrap">
         <label>Known Projects</label>
         <select id="t2KnownProjects" onchange="t2SelectKnown()" style="min-height:40px;">
           <option value="">— Select from DB or enter manually —</option>
         </select>
       </div>
-
-      <!-- Manual ID input -->
       <div class="field" style="flex:1;">
         <label>Atkins Project ID</label>
         <div class="project-id-wrap">
-          <input type="text" id="t2AtkinsId" placeholder="ATK-2024-0001"
-                 oninput="t2ValidateId()"
-                 style="font-family:var(--mono);font-size:13px;letter-spacing:0.03em;">
+          <input type="text" id="t2AtkinsId" placeholder="ATK-2024-0001" oninput="t2ValidateId()" style="font-family:var(--mono);font-size:13px;letter-spacing:0.03em;">
           <span class="project-id-status hint" id="t2AtkinsIdStatus">e.g. ATK-2024-0001</span>
         </div>
       </div>
-
-      <div style="display:flex;flex-direction:column;gap:4px;align-self:flex-end;">
+      <div style="display:flex;flex-direction:column;gap:5px;">
+        <label style="font-size:11px;font-weight:600;color:transparent;text-transform:uppercase;letter-spacing:0.07em;user-select:none;" aria-hidden="true">&nbsp;</label>
         <button class="btn-outline" id="t2PullBtn" onclick="t2PullSnapshot()" disabled style="height:40px;">Pull Snapshot</button>
         <button class="btn-copy" onclick="t2LoadKnownProjects()" style="text-align:center;">↻ Refresh list</button>
       </div>
     </div>
-
-    <!-- Polling row -->
     <div class="t2-poll-row">
       <div style="display:flex;align-items:center;gap:7px;flex:1;">
         <span class="poll-indicator" id="t2PollIndicator"></span>
@@ -871,24 +748,24 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       <div class="poll-controls">
         <label style="font-size:11px;color:var(--text-2);text-transform:none;letter-spacing:0;font-weight:400;">Interval:</label>
         <select class="poll-select" id="t2PollInterval" onchange="t2UpdatePolling()">
-          <option value="0">Off</option>
-          <option value="1">Every hour</option>
-          <option value="4">Every 4 hours</option>
-          <option value="8">Every 8 hours</option>
-          <option value="24">Daily</option>
+          <option value="0">Off</option><option value="1">Every hour</option>
+          <option value="4">Every 4 hours</option><option value="8">Every 8 hours</option><option value="24">Daily</option>
         </select>
       </div>
       <div class="t2-sync-meta" id="t2LastSync">Last sync: —</div>
     </div>
   </div>
 
-  <!-- ── Project Overview ── -->
   <div id="t2Overview" style="display:none;flex-direction:column;gap:20px;">
+    <!-- Project tile — title = atkinsProjectId, subtitle = project_name if set -->
     <div class="card">
       <div class="card-title">
         <div class="card-title-icon">📁</div>
-        <span id="t2ProjectLabel">Project Overview</span>
-        <span style="margin-left:auto;font-size:11px;color:var(--text-3);font-family:var(--mono);font-weight:400;" id="t2ProjectIdLabel"></span>
+        <div style="display:flex;flex-direction:column;gap:1px;min-width:0;">
+          <span id="t2ProjectLabel" style="font-size:13px;font-weight:600;color:var(--text);">Project</span>
+          <span id="t2ProjectNameSub" style="font-size:11px;color:var(--text-3);font-weight:400;display:none;"></span>
+        </div>
+        <span style="margin-left:auto;font-size:11px;color:var(--text-3);font-family:var(--mono);font-weight:400;white-space:nowrap;" id="t2ProjectIdLabel"></span>
       </div>
       <div class="t2-overview" id="t2OverviewCards"></div>
     </div>
@@ -916,10 +793,13 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 
     <div class="card">
       <div class="card-title"><div class="card-title-icon">📝</div>All Markups — Project Rollup</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
-        <input type="text" id="t2MarkupSearch" placeholder="Filter by author, subject, status…"
-               oninput="t2FilterMarkups()" style="max-width:300px;min-height:34px;padding:6px 10px;font-size:12px;">
-        <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);" id="t2MarkupCount">0 markups</span>
+      <div class="table-toolbar">
+        <div class="table-toolbar-left">
+          <input type="text" id="t2MarkupSearch" placeholder="Filter by author, subject, status…"
+                 oninput="t2FilterMarkups()" style="max-width:280px;min-height:34px;padding:6px 10px;font-size:12px;">
+          <span style="font-size:11px;color:var(--text-3);font-family:var(--mono);white-space:nowrap;" id="t2MarkupCount">0 markups</span>
+        </div>
+        <button class="btn-csv" onclick="exportCSV(t2FilteredMarkups,'project-markups')">⬇ Export CSV</button>
       </div>
       <div class="results-wrap">
         <table class="results-table">
@@ -944,19 +824,14 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
     <div class="empty-state-title">No project loaded</div>
     <div class="empty-state-sub">Select a project from the dropdown or enter an Atkins Project ID and click <strong>Pull Snapshot</strong>.<br>Projects appear in the dropdown after a review is started from the Setup tab.</div>
   </div>
-
-</div>
-</div>
+</div></div>
 </div>
 
-<!-- ═══════════════════════════════════════
-     TAB 3 — DEVELOPER CONSOLE
-═══════════════════════════════════════ -->
+<!-- ═══ TAB 3 — DEVELOPER CONSOLE ═══ -->
 <div class="tab-content" id="tab-dev">
 <div class="dev-wrap">
-
   <div class="dev-config-bar">
-    <div class="dev-config-field">
+    <div class="dev-config-field f-files">
       <div class="dev-config-label">PDF Files</div>
       <div class="dev-upload-zone" id="devUploadZone"
            ondragover="event.preventDefault();this.classList.add('drag-over')"
@@ -966,19 +841,18 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         <span style="font-size:14px;">📄</span>
         <span class="dev-upload-zone-text">Click or drop PDFs</span>
       </div>
-      <div class="dev-staged" id="devStagedFiles"></div>
     </div>
-    <div class="dev-config-field">
-      <div class="dev-config-label">External Document ID</div>
+    <div class="dev-config-field f-docid">
+      <div class="dev-config-label">Document ID</div>
       <input class="dev-input" id="devDocId" type="text" placeholder="DOC-001" onchange="devConfig()">
-      <div class="dev-config-sub">Passed into configure()</div>
+      <div class="dev-config-sub">configure()</div>
     </div>
-    <div class="dev-config-field">
-      <div class="dev-config-label">Session Description</div>
+    <div class="dev-config-field f-desc">
+      <div class="dev-config-label">Description</div>
       <input class="dev-input" id="devDesc" type="text" placeholder="Design review" onchange="devConfig()">
-      <div class="dev-config-sub">Context field for review flow</div>
+      <div class="dev-config-sub">Context field</div>
     </div>
-    <div class="dev-config-field" style="flex:1.5;">
+    <div class="dev-config-field f-rev">
       <div class="dev-config-label">Reviewers</div>
       <div class="dev-chip-box" id="devChipBox" onclick="document.getElementById('devChipInput').focus()">
         <span class="chip primary" style="font-size:10px;">dmolz@bluebeam.com</span>
@@ -990,13 +864,18 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       <button class="dev-btn dev-btn-ghost" onclick="devReset()">↺ Reset</button>
     </div>
   </div>
+  <div class="dev-config-subrow">
+    <div class="dev-inject-row">
+      <input type="checkbox" id="devInjectModel" class="dev-inject-check" checked>
+      <label for="devInjectModel" class="dev-inject-lbl">Inject 5-step QC state model on upload</label>
+    </div>
+    <div class="dev-staged" id="devStagedFiles"></div>
+  </div>
 
   <div class="dev-shell">
-    <!-- MAIN SCROLL AREA -->
-    <div class="dev-main-scroll">
-    <div class="dev-main">
+    <div class="dev-main-scroll"><div class="dev-main">
 
-      <!-- Auth panel for dev tab -->
+      <!-- Auth panel dev tab -->
       <div class="auth-card" id="authCard-dev">
         <div class="auth-card-header" onclick="toggleAuthPanel('dev')">
           <div class="auth-card-left">
@@ -1004,22 +883,18 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
             <span class="auth-card-title">Authentication &amp; Token Management</span>
             <span class="auth-card-status" id="authStatus-dev">Click to expand</span>
           </div>
-          <span style="font-size:18px;color:var(--text-3);transition:transform 0.2s;" id="authChevron-dev">▾</span>
+          <span style="font-size:18px;color:var(--text-3);" id="authChevron-dev">▾</span>
         </div>
         <div class="auth-card-body" id="authBody-dev">
           <div class="auth-row">
             <div class="field">
               <label>Refresh Token</label>
-              <div class="auth-token-wrap">
-                <textarea id="refreshToken-dev" placeholder="Paste Bluebeam OAuth refresh token here…" spellcheck="false"></textarea>
-              </div>
-              <div class="field-hint">POST /poc/auth/refresh — server exchanges for new access token, stores in tokenManager.</div>
+              <div class="auth-token-wrap"><textarea id="refreshToken-dev" placeholder="Paste Bluebeam OAuth refresh token here…" spellcheck="false"></textarea></div>
+              <div class="field-hint">POST /poc/auth/refresh — server exchanges for new access token, stores in tokenManager. Token never logged.</div>
             </div>
             <div class="field">
               <label>Token State</label>
-              <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text-2);line-height:1.8;" id="authTokenState-dev">
-                Run Test Connection to check…
-              </div>
+              <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--mono);font-size:10px;color:var(--text-2);line-height:1.8;" id="authTokenState-dev">Run Test Connection to check…</div>
             </div>
           </div>
           <div class="auth-btn-row">
@@ -1033,35 +908,35 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       <details class="dev-collapsible" id="devReadme">
         <summary>
           <span>How This Workflow Works</span>
-          <span class="dev-summary-meta">Setup → Session → Extraction + quick links</span>
+          <span class="dev-summary-meta">OAuth → Setup (state model) → Session → Extraction + DB at every step</span>
         </summary>
         <div class="dev-readme-body">
           <div class="dev-readme-note">
-            This reference app demonstrates the Bluebeam Studio roundtrip: seed the project, upload PDFs with an optional 5-step QC Review state model, launch a Session for live review, then run downstream extraction to pull structured markup metadata back into the dashboard. All state is written to SQLite via db.js.
+            Full roundtrip: authenticate via OAuth refresh token → seed project folders → upload PDFs with the 5-step QC Review state model injected via pdf-lib (on by default, no Bluebeam API needed) → create Session → review in Revu → downstream extraction writes markup snapshots to SQLite. Tab 2 reads entirely from the DB snapshot — not from the Bluebeam API on every load.
           </div>
           <div class="dev-readme-grid">
             <div class="dev-readme-card">
-              <h4>Setup</h4>
+              <h4>Auth + Setup</h4>
               <ul>
-                <li>Create or verify Studio Project folders (resources, review-documents, markup-exports).</li>
-                <li>Upload PDFs — optionally inject the 5-step QC Review state model via pdf-lib.</li>
-                <li>Outputs: <strong>projectFileId</strong>, folder IDs, customColumnsFileId.</li>
+                <li>POST /poc/auth/refresh rotates the access token via Bluebeam OAuth. Required before any BB API call.</li>
+                <li>setup-project verifies folders. upload-to-project injects 5-step QC Review state model (removes stale models first, then adds clean model), then uploads to review-documents.</li>
+                <li>DB writes: projects (configure upsert), files (upload).</li>
               </ul>
             </div>
             <div class="dev-readme-card">
               <h4>Session</h4>
               <ul>
-                <li>Create Studio Session with SessionEndDate and permission defaults.</li>
-                <li>Register webhook (requires public HTTPS URL).</li>
-                <li>Checkout files, invite reviewers. Session written to DB with polling schedule.</li>
+                <li>create-session → register-webhook → checkout-to-session → invite-reviewers.</li>
+                <li>Session written to DB sessions table with polling schedule.</li>
+                <li>DB writes: sessions (create), files updated with sessionFileId (checkout).</li>
               </ul>
             </div>
             <div class="dev-readme-card">
-              <h4>Extraction</h4>
+              <h4>Extraction + DB</h4>
               <ul>
-                <li>Checkin → exportmarkups job → parse XML → DB snapshot.</li>
-                <li>Poller runs on schedule if pollingInterval &gt; 0.</li>
-                <li>Tab 2 reads from DB — not live from Bluebeam API on every load.</li>
+                <li>downstream-process: checkin → exportmarkups job → XML parse → snapshot saved to DB.</li>
+                <li>Poller auto-runs on schedule writing fresh snapshots.</li>
+                <li>DB reads: Tab 2 reads from snapshots table. Pull Snapshot button re-queries DB.</li>
               </ul>
             </div>
           </div>
@@ -1093,13 +968,31 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       <div class="dev-panel" id="devStatePanel">
         <div class="dev-panel-title">Runtime State <span class="dev-panel-hint">Live IDs and current object references</span></div>
         <div class="dev-state-grid" id="devStateGrid">
-          <div class="dev-state-empty">Run a node to populate project, session, and file metadata.</div>
+          <div class="dev-state-empty" style="grid-column:1/-1;">Run a node to populate project, session, and file metadata.</div>
         </div>
       </div>
 
-      <div class="dev-canvas">
-      <div class="dev-canvas-inner">
+      <!-- FLOW CANVAS -->
+      <div class="dev-canvas"><div class="dev-canvas-inner">
 
+        <!-- AUTH PHASE -->
+        <div class="phase">
+          <div class="phase-header"><span class="phase-badge auth">Authentication</span><div class="phase-line"></div></div>
+          <div class="node-grid">
+            <div class="fc-node" id="fn-auth-refresh" data-endpoint="auth-refresh">
+              <div class="fc-node-status idle" id="fs-auth-refresh">·</div>
+              <div class="fc-node-icon">🔑</div>
+              <div class="fc-node-title">OAuth Token</div>
+              <div class="fc-node-api">POST /poc/auth/refresh</div>
+              <div class="fc-node-db"><span class="db-badge">tokenManager</span></div>
+              <button class="fc-node-btn" onclick="devFireAuth()">Refresh Token</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="phase-arrow">↓</div>
+
+        <!-- SETUP PHASE -->
         <div class="phase">
           <div class="phase-header"><span class="phase-badge setup">Setup</span><div class="phase-line"></div></div>
           <div class="node-grid">
@@ -1108,6 +1001,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">🗂️</div>
               <div class="fc-node-title">Setup Project</div>
               <div class="fc-node-api">setup-project</div>
+              <div class="fc-node-db"></div>
               <button class="fc-node-btn" onclick="devFire('setup-project')">Run</button>
             </div>
             <div class="node-arrow">→</div>
@@ -1116,6 +1010,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">⬆️</div>
               <div class="fc-node-title">Upload to Project</div>
               <div class="fc-node-api">upload-to-project</div>
+              <div class="fc-node-db"><span class="db-badge write">DB→files</span><span class="db-badge">state model ✓</span></div>
               <button class="fc-node-btn" onclick="devUpload()">Run</button>
             </div>
           </div>
@@ -1123,6 +1018,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 
         <div class="phase-arrow">↓</div>
 
+        <!-- SESSION PHASE -->
         <div class="phase">
           <div class="phase-header"><span class="phase-badge session">Session</span><div class="phase-line"></div></div>
           <div class="node-grid">
@@ -1131,6 +1027,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">⚡</div>
               <div class="fc-node-title">Trigger Event</div>
               <div class="fc-node-api">trigger</div>
+              <div class="fc-node-db"></div>
               <button class="fc-node-btn" onclick="devFire('trigger')">Run</button>
             </div>
             <div class="node-arrow">→</div>
@@ -1139,6 +1036,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">🏠</div>
               <div class="fc-node-title">Create Session</div>
               <div class="fc-node-api">create-session</div>
+              <div class="fc-node-db"><span class="db-badge write">DB→sessions</span></div>
               <button class="fc-node-btn" onclick="devFire('create-session')">Run</button>
             </div>
             <div class="node-arrow">→</div>
@@ -1147,6 +1045,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">🔔</div>
               <div class="fc-node-title">Register Webhook</div>
               <div class="fc-node-api">register-webhook</div>
+              <div class="fc-node-db"></div>
               <button class="fc-node-btn" onclick="devFire('register-webhook')">Run</button>
             </div>
             <div class="node-arrow">→</div>
@@ -1155,6 +1054,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">🔗</div>
               <div class="fc-node-title">Checkout to Session</div>
               <div class="fc-node-api">checkout-to-session</div>
+              <div class="fc-node-db"><span class="db-badge write">DB→files (sfId)</span></div>
               <button class="fc-node-btn" onclick="devFire('checkout-to-session')">Run</button>
             </div>
             <div class="node-arrow">→</div>
@@ -1163,6 +1063,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">📧</div>
               <div class="fc-node-title">Invite Reviewers</div>
               <div class="fc-node-api">invite-reviewers</div>
+              <div class="fc-node-db"></div>
               <button class="fc-node-btn" onclick="devFire('invite-reviewers')">Run</button>
             </div>
             <div class="node-arrow">→</div>
@@ -1171,6 +1072,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">✏️</div>
               <div class="fc-node-title">Review in Revu</div>
               <div class="fc-node-api">non-API step</div>
+              <div class="fc-node-db"></div>
               <button class="fc-node-btn manual-btn" onclick="devMarkReviewDone()">Mark Done</button>
             </div>
           </div>
@@ -1178,6 +1080,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 
         <div class="phase-arrow">↓</div>
 
+        <!-- EXTRACTION PHASE -->
         <div class="phase">
           <div class="phase-header"><span class="phase-badge extract">Extraction &amp; Close</span><div class="phase-line"></div></div>
           <div class="node-grid">
@@ -1186,6 +1089,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">🔄</div>
               <div class="fc-node-title">Downstream Process</div>
               <div class="fc-node-api">downstream-process</div>
+              <div class="fc-node-db"><span class="db-badge write">DB→snapshots</span><span class="db-badge read">Tab 2 source</span></div>
               <button class="fc-node-btn" onclick="devFire('downstream-process')">Run</button>
             </div>
             <div class="node-arrow">→</div>
@@ -1194,6 +1098,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">🏁</div>
               <div class="fc-node-title">Finalize Session</div>
               <div class="fc-node-api">finalize</div>
+              <div class="fc-node-db"><span class="db-badge write">DB→status</span></div>
               <button class="fc-node-btn" onclick="devFire('finalize')">Run</button>
             </div>
             <div class="node-arrow">→</div>
@@ -1202,6 +1107,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">📸</div>
               <div class="fc-node-title">Snapshot PDF</div>
               <div class="fc-node-api">snapshot</div>
+              <div class="fc-node-db"></div>
               <button class="fc-node-btn" onclick="devFire('snapshot')">Run</button>
             </div>
             <div class="node-arrow">→</div>
@@ -1210,6 +1116,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
               <div class="fc-node-icon">🗑️</div>
               <div class="fc-node-title">Cleanup</div>
               <div class="fc-node-api">cleanup</div>
+              <div class="fc-node-db"><span class="db-badge write">DB→cleaned</span></div>
               <button class="fc-node-btn" onclick="devFire('cleanup')">Run</button>
             </div>
           </div>
@@ -1220,9 +1127,9 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
           <div id="devDownloadLinks" style="display:flex;flex-direction:column;gap:5px;"></div>
         </div>
 
-      </div>
-      </div>
+      </div></div><!-- end canvas -->
 
+      <!-- Dev markup table -->
       <div class="dev-markup-section" id="devMarkupSection" style="display:none;">
         <div class="dev-markup-toolbar">
           <span style="font-size:12px;font-weight:600;color:var(--text);">Markup Metadata</span>
@@ -1230,21 +1137,18 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
             <button id="devBtnTable" class="active" onclick="devSetView('table')">Table</button>
             <button id="devBtnJson" onclick="devSetView('json')">JSON</button>
           </div>
-          <button onclick="devCopyJson()" id="devCopyBtn" style="padding:4px 10px;background:var(--white);border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;color:var(--text-2);">⎘ Copy JSON</button>
-          <div class="dev-markup-count" id="devMarkupCount"><span id="devMarkupNum">0</span> markups</div>
+          <button onclick="devCopyJson()" style="padding:4px 10px;background:var(--white);border:1px solid var(--border);border-radius:5px;font-size:11px;cursor:pointer;color:var(--text-2);">⎘ Copy JSON</button>
+          <button class="btn-csv" style="padding:5px 11px;font-size:11px;" onclick="exportCSV(devMarkups,'dev-markups')">⬇ CSV</button>
+          <div class="dev-markup-count" style="margin-left:auto;"><span id="devMarkupNum">0</span> markups</div>
         </div>
         <div id="devTableView">
           <div class="results-wrap">
             <table class="results-table">
               <thead><tr>
-                <th onclick="devSort('Page')">Pg</th>
-                <th onclick="devSort('Type')">Type</th>
-                <th onclick="devSort('Subject')">Subject</th>
-                <th onclick="devSort('Author')">Author</th>
-                <th onclick="devSort('Status')">Status</th>
-                <th onclick="devSort('Comment')">Comment</th>
-                <th onclick="devSort('Layer')">Layer</th>
-                <th onclick="devSort('_sourceFile')">File</th>
+                <th onclick="devSort('Page')">Pg</th><th onclick="devSort('Type')">Type</th>
+                <th onclick="devSort('Subject')">Subject</th><th onclick="devSort('Author')">Author</th>
+                <th onclick="devSort('Status')">Status</th><th onclick="devSort('Comment')">Comment</th>
+                <th onclick="devSort('Layer')">Layer</th><th onclick="devSort('_sourceFile')">File</th>
                 <th onclick="devSort('DateCreated')">Created</th>
               </tr></thead>
               <tbody id="devMarkupTbody"></tbody>
@@ -1256,12 +1160,10 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         </div>
       </div>
 
-    </div>
-    </div><!-- end dev-main-scroll -->
+    </div></div><!-- end dev-main-scroll -->
 
-    <!-- STICKY SIDEBAR -->
+    <!-- SIDEBAR -->
     <aside class="dev-sidebar">
-      <!-- Endpoint reference -->
       <div class="sidebar-section" style="flex-shrink:0;">
         <div class="sidebar-section-title">
           Endpoint Reference
@@ -1271,15 +1173,14 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
           </div>
         </div>
         <div class="dev-snippet-meta">
-          <div class="dev-snippet-endpoint" id="devSnippetEndpoint">setup-project</div>
+          <div class="dev-snippet-endpoint" id="devSnippetEndpoint">auth-refresh</div>
         </div>
-        <div class="dev-snippet-desc" id="devSnippetDesc">Hover over any workflow tile to preview the request shape.</div>
-        <pre class="dev-code" id="devSnippetCode">POST /poc/setup-project
+        <div class="dev-snippet-desc" id="devSnippetDesc">Hover a workflow tile to preview the request shape.</div>
+        <pre class="dev-code" id="devSnippetCode">POST /poc/auth/refresh
 
-Creates or verifies the Studio Project structure.</pre>
+Exchange a Bluebeam OAuth refresh token for a new access token without restarting the server.</pre>
       </div>
 
-      <!-- Activity Log — takes remaining space -->
       <div class="dev-log-shell" style="flex:1;min-height:200px;">
         <div class="dev-log-toolbar">
           <div class="dev-log-title">Activity Log</div>
@@ -1290,33 +1191,34 @@ Creates or verifies the Studio Project structure.</pre>
         </div>
       </div>
 
-      <!-- DB Info Panel — pinned to bottom of sidebar -->
       <div class="db-info-panel" id="devDbInfoPanel">
         <div class="db-info-title">Database &amp; Server</div>
         <div class="db-info-grid" id="devDbInfoGrid">
           <div class="db-info-item">status: <span>—</span></div>
           <div class="db-info-item">projects: <span>—</span></div>
+          <div class="db-info-item">sessions: <span>—</span></div>
           <div class="db-info-item">pollers: <span>—</span></div>
-          <div class="db-info-item">project ID: <span>—</span></div>
+          <div class="db-info-item" style="grid-column:1/-1;">bb project: <span id="devBbProject">—</span></div>
           <div class="db-info-item" style="grid-column:1/-1;">db path: <span id="devDbPath">—</span></div>
         </div>
       </div>
     </aside>
   </div><!-- end dev-shell -->
-
 </div>
 </div>
 
 <script>
-// ── UTILITIES ─────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════════
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 async function api(path,method='POST',body=null){
   const opts={method,headers:{'Content-Type':'application/json'}};
   if(body)opts.body=JSON.stringify(body);
-  const r=await fetch(`/poc/${path}`,opts);
+  const r=await fetch('/poc/'+path,opts);
   let d=null;try{d=await r.json();}catch(_){}
-  if(!r.ok)throw new Error((d&&d.error)||`HTTP ${r.status}`);
+  if(!r.ok)throw new Error((d&&d.error)||'HTTP '+r.status);
   return d||{};
 }
 
@@ -1324,56 +1226,79 @@ function switchTab(t){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{
     b.classList.toggle('active',(i===0&&t==='rw')||(i===1&&t==='data')||(i===2&&t==='dev'));
   });
-  ['rw','data','dev'].forEach((id,i)=>{
-    document.getElementById('tab-'+(['rw','data','dev'][i])).classList.toggle('active',(['rw','data','dev'][i])===t);
+  ['rw','data','dev'].forEach(id=>{
+    document.getElementById('tab-'+id).classList.toggle('active',id===t);
   });
   if(t==='data') t2LoadKnownProjects();
-  if(t==='dev')  { devRefreshLog(); devRefreshDbInfo(); }
+  if(t==='dev'){devRefreshLog();devRefreshDbInfo();}
 }
 
 function syntaxHL(json){
   return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,m=>{
-      if(/^"/.test(m))return/:$/.test(m)?`<span class="json-key">${m}</span>`:`<span class="json-str">${m}</span>`;
-      if(/true|false/.test(m))return`<span class="json-bool">${m}</span>`;
-      if(/null/.test(m))return`<span class="json-null">${m}</span>`;
-      return`<span class="json-num">${m}</span>`;
+      if(/^"/.test(m))return/:$/.test(m)?'<span class="json-key">'+m+'</span>':'<span class="json-str">'+m+'</span>';
+      if(/true|false/.test(m))return'<span class="json-bool">'+m+'</span>';
+      if(/null/.test(m))return'<span class="json-null">'+m+'</span>';
+      return'<span class="json-num">'+m+'</span>';
     });
 }
 
-// Toast system
-function toast(msg,type='info',duration=4000){
+function toast(msg,type,duration){
+  type=type||'info';duration=duration||4000;
   const c=document.getElementById('toastContainer');
   const t=document.createElement('div');
-  t.className=`toast ${type}`;
-  t.innerHTML=`<span>${esc(msg)}</span><button class="toast-close" onclick="this.closest('.toast').remove()">×</button>`;
+  t.className='toast '+type;
+  t.innerHTML='<span>'+esc(msg)+'</span><button class="toast-close" onclick="this.closest(\'.toast\').remove()">×</button>';
   c.appendChild(t);
   requestAnimationFrame(()=>{requestAnimationFrame(()=>{t.classList.add('show');});});
   setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),280);},duration);
 }
 
-// Copy helper
 async function copyText(text,btn){
   try{
     await navigator.clipboard.writeText(text);
     if(btn){const orig=btn.textContent;btn.textContent='✓';setTimeout(()=>{btn.textContent=orig;},1600);}
     toast('Copied to clipboard','ok',2000);
-  }catch{toast('Copy failed — try manually','warn');}
+  }catch(e){toast('Copy failed — try manually','warn');}
 }
 
-// Default deadline = +7 days
-(()=>{const d=new Date();d.setDate(d.getDate()+7);document.getElementById('rwDeadline').value=d.toISOString().slice(0,10);})();
+// ── CSV EXPORT ────────────────────────────────────────────────────────────────
+function exportCSV(rows,filename){
+  if(!rows||!rows.length){toast('No data to export','warn');return;}
+  const cols=['Page','Author','Type','Subject','Status','Comment','Layer',
+    '_stage','_responsibility','_priority','_action','_due','_session',
+    'DateCreated','DateModified','_sourceFile'];
+  const header=cols.map(c=>c.replace(/^_/,'')).join(',');
+  const lines=rows.map(r=>cols.map(c=>{
+    const v=String(r[c]||'').replace(/"/g,'""');
+    return '"'+v+'"';
+  }).join(','));
+  const csv=[header].concat(lines).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=filename+'-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast('Exported '+rows.length+' rows to CSV','ok',2500);
+}
+
+// Default deadline +7 days
+(function(){
+  const d=new Date();d.setDate(d.getDate()+7);
+  document.getElementById('rwDeadline').value=d.toISOString().slice(0,10);
+})();
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// AUTH MANAGEMENT
+// AUTH
 // ═══════════════════════════════════════════════════════════════════════════════
 function toggleAuthPanel(tab){
-  const body=document.getElementById(`authBody-${tab}`);
-  const chevron=document.getElementById(`authChevron-${tab}`);
+  const body=document.getElementById('authBody-'+tab);
+  const chev=document.getElementById('authChevron-'+tab);
   const isOpen=body.classList.contains('open');
   body.classList.toggle('open',!isOpen);
-  if(chevron)chevron.style.transform=isOpen?'rotate(0deg)':'rotate(180deg)';
-  if(!isOpen) authTestConnection(tab);
+  if(chev)chev.style.transform=isOpen?'rotate(0deg)':'rotate(180deg)';
+  if(!isOpen)authTestConnection(tab);
 }
 
 async function authTestConnection(tab){
@@ -1381,95 +1306,88 @@ async function authTestConnection(tab){
   try{
     const h=await fetch('/health').then(r=>r.json());
     const dbOk=h.db&&h.db.status==='ok';
-    const msg=dbOk?`Connected · Project ${h.projectId} · DB: ${h.db.projectCount} project(s)`:`DB error: ${h.db?.status}`;
-    setAuthDot(tab,dbOk?'ok':'warn',msg);
-
-    // Update DB info panel
+    setAuthDot(tab,dbOk?'ok':'warn',dbOk?'Connected · Project '+h.projectId+' · DB: '+h.db.projectCount+' project(s)':'DB error: '+(h.db&&h.db.status));
     const dbInfoEl=document.getElementById('authDbInfo-rw');
     if(dbInfoEl){
-      dbInfoEl.innerHTML=`Project: ${h.projectId||'—'}<br>DB: ${h.db?.path||'—'}<br>Projects: ${h.db?.projectCount||0}<br>Pollers: ${h.pollers||0}<br>Has ClientID: ${h.config?.hasClientId?'✓':'✗'}<br>Webhook URL: ${h.config?.webhookCallbackUrl||'—'}`;
+      const sm=h.config&&h.config.stateModel;
+      dbInfoEl.innerHTML='Project: '+(h.projectId||'—')+'<br>DB: '+(h.db&&h.db.path||'—')+'<br>Projects: '+(h.db&&h.db.projectCount||0)+'<br>Sessions: '+(h.db&&h.db.sessionCount||0)+'<br>Pollers: '+(h.pollers||0)+'<br>Has ClientID: '+(h.config&&h.config.hasClientId?'✓':'✗')+'<br>State Model: '+(sm&&sm.name||'—')+' ('+(sm&&sm.states||0)+' states)'+'<br>Webhook: '+(h.config&&h.config.webhookCallbackUrl||'—');
     }
     const tsEl=document.getElementById('authTokenState-dev');
     if(tsEl){
-      tsEl.innerHTML=`BB Project: ${h.projectId||'—'}\nDB path: ${h.db?.path||'—'}\nProjects in DB: ${h.db?.projectCount||0}\nPollers active: ${h.pollers||0}\nHas ClientID: ${h.config?.hasClientId?'yes':'NO — check .env'}\nWebhook: ${h.config?.webhookIsLocalhost?'⚠ localhost (skipped)':'✓ public URL'}`;
+      const sm=h.config&&h.config.stateModel;
+      tsEl.innerHTML='BB Project: '+(h.projectId||'—')+'\nDB path: '+(h.db&&h.db.path||'—')+'\nProjects: '+(h.db&&h.db.projectCount||0)+'\nSessions: '+(h.db&&h.db.sessionCount||0)+'\nPollers: '+(h.pollers||0)+'\nClientID: '+(h.config&&h.config.hasClientId?'✓ set':'✗ MISSING')+'\nState Model: '+(sm&&sm.name||'—')+'\nWebhook: '+(h.config&&h.config.webhookIsLocalhost?'⚠ localhost (skipped)':'✓ public URL');
     }
-    // Header dot
     setHeaderAuth(dbOk,h.projectId);
     devRefreshDbInfo(h);
   }catch(err){
-    setAuthDot(tab,'err',`Connection failed: ${err.message}`);
+    setAuthDot(tab,'err','Connection failed: '+err.message);
     setHeaderAuth(false,'');
-    toast(`Connection test failed: ${err.message}`,'err');
+    toast('Connection test failed: '+err.message,'err');
   }
 }
 
 async function authRefreshToken(tab){
-  const val=document.getElementById(`refreshToken-${tab}`)?.value?.trim();
-  if(!val){toast('Paste a refresh token first','warn');return;}
+  const val=(document.getElementById('refreshToken-'+tab)||{}).value;
+  if(!val||!val.trim()){toast('Paste a refresh token first','warn');return;}
   setAuthDot(tab,'warn','Refreshing token…');
   try{
-    // POST to server — server exchanges with Bluebeam and stores in tokenManager
-    const r=await fetch('/poc/auth/refresh',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({refreshToken:val})
-    });
+    const r=await fetch('/poc/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refreshToken:val.trim()})});
     const d=await r.json();
-    if(!r.ok)throw new Error(d.error||`HTTP ${r.status}`);
+    if(!r.ok)throw new Error(d.error||'HTTP '+r.status);
     setAuthDot(tab,'ok','Token refreshed successfully');
     toast('Token refreshed ✓','ok');
-    document.getElementById(`refreshToken-${tab}`).value='';
+    document.getElementById('refreshToken-'+tab).value='';
     authTestConnection(tab);
   }catch(err){
-    setAuthDot(tab,'err',`Refresh failed: ${err.message}`);
-    toast(`Token refresh failed: ${err.message}`,'err');
+    setAuthDot(tab,'err','Refresh failed: '+err.message);
+    toast('Token refresh failed: '+err.message,'err');
   }
 }
 
 function setAuthDot(tab,state,label){
-  const dot=document.getElementById(`authDot-${tab}`);
-  const statusEl=document.getElementById(`authStatus-${tab}`);
-  if(dot){dot.className=`auth-status-dot ${state}`;}
-  if(statusEl){statusEl.textContent=label;}
+  const dot=document.getElementById('authDot-'+tab);
+  const st=document.getElementById('authStatus-'+tab);
+  if(dot)dot.className='auth-status-dot '+state;
+  if(st)st.textContent=label;
 }
 
 function setHeaderAuth(ok,projectId){
   const dot=document.getElementById('headerAuthDot');
-  const label=document.getElementById('headerAuthLabel');
+  const lbl=document.getElementById('headerAuthLabel');
   const badge=document.getElementById('headerProjectBadge');
-  if(dot)dot.className=`auth-status-dot ${ok?'ok':'err'}`;
-  if(label)label.textContent=ok?'Connected':'Auth error';
+  if(dot)dot.className='auth-status-dot '+(ok?'ok':'err');
+  if(lbl)lbl.textContent=ok?'Connected':'Auth error';
   if(badge&&projectId){badge.textContent=projectId;badge.style.display='inline-flex';}
 }
 
-// Run connection check on load
-window.addEventListener('load',()=>{
+window.addEventListener('load',function(){
   authTestConnection('rw');
   t2LoadKnownProjects();
 });
+</script>
 
+<script>
 // ═══════════════════════════════════════════════════════════════════════════════
 // TAB 1 — REVIEW WORKFLOW
 // ═══════════════════════════════════════════════════════════════════════════════
-let rwFiles=[];
-let rwMarkups=[];
-let rwSortKey='Page';
-let rwSortDir='asc';
-
-const PROJECT_ID_RE=/^ATK-\d{4}-\d{4}$/;
+var rwFiles=[];
+var rwMarkups=[];
+var rwSortKey='Page';
+var rwSortDir='asc';
+var PROJECT_ID_RE=/^ATK-\d{4}-\d{4}$/;
 
 function rwValidateProjectId(){
-  const val=document.getElementById('rwAtkinsId').value.trim();
-  const input=document.getElementById('rwAtkinsId');
-  const status=document.getElementById('rwAtkinsIdStatus');
-  const hint=document.getElementById('rwAtkinsIdHint');
+  var val=document.getElementById('rwAtkinsId').value.trim();
+  var input=document.getElementById('rwAtkinsId');
+  var status=document.getElementById('rwAtkinsIdStatus');
+  var hint=document.getElementById('rwAtkinsIdHint');
   if(!val){
     input.classList.remove('input-ok','input-error');
     status.className='project-id-status hint';status.textContent='e.g. ATK-2024-0001';
     hint.textContent='Format: ATK-YYYY-NNNN';hint.style.color='var(--text-3)';
     return false;
   }
-  const cleaned=val.replace(/[^A-Za-z0-9-]/g,'').toUpperCase();
+  var cleaned=val.replace(/[^A-Za-z0-9-]/g,'').toUpperCase();
   if(cleaned!==val)document.getElementById('rwAtkinsId').value=cleaned;
   if(PROJECT_ID_RE.test(cleaned)){
     input.classList.add('input-ok');input.classList.remove('input-error');
@@ -1477,279 +1395,283 @@ function rwValidateProjectId(){
     hint.textContent='Project ID accepted';hint.style.color='var(--green)';
     document.getElementById('t2AtkinsId').value=cleaned;t2ValidateId();
     return true;
-  }else{
-    input.classList.add('input-error');input.classList.remove('input-ok');
-    status.className='project-id-status err';status.textContent='Invalid format';
-    hint.textContent='Expected: ATK-YYYY-NNNN';hint.style.color='var(--error)';
-    return false;
   }
+  input.classList.add('input-error');input.classList.remove('input-ok');
+  status.className='project-id-status err';status.textContent='Invalid format';
+  hint.textContent='Expected: ATK-YYYY-NNNN';hint.style.color='var(--error)';
+  return false;
 }
 
 function rwFileSelect(e){rwAddFiles(Array.from(e.target.files));e.target.value='';}
 function rwDrop(e){
   e.preventDefault();document.getElementById('rwDropZone').classList.remove('drag-over');
-  rwAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));
+  rwAddFiles(Array.from(e.dataTransfer.files).filter(function(f){return f.type==='application/pdf'||f.name.endsWith('.pdf');}));
 }
 function rwAddFiles(files){
-  files.forEach(f=>{if(!rwFiles.find(s=>s.name===f.name))rwFiles.push({file:f,name:f.name,size:f.size,status:'staged',sessionFileId:null});});
+  files.forEach(function(f){if(!rwFiles.find(function(s){return s.name===f.name;}))rwFiles.push({file:f,name:f.name,size:f.size,status:'staged',sessionFileId:null});});
   rwRenderFiles();
 }
 function rwRenderFiles(){
-  const wrap=document.getElementById('rwStagedFilesWrap');
-  const body=document.getElementById('rwStagedFilesBody');
+  var wrap=document.getElementById('rwStagedFilesWrap');
+  var body=document.getElementById('rwStagedFilesBody');
   if(!rwFiles.length){wrap.style.display='none';body.innerHTML='';return;}
   wrap.style.display='block';
-  body.innerHTML=rwFiles.map(f=>{
-    const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
-    const badge=f.status==='ok'?`<span class="sf-status-badge ok">✓ Uploaded</span>`:
-      f.status==='err'?`<span class="sf-status-badge err">✗ Failed</span>`:
-      f.status==='uploading'?`<span class="sf-status-badge uploading">↑ Uploading…</span>`:
-      `<span class="sf-status-badge staged">Staged</span>`;
-    const tag=f.sessionFileId?`<span class="sf-session-badge">${esc(f.sessionFileId)}</span>`:'';
-    const rmv=f.status!=='ok'&&f.status!=='uploading'
-      ?`<button class="sf-remove" onclick="rwRemoveFile('${esc(f.name)}')" title="Remove">×</button>`
-      :`<span style="width:24px;display:inline-block;"></span>`;
-    return`<div class="staged-file"><div class="sf-name-wrap"><span class="sf-icon">📄</span><span class="sf-name" title="${esc(f.name)}">${esc(f.name)}</span>${tag}</div><span class="sf-size">${sz}</span>${badge}${rmv}</div>`;
+  body.innerHTML=rwFiles.map(function(f){
+    var sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024).toFixed(0)+' KB';
+    var badge=f.status==='ok'?'<span class="sf-status-badge ok">✓ Uploaded</span>':
+      f.status==='err'?'<span class="sf-status-badge err">✗ Failed</span>':
+      f.status==='uploading'?'<span class="sf-status-badge uploading">↑ Uploading…</span>':
+      '<span class="sf-status-badge staged">Staged</span>';
+    var tag=f.sessionFileId?'<span class="sf-session-badge">'+esc(f.sessionFileId)+'</span>':'';
+    var rmv=f.status!=='ok'&&f.status!=='uploading'
+      ?'<button class="sf-remove" onclick="rwRemoveFile(\''+esc(f.name)+'\')" title="Remove">×</button>'
+      :'<span style="width:24px;display:inline-block;"></span>';
+    return'<div class="staged-file"><div class="sf-name-wrap"><span class="sf-icon">📄</span><span class="sf-name" title="'+esc(f.name)+'">'+esc(f.name)+'</span>'+tag+'</div><span class="sf-size">'+sz+'</span>'+badge+rmv+'</div>';
   }).join('');
 }
-function rwRemoveFile(name){rwFiles=rwFiles.filter(f=>f.name!==name);rwRenderFiles();}
+function rwRemoveFile(name){rwFiles=rwFiles.filter(function(f){return f.name!==name;});rwRenderFiles();}
 function rwUpdateSessionRollup(sessionId){
-  const rollup=document.getElementById('rwSessionRollup');
-  const uploaded=rwFiles.filter(f=>f.status==='ok');
+  var rollup=document.getElementById('rwSessionRollup');
+  var uploaded=rwFiles.filter(function(f){return f.status==='ok';});
   if(!sessionId||!uploaded.length){rollup.style.display='none';return;}
   rollup.style.display='flex';
   document.getElementById('rwRollupSessionId').textContent=sessionId;
   document.getElementById('rwRollupCount').textContent=uploaded.length;
-  document.getElementById('rwRollupStatuses').innerHTML=`<span class="rollup-pill pill-green">${uploaded.length} uploaded</span><span class="rollup-pill pill-navy">${rwFiles.filter(f=>f.status==='staged').length} staged</span>`;
+  document.getElementById('rwRollupStatuses').innerHTML='<span class="rollup-pill pill-green">'+uploaded.length+' uploaded</span><span class="rollup-pill pill-navy">'+rwFiles.filter(function(f){return f.status==='staged';}).length+' staged</span>';
 }
 
 function rwChipKey(e){
   if(e.key==='Enter'||e.key===','){e.preventDefault();rwAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
   if(e.key==='Backspace'&&!e.target.value){
-    const chips=[...document.querySelectorAll('#rwChipBox .chip:not(.primary)')];
-    if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email}).catch(()=>{});last.remove();}
+    var chips=Array.from(document.querySelectorAll('#rwChipBox .chip:not(.primary)'));
+    if(chips.length){var last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email}).catch(function(){});last.remove();}
   }
 }
 function rwAddChip(email){
   if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
-  if([...document.querySelectorAll('#rwChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const c=document.createElement('span');c.className='chip';c.dataset.email=email;
-  c.innerHTML=`${esc(email)} <button class="chip-x" onclick="rwRemoveChip(this,'${esc(email)}')">×</button>`;
+  if(Array.from(document.querySelectorAll('#rwChipBox .chip:not(.primary)')).some(function(c){return c.dataset.email===email;}))return;
+  var c=document.createElement('span');c.className='chip';c.dataset.email=email;
+  c.innerHTML=esc(email)+' <button class="chip-x" onclick="rwRemoveChip(this,\''+esc(email)+'\')">×</button>';
   document.getElementById('rwChipBox').insertBefore(c,document.getElementById('rwChipInput'));
-  api('configure',undefined,{reviewerEmail:email}).catch(()=>{});
+  api('configure',undefined,{reviewerEmail:email}).catch(function(){});
 }
-function rwRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email}).catch(()=>{});}
+function rwRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email:email}).catch(function(){});}
 async function rwImportCsv(e){
-  const f=e.target.files[0];if(!f)return;
-  const t=await f.text();
-  t.split(/[\r\n,;]+/).map(s=>s.trim()).filter(s=>s.includes('@')).forEach(rwAddChip);
+  var f=e.target.files[0];if(!f)return;
+  var t=await f.text();
+  t.split(/[\r\n,;]+/).map(function(s){return s.trim();}).filter(function(s){return s.includes('@');}).forEach(rwAddChip);
   e.target.value='';
 }
 
-function rwSetStep(id,state,label=''){
-  const dot=document.getElementById('sd-'+id);const lbl=document.getElementById('sl-'+id);
+function rwSetStep(id,state,label){
+  var dot=document.getElementById('sd-'+id);var lbl=document.getElementById('sl-'+id);
   if(!dot)return;
   dot.className='step-dot '+state;
   dot.textContent=state==='done'?'✓':state==='running'?'↻':state==='error'?'✗':(parseInt(dot.textContent)||'·');
-  if(lbl&&label){lbl.textContent=label;lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');}
-  else if(lbl)lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');
+  if(lbl){lbl.className='step-row-label'+(state==='done'||state==='running'?'':' muted');if(label)lbl.textContent=label;}
 }
 
 async function rwStart(){
   if(!rwFiles.length){toast('Please add at least one PDF.','warn');return;}
   if(!rwValidateProjectId()){toast('Please enter a valid Atkins Project ID (e.g. ATK-2024-0001).','warn');return;}
-  const name=document.getElementById('rwName').value.trim();
+  var name=document.getElementById('rwName').value.trim();
   if(!name){toast('Please enter a review name.','warn');return;}
-
-  const disc=document.getElementById('rwDiscipline').value;
-  const desc=document.getElementById('rwDesc').value.trim();
-  const region=document.getElementById('rwRegion').value;
-  const reviewType=document.getElementById('rwReviewType').value;
-  const qaCategory=document.getElementById('rwQaCategory').value;
-  const atkinsId=document.getElementById('rwAtkinsId').value.trim();
-  const projectName=document.getElementById('rwProjectName').value.trim();
-  const deadline=document.getElementById('rwDeadline').value;
-  const pollingInterval=parseInt(document.getElementById('rwPolling').value)||0;
-
-  // Wire deadline → sessionEndDate on demoStub
-  const sessionEndDate=deadline?new Date(deadline).toISOString():null;
-
-  await api('configure',undefined,{
-    atkinsProjectId:atkinsId,
-    projectName,
-    region,
-    reviewType,
-    qaCategory,
-    discipline:disc,
-    pollingInterval,
-    ...(sessionEndDate&&{sessionEndDate}),
+  var disc=document.getElementById('rwDiscipline').value;
+  var desc=document.getElementById('rwDesc').value.trim();
+  var region=document.getElementById('rwRegion').value;
+  var reviewType=document.getElementById('rwReviewType').value;
+  var qaCategory=document.getElementById('rwQaCategory').value;
+  var atkinsId=document.getElementById('rwAtkinsId').value.trim();
+  var projectName=document.getElementById('rwProjectName').value.trim();
+  var deadline=document.getElementById('rwDeadline').value;
+  var pollingInterval=parseInt(document.getElementById('rwPolling').value)||0;
+  var injectModel=document.getElementById('rwInjectModel').checked;
+  var sessionEndDate=deadline?new Date(deadline).toISOString():null;
+  var configBody={atkinsProjectId:atkinsId,projectName:projectName,region:region,reviewType:reviewType,
+    qaCategory:qaCategory,discipline:disc,pollingInterval:pollingInterval,
     documentId:atkinsId+'-'+name.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'').slice(0,20),
-    description:[region,reviewType,disc,desc||name].filter(Boolean).join(' — ')
-  });
-
-  const btn=document.getElementById('rwStartBtn');
+    description:[region,reviewType,disc,desc||name].filter(Boolean).join(' — ')};
+  if(sessionEndDate)configBody.sessionEndDate=sessionEndDate;
+  await api('configure',undefined,configBody);
+  var btn=document.getElementById('rwStartBtn');
   btn.disabled=true;btn.textContent='Setting up…';
   document.getElementById('rwProgressSection').style.display='flex';
   document.getElementById('rwActions').style.display='none';
-
-  rwFiles.forEach(f=>f.status='staged');rwRenderFiles();
-
-  const steps=[
-    ['setup',()=>api('setup-project')],
-    ['upload',async()=>{
-      rwFiles.filter(f=>f.status==='staged').forEach(f=>f.status='uploading');rwRenderFiles();
-      const fd=new FormData();
-      rwFiles.filter(f=>f.status==='uploading').forEach(f=>fd.append('files',f.file,f.name));
-      const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
-      const d=await r.json();if(!r.ok)throw new Error(d.error);
-      (d.uploaded||[]).forEach(u=>{const sf=rwFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
+  rwFiles.forEach(function(f){f.status='staged';});rwRenderFiles();
+  var steps=[
+    ['setup',function(){return api('setup-project');}],
+    ['upload',async function(){
+      rwFiles.filter(function(f){return f.status==='staged';}).forEach(function(f){f.status='uploading';});
+      rwRenderFiles();
+      var fd=new FormData();
+      rwFiles.filter(function(f){return f.status==='uploading';}).forEach(function(f){fd.append('files',f.file,f.name);});
+      fd.append('injectStateModel',injectModel?'true':'false');
+      var r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
+      var d=await r.json();if(!r.ok)throw new Error(d.error);
+      (d.uploaded||[]).forEach(function(u){var sf=rwFiles.find(function(f){return f.name===u.name;});if(sf)sf.status='ok';});
       rwRenderFiles();return d;
     }],
-    ['session',async()=>{
-      await api('trigger');
-      const s=await api('create-session');
-      await api('register-webhook');
-      return s;
+    ['session',async function(){
+      await api('trigger');var s=await api('create-session');await api('register-webhook');return s;
     }],
-    ['checkout',()=>api('checkout-to-session')],
-    ['invite',()=>api('invite-reviewers')]
+    ['checkout',function(){return api('checkout-to-session');}],
+    ['invite',function(){return api('invite-reviewers');}]
   ];
-
   try{
-    for(const [id,fn] of steps){rwSetStep(id,'running');await fn();rwSetStep(id,'done');}
-    const state=await fetch('/poc/state').then(r=>r.json());
+    for(var i=0;i<steps.length;i++){rwSetStep(steps[i][0],'running');await steps[i][1]();rwSetStep(steps[i][0],'done');}
+    var state=await fetch('/poc/state').then(function(r){return r.json();});
     document.getElementById('rwSessionBanner').style.display='block';
     document.getElementById('rwSessionId').textContent=state.sessionId||'—';
     document.getElementById('rwDownstreamCard').style.display='block';
     rwUpdateSessionRollup(state.sessionId);
-    toast(`Session created: ${state.sessionId}`,'ok',6000);
-    // Refresh known projects so Tab 2 picks it up
+    toast('Session created: '+state.sessionId,'ok',6000);
     t2LoadKnownProjects();
   }catch(err){
-    ['setup','upload','session','checkout','invite'].forEach(id=>{
-      if(document.getElementById('sd-'+id)?.className.includes('running'))rwSetStep(id,'error');
+    ['setup','upload','session','checkout','invite'].forEach(function(id){
+      var d=document.getElementById('sd-'+id);
+      if(d&&d.className.includes('running')){d.className='step-dot error';d.textContent='✗';}
     });
     document.getElementById('rwProgressCard').style.border='2px solid var(--error)';
     btn.disabled=false;btn.textContent='Start Review';
     document.getElementById('rwActions').style.display='flex';
-    toast(`Review setup failed: ${err.message}`,'err',8000);
+    toast('Review setup failed: '+err.message,'err',8000);
   }
 }
 
 async function rwRunDownstream(){
-  const btn=document.getElementById('rwDownstreamBtn');
-  const stepWrap=document.getElementById('rwDownstreamSteps');
+  var btn=document.getElementById('rwDownstreamBtn');
+  var stepWrap=document.getElementById('rwDownstreamSteps');
   btn.disabled=true;btn.classList.add('loading');btn.textContent='Running downstream process…';
   stepWrap.style.display='flex';stepWrap.style.flexDirection='column';
+  ['checkin','export','mlist'].forEach(function(id){
+    var dot=document.getElementById('sd-'+id);var lbl=document.getElementById('sl-'+id);
+    if(dot){dot.className='step-dot running';dot.textContent='↻';}
+    if(lbl)lbl.className='step-row-label';
+  });
   try{
-    ['checkin','export','mlist'].forEach(id=>{
-      const dot=document.getElementById('sd-'+id);const lbl=document.getElementById('sl-'+id);
-      if(dot){dot.className='step-dot running';dot.textContent='↻';}
-      if(lbl)lbl.className='step-row-label';
-    });
-    const result=await api('downstream-process');
-    ['checkin','export','mlist'].forEach(id=>{
-      const dot=document.getElementById('sd-'+id);const lbl=document.getElementById('sl-'+id);
+    var result=await api('downstream-process');
+    ['checkin','export','mlist'].forEach(function(id){
+      var dot=document.getElementById('sd-'+id);var lbl=document.getElementById('sl-'+id);
       if(dot){dot.className='step-dot done';dot.textContent='✓';}
       if(lbl)lbl.className='step-row-label';
     });
-    rwMarkups=result?.markups||[];
+    rwMarkups=result&&result.markups||[];
     btn.textContent='✓ Project Updated & Metadata Pulled';btn.classList.remove('loading');
     rwRenderResults();
-    toast(`Downstream complete — ${rwMarkups.length} markup(s) extracted`,'ok');
-    try{await devRefreshLog();}catch(_){}
+    toast('Downstream complete — '+rwMarkups.length+' markup(s) extracted','ok');
+    try{await devRefreshLog();}catch(e){}
   }catch(err){
-    ['checkin','export','mlist'].forEach(id=>{
-      const dot=document.getElementById('sd-'+id);
-      if(dot?.className.includes('running')){dot.className='step-dot error';dot.textContent='✗';}
+    ['checkin','export','mlist'].forEach(function(id){
+      var dot=document.getElementById('sd-'+id);
+      if(dot&&dot.className.includes('running')){dot.className='step-dot error';dot.textContent='✗';}
     });
     btn.disabled=false;btn.classList.remove('loading');btn.textContent='Update Project Copy & Pull Metadata';
-    toast(`Downstream processing failed: ${err.message}`,'err',8000);
-    try{await devRefreshLog();}catch(_){}
+    toast('Downstream processing failed: '+err.message,'err',8000);
+    try{await devRefreshLog();}catch(e){}
   }
 }
 
-const piePalette=['#00B5AD','#0d9f6e','#dc2626','#d97706','#7c3aed','#0891b2','#1C3557','#64748b','#14b8a6','#f97316'];
+var piePalette=['#00B5AD','#0d9f6e','#dc2626','#d97706','#7c3aed','#0891b2','#1C3557','#64748b','#14b8a6','#f97316'];
 
 function renderPie(chartId,legendId,items,totalLabel){
-  const chart=document.getElementById(chartId);const legend=document.getElementById(legendId);
-  const counts={};items.forEach(item=>{counts[item]=(counts[item]||0)+1;});
-  const entries=Object.entries(counts).sort((a,b)=>b[1]-a[1]);
-  if(!entries.length){chart.style.background='var(--bg)';chart.innerHTML=`<div class="pie-center"><div class="pie-total">0</div><div class="pie-total-label">${esc(totalLabel)}</div></div>`;legend.innerHTML='<div class="pie-empty">No data available</div>';return;}
-  const total=entries.reduce((sum,[,n])=>sum+n,0);let current=0;
-  const segments=entries.map(([label,count],idx)=>{const start=current;const pct=count/total;current+=pct*360;return{label,count,pct,color:piePalette[idx%piePalette.length],start,end:current};});
-  chart.style.background=`conic-gradient(${segments.map(s=>`${s.color} ${s.start}deg ${s.end}deg`).join(', ')})`;
-  chart.innerHTML=`<div class="pie-center"><div class="pie-total">${total}</div><div class="pie-total-label">${esc(totalLabel)}</div></div>`;
-  legend.innerHTML=segments.map(s=>`<div class="pie-legend-row"><span class="pie-swatch" style="background:${s.color}"></span><span class="pie-label" title="${esc(s.label)}">${esc(s.label)}</span><span class="pie-count">${s.count}</span><span class="pie-pct">${Math.round(s.pct*100)}%</span></div>`).join('');
+  var chart=document.getElementById(chartId);var legend=document.getElementById(legendId);
+  var counts={};items.forEach(function(item){counts[item]=(counts[item]||0)+1;});
+  var entries=Object.entries(counts).sort(function(a,b){return b[1]-a[1];});
+  if(!entries.length){
+    chart.style.background='var(--bg)';
+    chart.innerHTML='<div class="pie-center"><div class="pie-total">0</div><div class="pie-total-label">'+esc(totalLabel)+'</div></div>';
+    legend.innerHTML='<div class="pie-empty">No data available</div>';
+    return;
+  }
+  var total=entries.reduce(function(sum,e){return sum+e[1];},0);
+  var current=0;
+  var segments=entries.map(function(e,idx){
+    var start=current;var pct=e[1]/total;current+=pct*360;
+    return{label:e[0],count:e[1],pct:pct,color:piePalette[idx%piePalette.length],start:start,end:current};
+  });
+  chart.style.background='conic-gradient('+segments.map(function(s){return s.color+' '+s.start+'deg '+s.end+'deg';}).join(', ')+')';
+  chart.innerHTML='<div class="pie-center"><div class="pie-total">'+total+'</div><div class="pie-total-label">'+esc(totalLabel)+'</div></div>';
+  legend.innerHTML=segments.map(function(s){
+    return'<div class="pie-legend-row"><span class="pie-swatch" style="background:'+s.color+'"></span><span class="pie-label" title="'+esc(s.label)+'">'+esc(s.label)+'</span><span class="pie-count">'+s.count+'</span><span class="pie-pct">'+Math.round(s.pct*100)+'%</span></div>';
+  }).join('');
 }
 
 function getCI(obj,key){
   if(!obj||typeof obj!=='object')return'';
-  const direct=obj[key];
+  var direct=obj[key];
   if(typeof direct!=='undefined'&&direct!==null&&String(direct).trim()!=='')return String(direct).trim();
-  const fk=Object.keys(obj).find(k=>k.toLowerCase()===String(key).toLowerCase());
-  if(!fk)return'';const val=obj[fk];
+  var fk=Object.keys(obj).find(function(k){return k.toLowerCase()===String(key).toLowerCase();});
+  if(!fk)return'';var val=obj[fk];
   return typeof val!=='undefined'&&val!==null?String(val).trim():'';
 }
 
 function enrichMarkup(m,byId){
-  const gcv=(m,key)=>{
-    const self=getCI(m.ExtendedProperties,key)||getCI(m.Custom,key)||getCI(m.CustomColumns,key)||getCI(m.Columns,key)||getCI(m.Metadata,key);
+  function gcv(m,key){
+    var self=getCI(m.ExtendedProperties,key)||getCI(m.Custom,key)||getCI(m.CustomColumns,key)||getCI(m.Columns,key)||getCI(m.Metadata,key);
     if(self)return self;
-    const pid=m.Parent||m.parent||m.ParentID||m.parentId||'';
-    if(pid&&byId.has(pid)){const p=byId.get(pid);return(getCI(p.ExtendedProperties,key)||getCI(p.Custom,key)||getCI(p.CustomColumns,key)||getCI(p.Columns,key)||getCI(p.Metadata,key));}return'';
-  };
-  const stage=gcv(m,'Review Stage')||m.Status||m.State||'';
-  return{...m,_status:m.Status||m.State||stage||'',_stage:stage,_discipline:gcv(m,'Discipline'),_responsibility:gcv(m,'Responsibility'),_priority:gcv(m,'Priority'),_action:gcv(m,'Action Required'),_due:gcv(m,'Due Date')};
+    var pid=m.Parent||m.parent||m.ParentID||m.parentId||'';
+    if(pid&&byId.has(pid)){var p=byId.get(pid);return getCI(p.ExtendedProperties,key)||getCI(p.Custom,key)||getCI(p.CustomColumns,key)||getCI(p.Columns,key)||getCI(p.Metadata,key)||'';}
+    return'';
+  }
+  var stage=gcv(m,'Review Stage')||m.Status||m.State||'';
+  return Object.assign({},m,{
+    _status:m.Status||m.State||stage||'',_stage:stage,
+    _discipline:gcv(m,'Discipline'),_responsibility:gcv(m,'Responsibility'),
+    _priority:gcv(m,'Priority'),_action:gcv(m,'Action Required'),_due:gcv(m,'Due Date')
+  });
 }
 
 function rwRenderResults(){
   document.getElementById('rwResults').style.display='flex';
-  const getId=m=>m?.ID||m?.Id||m?.id||'';
-  const byId=new Map(rwMarkups.map(m=>[getId(m),m]).filter(([id])=>id));
-  rwMarkups=rwMarkups.map(m=>enrichMarkup(m,byId));
-  const statuses=rwMarkups.map(m=>m._status||m._stage).filter(Boolean);
-  const responsibilities=rwMarkups.map(m=>m._responsibility).filter(Boolean);
-  const prios=rwMarkups.map(m=>m._priority).filter(Boolean);
-  const withAction=rwMarkups.filter(m=>m._action).length;
-  const critical=prios.filter(p=>p.includes('Critical')).length;
-  const authors=[...new Set(rwMarkups.map(m=>m.Author).filter(Boolean))].length;
-  document.getElementById('rwSummaryCards').innerHTML=`
-    <div class="sum-card"><div class="sum-val">${rwMarkups.length}</div><div class="sum-label">Total Markups</div></div>
-    <div class="sum-card"><div class="sum-val green">${withAction}</div><div class="sum-label">Action Required</div></div>
-    <div class="sum-card"><div class="sum-val error">${critical}</div><div class="sum-label">Critical Items</div></div>
-    <div class="sum-card"><div class="sum-val warn">${authors}</div><div class="sum-label">Active Reviewers</div></div>`;
+  function getId(m){return(m&&(m.ID||m.Id||m.id))||'';}
+  var byId=new Map(rwMarkups.map(function(m){return[getId(m),m];}).filter(function(e){return e[0];}));
+  rwMarkups=rwMarkups.map(function(m){return enrichMarkup(m,byId);});
+  var statuses=rwMarkups.map(function(m){return m._status||m._stage;}).filter(Boolean);
+  var responsibilities=rwMarkups.map(function(m){return m._responsibility;}).filter(Boolean);
+  var prios=rwMarkups.map(function(m){return m._priority;}).filter(Boolean);
+  var withAction=rwMarkups.filter(function(m){return m._action;}).length;
+  var critical=prios.filter(function(p){return p.includes('Critical');}).length;
+  var authors=Array.from(new Set(rwMarkups.map(function(m){return m.Author;}).filter(Boolean))).length;
+  document.getElementById('rwSummaryCards').innerHTML=
+    '<div class="sum-card"><div class="sum-val">'+rwMarkups.length+'</div><div class="sum-label">Total Markups</div></div>'+
+    '<div class="sum-card"><div class="sum-val green">'+withAction+'</div><div class="sum-label">Action Required</div></div>'+
+    '<div class="sum-card"><div class="sum-val error">'+critical+'</div><div class="sum-label">Critical Items</div></div>'+
+    '<div class="sum-card"><div class="sum-val warn">'+authors+'</div><div class="sum-label">Active Reviewers</div></div>';
+  var cl=document.getElementById('rwMarkupCountLabel');
+  if(cl)cl.textContent=rwMarkups.length+' markup'+(rwMarkups.length!==1?'s':'');
   renderPie('rwStatusPie','rwStatusLegend',statuses,'Statuses');
   renderPie('rwResponsibilityPie','rwResponsibilityLegend',responsibilities,'Assignments');
   rwRenderTable();
 }
 
 function prioPill(p){
-  if(!p)return`<span class="pill pill-gray">—</span>`;
-  if(p.includes('Critical'))return`<span class="pill pill-red">${esc(p.split('–')[0].trim())}</span>`;
-  if(p.includes('High'))return`<span class="pill pill-warn">${esc(p.split('–')[0].trim())}</span>`;
-  if(p.includes('Low'))return`<span class="pill pill-green">${esc(p.split('–')[0].trim())}</span>`;
-  if(p.includes('Information'))return`<span class="pill pill-gray">${esc(p.split('–')[0].trim())}</span>`;
-  return`<span class="pill pill-blue">${esc(p.split('–')[0].trim())}</span>`;
+  if(!p)return'<span class="pill pill-gray">—</span>';
+  var s=p.split('–')[0].trim();
+  if(p.includes('Critical'))return'<span class="pill pill-red">'+esc(s)+'</span>';
+  if(p.includes('High'))return'<span class="pill pill-warn">'+esc(s)+'</span>';
+  if(p.includes('Low'))return'<span class="pill pill-green">'+esc(s)+'</span>';
+  if(p.includes('Information'))return'<span class="pill pill-gray">'+esc(s)+'</span>';
+  return'<span class="pill pill-blue">'+esc(s)+'</span>';
 }
 
 function rwRenderTable(){
-  const sorted=[...rwMarkups].sort((a,b)=>{
-    const av=String(a[rwSortKey]??''),bv=String(b[rwSortKey]??'');
+  var sorted=rwMarkups.slice().sort(function(a,b){
+    var av=String(a[rwSortKey]!=null?a[rwSortKey]:'');
+    var bv=String(b[rwSortKey]!=null?b[rwSortKey]:'');
     return rwSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
   });
-  document.getElementById('rwResultsTbody').innerHTML=sorted.map(m=>`<tr>
-    <td>${m.Page??'—'}</td>
-    <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
-    <td>${esc(m.Author||'—')}</td>
-    <td>${m._stage?`<span class="pill pill-blue">${esc(m._stage.length>26?m._stage.slice(0,24)+'…':m._stage)}</span>`:'—'}</td>
-    <td>${esc(m._discipline||'—')}</td>
-    <td>${esc(m._responsibility||'—')}</td>
-    <td>${prioPill(m._priority)}</td>
-    <td title="${esc(m._action||'')}">${esc(m._action||'—')}</td>
-    <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
-    <td>${esc(m._due||'—')}</td>
-  </tr>`).join('');
+  document.getElementById('rwResultsTbody').innerHTML=sorted.map(function(m){
+    return'<tr><td>'+(m.Page!=null?m.Page:'—')+'</td>'+
+      '<td title="'+esc(m.Subject||'')+'">'+esc(m.Subject||'—')+'</td>'+
+      '<td>'+esc(m.Author||'—')+'</td>'+
+      '<td>'+(m._stage?'<span class="pill pill-blue">'+esc(m._stage.length>26?m._stage.slice(0,24)+'…':m._stage)+'</span>':'—')+'</td>'+
+      '<td>'+esc(m._discipline||'—')+'</td>'+
+      '<td>'+esc(m._responsibility||'—')+'</td>'+
+      '<td>'+prioPill(m._priority)+'</td>'+
+      '<td title="'+esc(m._action||'')+'">'+esc(m._action||'—')+'</td>'+
+      '<td title="'+esc(m.Comment||'')+'">'+esc(m.Comment||'—')+'</td>'+
+      '<td>'+esc(m._due||'—')+'</td></tr>';
+  }).join('');
 }
 function rwSort(k){rwSortDir=(rwSortKey===k&&rwSortDir==='asc')?'desc':'asc';rwSortKey=k;if(rwMarkups.length)rwRenderTable();}
 
@@ -1763,70 +1685,64 @@ function rwReset(){
   document.getElementById('rwProgressCard').style.border='';
   document.getElementById('rwActions').style.display='flex';
   document.getElementById('rwSessionRollup').style.display='none';
-  const btn=document.getElementById('rwStartBtn');btn.disabled=false;btn.textContent='Start Review';
-  const dbtn=document.getElementById('rwDownstreamBtn');dbtn.disabled=false;dbtn.textContent='Update Project Copy & Pull Metadata';dbtn.classList.remove('loading');
-  document.querySelectorAll('#rwChipBox .chip:not(.primary)').forEach(c=>c.remove());
-  ['setup','upload','session','checkout','invite','checkin','export','mlist'].forEach(id=>{
-    const d=document.getElementById('sd-'+id);
-    if(d){d.className='step-dot';const orig={setup:1,upload:2,session:3,checkout:4,invite:5,checkin:1,export:2,mlist:3};d.textContent=orig[id]||'·';}
-    const l=document.getElementById('sl-'+id);if(l)l.className='step-row-label muted';
+  var btn=document.getElementById('rwStartBtn');btn.disabled=false;btn.textContent='Start Review';
+  var dbtn=document.getElementById('rwDownstreamBtn');dbtn.disabled=false;dbtn.textContent='Update Project Copy & Pull Metadata';dbtn.classList.remove('loading');
+  Array.from(document.querySelectorAll('#rwChipBox .chip:not(.primary)')).forEach(function(c){c.remove();});
+  var orig={setup:1,upload:2,session:3,checkout:4,invite:5,checkin:1,export:2,mlist:3};
+  ['setup','upload','session','checkout','invite','checkin','export','mlist'].forEach(function(id){
+    var d=document.getElementById('sd-'+id);if(d){d.className='step-dot';d.textContent=orig[id]||'·';}
+    var l=document.getElementById('sl-'+id);if(l)l.className='step-row-label muted';
   });
-  api('reset').catch(()=>{});
+  api('reset').catch(function(){});
 }
+</script>
 
+<script>
 // ═══════════════════════════════════════════════════════════════════════════════
-// TAB 2 — REVIEW PROCESS: DATA
+// TAB 2 — REVIEW DATA
 // ═══════════════════════════════════════════════════════════════════════════════
-let t2AllMarkups=[];
-let t2FilteredMarkups=[];
-let t2SortKey='_session';
-let t2SortDir='asc';
-let t2PollTimer=null;
-let t2CurrentProjectId=null;
+var t2AllMarkups=[];
+var t2FilteredMarkups=[];
+var t2SortKey='_session';
+var t2SortDir='asc';
+var t2PollTimer=null;
+var t2CurrentProjectId=null;
 
 async function t2LoadKnownProjects(){
   try{
-    const data=await fetch('/poc/projects').then(r=>r.json());
-    const sel=document.getElementById('t2KnownProjects');
-    const current=sel.value;
-    // Clear and rebuild
+    var data=await fetch('/poc/projects').then(function(r){return r.json();});
+    var sel=document.getElementById('t2KnownProjects');
+    var current=sel.value;
     sel.innerHTML='<option value="">— Select from DB or enter manually —</option>';
-    (data.projects||[]).forEach(p=>{
-      const opt=document.createElement('option');
+    (data.projects||[]).forEach(function(p){
+      var opt=document.createElement('option');
       opt.value=p.atkins_project_id;
-      opt.textContent=`${p.atkins_project_id}${p.project_name?' — '+p.project_name:''}`;
+      opt.textContent=p.atkins_project_id+(p.project_name?' — '+p.project_name:'');
       sel.appendChild(opt);
     });
     if(current)sel.value=current;
-    if((data.projects||[]).length===0){
-      const opt=document.createElement('option');opt.disabled=true;
-      opt.textContent='No projects yet — start a review from the Setup tab';
-      sel.appendChild(opt);
+    if(!(data.projects||[]).length){
+      var opt2=document.createElement('option');opt2.disabled=true;
+      opt2.textContent='No projects yet — start a review from the Setup tab';
+      sel.appendChild(opt2);
     }
-  }catch(err){
-    // Not fatal — manual input still works
-    console.warn('Could not load projects:',err.message);
-  }
+  }catch(e){console.warn('Could not load projects:',e.message);}
 }
 
 function t2SelectKnown(){
-  const val=document.getElementById('t2KnownProjects').value;
-  if(val){
-    document.getElementById('t2AtkinsId').value=val;
-    t2ValidateId();
-  }
+  var val=document.getElementById('t2KnownProjects').value;
+  if(val){document.getElementById('t2AtkinsId').value=val;t2ValidateId();}
 }
 
 function t2ValidateId(){
-  const val=document.getElementById('t2AtkinsId').value.trim().toUpperCase();
+  var val=document.getElementById('t2AtkinsId').value.trim().toUpperCase();
   document.getElementById('t2AtkinsId').value=val.replace(/[^A-Za-z0-9-]/g,'');
-  const status=document.getElementById('t2AtkinsIdStatus');
-  const btn=document.getElementById('t2PullBtn');
+  var status=document.getElementById('t2AtkinsIdStatus');
+  var btn=document.getElementById('t2PullBtn');
   if(PROJECT_ID_RE.test(val)){
     status.className='project-id-status ok';status.textContent='✓ Valid';btn.disabled=false;
-    // Sync dropdown if it matches
-    const sel=document.getElementById('t2KnownProjects');
-    if([...sel.options].some(o=>o.value===val))sel.value=val;
+    var sel=document.getElementById('t2KnownProjects');
+    if(Array.from(sel.options).some(function(o){return o.value===val;}))sel.value=val;
   }else if(val){
     status.className='project-id-status err';status.textContent='Invalid format';btn.disabled=true;
   }else{
@@ -1835,528 +1751,474 @@ function t2ValidateId(){
 }
 
 async function t2PullSnapshot(){
-  const projectId=document.getElementById('t2AtkinsId').value.trim().toUpperCase();
+  var projectId=document.getElementById('t2AtkinsId').value.trim().toUpperCase();
   if(!PROJECT_ID_RE.test(projectId)){toast('Invalid Atkins Project ID.','warn');return;}
   t2CurrentProjectId=projectId;
-  const btn=document.getElementById('t2PullBtn');
+  var btn=document.getElementById('t2PullBtn');
   btn.disabled=true;btn.textContent='Pulling…';
   try{
-    // Try DB-backed snapshot first, fall back to live state
-    let sessions,markups,project;
+    var sessions,markups,project;
     try{
-      const snap=await fetch(`/poc/projects/${projectId}/snapshot`).then(async r=>{
-        if(!r.ok){const d=await r.json();throw new Error(d.error||`HTTP ${r.status}`);}
+      var snap=await fetch('/poc/projects/'+projectId+'/snapshot').then(async function(r){
+        if(!r.ok){var d=await r.json();throw new Error(d.error||'HTTP '+r.status);}
         return r.json();
       });
       sessions=snap.sessions||[];
       project=snap.project||{};
-      markups=sessions.flatMap(s=>(s.markups||[]).map(m=>({...m,_session:s.bluebeam_session_id})));
+      markups=sessions.reduce(function(acc,s){
+        return acc.concat((s.markups||[]).map(function(m){return Object.assign({},m,{_session:s.bluebeam_session_id});}));
+      },[]);
     }catch(snapErr){
-      // Fallback to live /poc/state
-      const state=await fetch('/poc/state').then(r=>r.json());
+      var state=await fetch('/poc/state').then(function(r){return r.json();});
       sessions=t2BuildSessionsFromState(state,projectId);
       markups=t2BuildMarkupsFromState(state,sessions);
       project={atkins_project_id:projectId};
-      toast(`Using live state (no DB snapshot yet): ${snapErr.message}`,'warn',5000);
+      toast('Using live state (no DB snapshot yet): '+snapErr.message,'warn',5000);
     }
-
     t2AllMarkups=markups;
     t2RenderOverview(projectId,sessions,project);
     t2RenderSessions(sessions);
-    renderPie('t2StatusPie','t2StatusLegend',t2AllMarkups.map(m=>m._stage||m._status).filter(Boolean),'Statuses');
+    renderPie('t2StatusPie','t2StatusLegend',t2AllMarkups.map(function(m){return m._stage||m._status||'';}).filter(Boolean),'Statuses');
     t2FilterMarkups();
     document.getElementById('t2Overview').style.display='flex';
     document.getElementById('t2EmptyState').style.display='none';
-    const now=new Date();
-    document.getElementById('t2LastSync').innerHTML=`<span class="t2-sync-badge">Live</span> &nbsp;${now.toLocaleTimeString()}`;
+    var now=new Date();
+    document.getElementById('t2LastSync').innerHTML='<span class="t2-sync-badge">Live</span> &nbsp;'+now.toLocaleTimeString();
   }catch(err){
-    toast(`Failed to pull snapshot: ${err.message}`,'err',8000);
+    toast('Failed to pull snapshot: '+err.message,'err',8000);
   }finally{
     btn.disabled=false;btn.textContent='Pull Snapshot';
   }
 }
 
 function t2BuildSessionsFromState(state,projectId){
-  const sessions=[];
+  var sessions=[];
   if(state.sessionId){
-    const sm=state.markups||[];
-    const sc={};(sm).forEach(m=>{const k=m._stage||m._status||m.Status||'';if(k)sc[k]=(sc[k]||0)+1;});
+    var sm=state.markups||[];
     sessions.push({
-      bluebeam_session_id:state.sessionId,review_name:state.stub?.documentId||projectId,
+      bluebeam_session_id:state.sessionId,review_name:state.stub&&state.stub.documentId||projectId,
       files:state.projectFiles||[],status:state.status||'active',
-      markup_count:sm.length,statusCounts:sc,
-      last_polled_at:new Date().toISOString(),polling_interval:0,markups:sm
+      markup_count:sm.length,last_polled_at:new Date().toISOString(),polling_interval:0,markups:sm
     });
   }
   if(!sessions.length){
     sessions.push({
-      bluebeam_session_id:'DEMO-SESSION',review_name:`${projectId} — Example`,
+      bluebeam_session_id:'DEMO-SESSION',review_name:projectId+' — Example',
       files:[{name:'Drawing-A100.pdf',size:2400000}],status:'active',
-      markup_count:0,statusCounts:{},last_polled_at:new Date().toISOString(),polling_interval:0,markups:[],isDemo:true
+      markup_count:0,last_polled_at:new Date().toISOString(),polling_interval:0,markups:[],isDemo:true
     });
   }
   return sessions;
 }
 
 function t2BuildMarkupsFromState(state,sessions){
-  const getId=m=>m?.ID||m?.Id||m?.id||'';
-  const raw=state.markups||[];
-  const byId=new Map(raw.map(m=>[getId(m),m]).filter(([id])=>id));
-  return raw.map(m=>({...enrichMarkup(m,byId),_session:state.sessionId||'—'}));
+  function getId(m){return(m&&(m.ID||m.Id||m.id))||'';}
+  var raw=state.markups||[];
+  var byId=new Map(raw.map(function(m){return[getId(m),m];}).filter(function(e){return e[0];}));
+  return raw.map(function(m){return Object.assign(enrichMarkup(m,byId),{_session:state.sessionId||'—'});});
 }
 
 function t2RenderOverview(projectId,sessions,project){
-  const label=project.project_name?`Project: ${project.project_name}`:
-    project.description?`Project: ${project.description.split(' — ')[0]}`:'Project Overview';
-  document.getElementById('t2ProjectLabel').textContent=label;
-  document.getElementById('t2ProjectIdLabel').textContent=projectId;
-  const totalMarkups=sessions.reduce((s,sess)=>s+(sess.markup_count||0),0);
-  const totalFiles=sessions.reduce((s,sess)=>s+(sess.files?.length||0),0);
-  const active=sessions.filter(s=>s.status==='active'||s.status==='inviting').length;
-  document.getElementById('t2OverviewCards').innerHTML=`
-    <div class="t2-ov-card"><div class="t2-ov-val blue">${sessions.length}</div><div class="t2-ov-label">Total Sessions</div></div>
-    <div class="t2-ov-card"><div class="t2-ov-val green">${totalFiles}</div><div class="t2-ov-label">Files in Review</div></div>
-    <div class="t2-ov-card"><div class="t2-ov-val warn">${totalMarkups}</div><div class="t2-ov-label">Total Markups</div></div>
-    <div class="t2-ov-card"><div class="t2-ov-val gray">${active}</div><div class="t2-ov-label">Active Sessions</div></div>`;
+  // FIX: title = atkinsProjectId, subtitle = project_name only if set
+  var labelEl=document.getElementById('t2ProjectLabel');
+  var subEl=document.getElementById('t2ProjectNameSub');
+  var idEl=document.getElementById('t2ProjectIdLabel');
+  if(labelEl)labelEl.textContent=projectId;
+  if(idEl)idEl.textContent='';
+  if(subEl){
+    if(project.project_name){
+      subEl.textContent=project.project_name;
+      subEl.style.display='block';
+    }else{
+      subEl.style.display='none';
+    }
+  }
+  var totalMarkups=sessions.reduce(function(s,sess){return s+(sess.markup_count||0);},0);
+  var totalFiles=sessions.reduce(function(s,sess){return s+(sess.files&&sess.files.length||0);},0);
+  var active=sessions.filter(function(s){return s.status==='active'||s.status==='inviting';}).length;
+  document.getElementById('t2OverviewCards').innerHTML=
+    '<div class="t2-ov-card"><div class="t2-ov-val blue">'+sessions.length+'</div><div class="t2-ov-label">Total Sessions</div></div>'+
+    '<div class="t2-ov-card"><div class="t2-ov-val green">'+totalFiles+'</div><div class="t2-ov-label">Files in Review</div></div>'+
+    '<div class="t2-ov-card"><div class="t2-ov-val warn">'+totalMarkups+'</div><div class="t2-ov-label">Total Markups</div></div>'+
+    '<div class="t2-ov-card"><div class="t2-ov-val gray">'+active+'</div><div class="t2-ov-label">Active Sessions</div></div>';
 }
 
 function t2RenderSessions(sessions){
-  const sp=s=>{
-    if(s==='active'||s==='inviting')return`<span class="pill pill-green">Active</span>`;
-    if(s==='triggered'||s==='creating')return`<span class="pill pill-blue">Starting</span>`;
-    if(s==='finalized'||s==='complete')return`<span class="pill pill-gray">Complete</span>`;
-    if(s==='error')return`<span class="pill pill-red">Error</span>`;
-    return`<span class="pill pill-gray">${esc(s)}</span>`;
-  };
-  document.getElementById('t2SessionsTbody').innerHTML=sessions.map((sess,i)=>{
-    const fc=sess.files?.length||0;
-    const lp=sess.last_polled_at?new Date(sess.last_polled_at).toLocaleString():'—';
-    const fh=sess.files?.length
-      ?sess.files.map(f=>{const sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':(f.size/1024||0).toFixed(0)+' KB';return`<div class="session-file-item"><span class="sf-icon">📄</span><span class="session-file-name">${esc(f.name)}</span><span class="session-file-size">${sz}</span></div>`;}).join('')
-      :'<div style="color:var(--text-3);font-size:11px;padding:6px 0;">No files tracked</div>';
-    const sid=sess.bluebeam_session_id||sess.sessionId||'—';
-    return`<tr>
-      <td><span style="font-family:var(--mono);font-size:11px;color:var(--accent);cursor:pointer;" onclick="copyText('${esc(sid)}',this)" title="Click to copy">${esc(sid)}</span>${sess.isDemo?'<span style="margin-left:5px;font-size:9px;color:var(--text-3);font-weight:700;text-transform:uppercase;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">demo</span>':''}</td>
-      <td style="font-weight:500;">${esc(sess.review_name||sess.reviewName||'—')}</td>
-      <td><span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">${fc}</span></td>
-      <td>${sp(sess.status)}</td>
-      <td><span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">${sess.markup_count||0}</span></td>
-      <td style="color:var(--text-3);font-size:11px;">${lp}</td>
-      <td><button class="session-expand-btn" onclick="t2ToggleFiles(${i})">▾ Files</button></td>
-    </tr>
-    <tr class="session-files-row" id="t2-session-files-${i}">
-      <td colspan="7" style="padding:0;"><div class="session-files-inner">${fh}</div></td>
-    </tr>`;
+  function sp(s){
+    if(s==='active'||s==='inviting')return'<span class="pill pill-green">Active</span>';
+    if(s==='triggered'||s==='creating')return'<span class="pill pill-blue">Starting</span>';
+    if(s==='finalized'||s==='complete')return'<span class="pill pill-gray">Complete</span>';
+    if(s==='error')return'<span class="pill pill-red">Error</span>';
+    return'<span class="pill pill-gray">'+esc(s)+'</span>';
+  }
+  document.getElementById('t2SessionsTbody').innerHTML=sessions.map(function(sess,i){
+    var fc=sess.files&&sess.files.length||0;
+    var lp=sess.last_polled_at?new Date(sess.last_polled_at).toLocaleString():'—';
+    var mc=sess.markup_count||0;
+    var mcLabel=mc===0&&!sess.last_polled_at?'<span style="font-size:9px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);">no snapshot</span>':'<span style="font-family:var(--mono);font-size:11px;">'+mc+'</span>';
+    var sid=sess.bluebeam_session_id||sess.sessionId||'—';
+    var fh=fc?(sess.files||[]).map(function(f){
+      var sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':((f.size/1024)||0).toFixed(0)+' KB';
+      return'<div class="session-file-item"><span class="sf-icon">📄</span><span class="session-file-name">'+esc(f.name)+'</span><span class="session-file-size">'+sz+'</span></div>';
+    }).join(''):'<div style="color:var(--text-3);font-size:11px;padding:6px 0;">No files tracked</div>';
+    return'<tr>'+
+      '<td><span style="font-family:var(--mono);font-size:11px;color:var(--accent);cursor:pointer;" onclick="copyText(\''+esc(sid)+'\',this)" title="Click to copy">'+esc(sid)+'</span>'+(sess.isDemo?'<span style="margin-left:5px;font-size:9px;color:var(--text-3);font-weight:700;text-transform:uppercase;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">demo</span>':'')+'</td>'+
+      '<td style="font-weight:500;">'+esc(sess.review_name||sess.reviewName||'—')+'</td>'+
+      '<td><span style="font-family:var(--mono);font-size:11px;color:var(--text-2);">'+fc+'</span></td>'+
+      '<td>'+sp(sess.status)+'</td>'+
+      '<td>'+mcLabel+'</td>'+
+      '<td style="color:var(--text-3);font-size:11px;">'+lp+'</td>'+
+      '<td><button class="session-expand-btn" onclick="t2ToggleFiles('+i+')">▾ Files</button></td>'+
+      '</tr>'+
+      '<tr class="session-files-row" id="t2-session-files-'+i+'">'+
+      '<td colspan="7" style="padding:0;"><div class="session-files-inner">'+fh+'</div></td>'+
+      '</tr>';
   }).join('');
 }
 
 function t2ToggleFiles(i){
-  const row=document.getElementById(`t2-session-files-${i}`);
+  var row=document.getElementById('t2-session-files-'+i);
   row.classList.toggle('open');
-  const btn=row.previousElementSibling.querySelector('.session-expand-btn');
+  var btn=row.previousElementSibling&&row.previousElementSibling.querySelector('.session-expand-btn');
   if(btn)btn.textContent=row.classList.contains('open')?'▴ Files':'▾ Files';
 }
 
 function t2FilterMarkups(){
-  const q=(document.getElementById('t2MarkupSearch').value||'').toLowerCase();
-  t2FilteredMarkups=q
-    ?t2AllMarkups.filter(m=>[m.Author,m.Subject,m._status,m._stage,m._responsibility,m.Comment,m._session].some(v=>v&&String(v).toLowerCase().includes(q)))
-    :[...t2AllMarkups];
-  document.getElementById('t2MarkupCount').textContent=`${t2FilteredMarkups.length} markup${t2FilteredMarkups.length!==1?'s':''}`;
+  var q=(document.getElementById('t2MarkupSearch').value||'').toLowerCase();
+  t2FilteredMarkups=q?t2AllMarkups.filter(function(m){
+    return[m.Author,m.Subject,m._status,m._stage,m._responsibility,m.Comment,m._session].some(function(v){return v&&String(v).toLowerCase().includes(q);});
+  }):t2AllMarkups.slice();
+  var el=document.getElementById('t2MarkupCount');
+  if(el)el.textContent=t2FilteredMarkups.length+' markup'+(t2FilteredMarkups.length!==1?'s':'');
   t2RenderMarkupsTable();
 }
 
 function t2RenderMarkupsTable(){
-  const sorted=[...t2FilteredMarkups].sort((a,b)=>{
-    const av=String(a[t2SortKey]??''),bv=String(b[t2SortKey]??'');
+  var sorted=t2FilteredMarkups.slice().sort(function(a,b){
+    var av=String(a[t2SortKey]!=null?a[t2SortKey]:'');
+    var bv=String(b[t2SortKey]!=null?b[t2SortKey]:'');
     return t2SortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
   });
   if(!sorted.length){
-    document.getElementById('t2MarkupsTbody').innerHTML=`<tr><td colspan="8" class="markup-empty">No markups found${document.getElementById('t2MarkupSearch').value?' for this filter':' — run downstream processing to populate data'}.</td></tr>`;
+    document.getElementById('t2MarkupsTbody').innerHTML='<tr><td colspan="8" class="markup-empty">No markups found'+(document.getElementById('t2MarkupSearch').value?' for this filter':' — run downstream processing to populate data')+'.</td></tr>';
     return;
   }
-  document.getElementById('t2MarkupsTbody').innerHTML=sorted.map(m=>`<tr>
-    <td><span style="font-family:var(--mono);font-size:9px;color:var(--accent);background:var(--ar-teal-l);padding:1px 5px;border-radius:4px;">${esc((m._session||'').toString().slice(0,12))}</span></td>
-    <td>${m.Page??'—'}</td>
-    <td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td>
-    <td>${esc(m.Author||'—')}</td>
-    <td>${m._stage?`<span class="pill pill-blue">${esc(m._stage.length>22?m._stage.slice(0,20)+'…':m._stage)}</span>`:'—'}</td>
-    <td>${esc(m._responsibility||'—')}</td>
-    <td>${prioPill(m._priority)}</td>
-    <td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td>
-  </tr>`).join('');
+  document.getElementById('t2MarkupsTbody').innerHTML=sorted.map(function(m){
+    return'<tr>'+
+      '<td><span style="font-family:var(--mono);font-size:9px;color:var(--accent);background:var(--ar-teal-l);padding:1px 5px;border-radius:4px;">'+esc(String(m._session||'').slice(0,12))+'</span></td>'+
+      '<td>'+(m.Page!=null?m.Page:'—')+'</td>'+
+      '<td title="'+esc(m.Subject||'')+'">'+esc(m.Subject||'—')+'</td>'+
+      '<td>'+esc(m.Author||'—')+'</td>'+
+      '<td>'+(m._stage?'<span class="pill pill-blue">'+esc(m._stage.length>22?m._stage.slice(0,20)+'…':m._stage)+'</span>':'—')+'</td>'+
+      '<td>'+esc(m._responsibility||'—')+'</td>'+
+      '<td>'+prioPill(m._priority)+'</td>'+
+      '<td title="'+esc(m.Comment||'')+'">'+esc(m.Comment||'—')+'</td>'+
+      '</tr>';
+  }).join('');
 }
 function t2Sort(k){t2SortDir=(t2SortKey===k&&t2SortDir==='asc')?'desc':'asc';t2SortKey=k;t2RenderMarkupsTable();}
 
 function t2UpdatePolling(){
-  const hours=parseInt(document.getElementById('t2PollInterval').value)||0;
-  const ind=document.getElementById('t2PollIndicator');
-  const lbl=document.getElementById('t2PollRunningLabel');
+  var hours=parseInt(document.getElementById('t2PollInterval').value)||0;
+  var ind=document.getElementById('t2PollIndicator');
+  var lbl=document.getElementById('t2PollRunningLabel');
   if(t2PollTimer){clearInterval(t2PollTimer);t2PollTimer=null;}
   if(hours>0&&t2CurrentProjectId){
     ind.className='poll-indicator active';lbl.className='poll-running-label active';
-    lbl.textContent=`Auto-polling every ${hours===1?'hour':hours+' hours'}`;
-    t2PollTimer=setInterval(()=>{if(t2CurrentProjectId)t2PullSnapshot();},hours*60*60*1000);
+    lbl.textContent='Auto-polling every '+(hours===1?'hour':hours+' hours');
+    t2PollTimer=setInterval(function(){if(t2CurrentProjectId)t2PullSnapshot();},hours*60*60*1000);
   }else{
     ind.className='poll-indicator';lbl.className='poll-running-label';lbl.textContent='Auto-polling off';
   }
 }
+</script>
 
+<script>
 // ═══════════════════════════════════════════════════════════════════════════════
-// DEVELOPER CONSOLE
+// TAB 3 — DEVELOPER CONSOLE
 // ═══════════════════════════════════════════════════════════════════════════════
-let devFiles=[];let devMarkups=[];let devSortKey='Page';let devSortDir='asc';
-let devView='table';let devLastState=null;let devCurrentSnippet='setup-project';let devSnippetLocked=false;
+var devFiles=[];
+var devMarkups=[];
+var devSortKey='Page';
+var devSortDir='asc';
+var devView='table';
+var devLastState=null;
+var devCurrentSnippet='auth-refresh';
+var devSnippetLocked=false;
 
-const DEV_SNIPPETS={
-  'setup-project':{endpoint:'POST /poc/setup-project',desc:'Creates or verifies the Studio Project folder structure (resources, review-documents, markup-exports) and uploads custom-columns.xml if not already present.',code:`POST /poc/setup-project
-Body: (none)
-
-WHAT IT DOES
-- Lists existing project folders
-- Creates missing folders: resources, review-documents, markup-exports
-- Uploads custom-columns.xml to /resources if not already there
-
-RESPONSE HIGHLIGHTS
-- folderIds: { resources, review-documents, markup-exports }
-- customColumnsFileId
-- projectSetupDone: true`},
-  'upload-to-project':{endpoint:'POST /poc/upload-to-project',desc:'Uploads PDF files from the browser into the review-documents folder. Optionally injects the 5-step QC Review state model via pdf-lib. Writes each file to the DB files table.',code:`POST /poc/upload-to-project
-Content-Type: multipart/form-data
-Body: files[] (PDF), injectStateModel (bool, optional)
-
-WHAT IT DOES
-- Accepts one or more PDF buffers
-- Optionally injects QC Review state model (pdf-lib)
-- Uploads each: metadata block → S3 PUT → confirm-upload
-- Writes projectFileId to DB files table
-
-RESPONSE HIGHLIGHTS
-- uploaded[]: { name, projectFileId, size, folderId }`},
-  'configure':{endpoint:'POST /poc/configure',desc:'Updates the demoStub with project metadata, reviewer list, and session parameters. Also upserts the project into the SQLite DB.',code:`POST /poc/configure
-Body: {
-  atkinsProjectId, projectName, region,
-  reviewType, qaCategory, discipline,
-  pollingInterval, sessionEndDate,
-  documentId, description, reviewerEmail
-}
-
-WHAT IT DOES
-- Merges all provided fields into demoStub
-- Upserts project row in DB (atkins_project_id is key)
-- sessionEndDate flows through to create-session body
-
-NOTE: sessionEndDate must be an ISO 8601 string.
-Default is +7 days from server start if not provided.`},
-  'trigger':{endpoint:'POST /poc/trigger',desc:'Initializes the run state for the current roundtrip. Resets the log and records document/reviewer context. No Bluebeam API call — internal orchestration only.',code:`POST /poc/trigger
-Body: (none)
-
-WHAT IT DOES
-- Sets pocState.status = 'triggered'
-- Clears previous log entries
-- Records documentId, atkinsProjectId, files, reviewers into log
-
-RESPONSE HIGHLIGHTS
-- success: true
-- state: { ...pocState }`},
-  'create-session':{endpoint:'POST /poc/create-session',desc:'Creates the Bluebeam Studio Session using the configured stub values. Writes the session to SQLite and schedules the polling job if pollingInterval > 0.',code:`POST /poc/create-session
-Body: (none — reads from demoStub)
-
-BB API: POST /publicapi/v1/sessions
-Payload: {
-  Name, Notification: true, Restricted: true,
-  SessionEndDate,
-  DefaultPermissions: [Markup/SaveCopy/PrintCopy/MarkupAlert → Allow, AddDocuments → Deny]
-}
-
-RESPONSE HIGHLIGHTS
-- sessionId (stored in pocState)
-- Written to DB sessions table
-- Poller scheduled if pollingInterval > 0`},
-  'register-webhook':{endpoint:'POST /poc/register-webhook',desc:'Registers a webhook subscription on the Studio Session. Requires a public HTTPS callback URL — skipped automatically if WEBHOOK_CALLBACK_URL is localhost.',code:`POST /poc/register-webhook
-Body: (none)
-
-BB API: POST /publicapi/v2/subscriptions
-Payload: { sourceType: "session", resourceId: sessionId, callbackURI }
-
-NOTES
-- Skipped with warning if WEBHOOK_CALLBACK_URL is localhost
-- Set WEBHOOK_CALLBACK_URL env var to an ngrok/public HTTPS URL
-- Events received at POST /webhook/studio-events
-
-RESPONSE HIGHLIGHTS
-- subscriptionId (stored in pocState)
-- skipped: true if localhost`},
-  'checkout-to-session':{endpoint:'POST /poc/checkout-to-session',desc:'Checks each uploaded project file out into the active Studio Session. Handles 409 conflicts by releasing the checkout and retrying. Updates DB files table with session file IDs.',code:`POST /poc/checkout-to-session
-Body: (none)
-
-BB API: POST /publicapi/v1/projects/{id}/files/{fileId}/checkout-to-session
-Body: { SessionId }
-
-CONFLICT HANDLING
-- On 409: DELETE /projects/{id}/files/{fileId}/checkout then retry
-
-RESPONSE HIGHLIGHTS
-- checked[]: { name, projectFileId, sessionFileId }
-- DB files table updated with bluebeam_session_file_id`},
-  'invite-reviewers':{endpoint:'POST /poc/invite-reviewers',desc:'Adds or invites all configured reviewer emails to the active Studio Session. Uses direct-add for users with Studio accounts, email invite for others.',code:`POST /poc/invite-reviewers
-Body: (none — reads demoStub.reviewers)
-
-BB API (Studio account): POST /publicapi/v1/sessions/{id}/users
-BB API (email invite): POST /publicapi/v1/sessions/{id}/invite
-Body: { Email, Message }
-
-RESPONSE HIGHLIGHTS
-- results[]: { email, success, error? }`},
-  'review':{endpoint:'Non-API step',desc:'Manual handoff: reviewers join the Session in Bluebeam Revu, add markups and update states, then return here to click Mark Done.',code:`NON-API STEP — Review in Bluebeam Revu
-
-MANUAL STEPS
-1. Open Bluebeam Revu
-2. Studio → Sessions → enter the session ID
-3. Add markups, set Custom Column values
-4. (Optional) Update 5-step QC Review state on each markup
-5. Return here → click Mark Done to proceed to extraction`},
-  'downstream-process':{endpoint:'POST /poc/downstream-process',desc:'Combined post-review step: checks session files back into the project, runs the exportmarkups job, parses the resulting XML, and writes a DB snapshot. Equivalent to running checkin + export-markups + run-markuplist-job in sequence.',code:`POST /poc/downstream-process
-Body: (none)
-
-SEQUENCE
-1. Checkin: POST /sessions/{id}/files/{sfId}/checkin
-2. Wait for project file settlement (up to 30s)
-3. exportmarkups job: POST /projects/{id}/files/{pfId}/jobs/exportmarkups
-4. Poll job until complete (15s interval, up to 15 attempts)
-5. Download XML from /markup-exports/{file}.xml
-6. Parse XML → normalize markup records
-7. Write snapshot to DB (atkins_project_id + session)
-
-RESPONSE HIGHLIGHTS
-- markups[]: fully normalized markup array
-- checkinResults, exportResults
-- DB snapshot saved`},
-  'finalize':{endpoint:'POST /poc/finalize',desc:'Updates the Studio Session configuration to mark it as heading toward closeout. Updates session status in DB to "finalized".',code:`POST /poc/finalize
-Body: (none)
-
-BB API: PUT /publicapi/v1/sessions/{id}
-Body: { Name, Restricted, SessionEndDate }
-
-DB: session status → "finalized"
-
-RESPONSE HIGHLIGHTS
-- success: true`},
-  'snapshot':{endpoint:'POST /poc/snapshot',desc:'Requests a PDF snapshot of each session file, polls until complete, downloads the marked-up PDF, and saves it to the public/ directory for download.',code:`POST /poc/snapshot
-Body: (none)
-
-BB API: POST /sessions/{id}/files/{sfId}/snapshot
-then: GET /sessions/{id}/files/{sfId}/snapshot (poll for Complete)
-
-OUTPUT
-- PDF saved to public/{docId}_{name}_Reviewed.pdf
-- Session status → "complete" in DB
-
-RESPONSE HIGHLIGHTS
-- downloads[]: { name, path, size }`},
-  'cleanup':{endpoint:'POST /poc/cleanup',desc:'Deletes the webhook subscription and the Studio Session. Updates DB status to "cleaned" and clears the polling timer.',code:`POST /poc/cleanup
-Body: (none)
-
-BB API: DELETE /publicapi/v2/subscriptions/{subId}
-BB API: DELETE /publicapi/v1/sessions/{sessionId}
-
-DB: session status → "cleaned"
-Polling timer cleared for this session
-
-RESPONSE HIGHLIGHTS
-- success: true`},
-  'state':{endpoint:'GET /poc/state',desc:'Returns the full in-memory PoC state including session ID, file lists, markup data, log entries, and the current demoStub configuration.',code:`GET /poc/state
-(No body)
-
-RETURNS
-- sessionId, subscriptionId, projectSetupDone
-- folderIds, customColumnsFileId
-- projectFiles[], sessionFileIds[]
-- markups[], markupExports[]
-- status, log[], createdAt
-- stub: { demoStub fields }
-- projectId: POC_PROJECT_ID`},
-  'projects':{endpoint:'GET /poc/projects',desc:'Lists all AtkinsRéalis projects that have been stored in the SQLite database via the configure endpoint. Used to populate the Tab 2 project dropdown.',code:`GET /poc/projects
-(No body)
-
-RETURNS
-- projects[]: { atkins_project_id, bluebeam_project_id,
-    project_name, region, review_type,
-    qa_category, created_at, updated_at }`},
-  'projects-snapshot':{endpoint:'GET /poc/projects/:atkinsId/snapshot',desc:'Returns a full project snapshot from the database: project metadata, all sessions with their latest markup snapshot, and all associated files. This is the primary Tab 2 data source.',code:`GET /poc/projects/:atkinsId/snapshot
-(No body)
-
-RETURNS
-- project: { atkins_project_id, project_name, … }
-- sessions[]: { bluebeam_session_id, review_name, status,
-    markup_count, last_snapshot, markups[], files[] }
-- files[]: all project files from DB
-- totalMarkups, sessionCount, fileCount
-
-404 if no data found for the given Atkins ID`},
-  'auth-refresh':{endpoint:'POST /poc/auth/refresh',desc:'Accepts a Bluebeam OAuth refresh token and exchanges it for a new access token via the tokenManager. Allows token rotation without restarting the server.',code:`POST /poc/auth/refresh
-Body: { refreshToken: "..." }
-
-WHAT IT DOES
-- Passes refreshToken to server-side tokenManager
-- tokenManager calls Bluebeam OAuth token endpoint
-- New access token stored in memory for subsequent API calls
-
-NOTE: Requires BB_CLIENT_ID + BB_CLIENT_SECRET in .env
-The refresh token itself is never logged or persisted.
-
-RESPONSE HIGHLIGHTS
-- success: true
-- (token details intentionally omitted from response)`}
+var DEV_SNIPPETS={
+  'auth-refresh':{
+    endpoint:'POST /poc/auth/refresh',
+    desc:'Exchanges a Bluebeam OAuth refresh token for a new access token without restarting the server. Token is stored in tokenManager in memory. The raw refresh token is never logged.',
+    code:'POST /poc/auth/refresh\nBody: { refreshToken: "..." }\n\nWHAT IT DOES\n- Passes refreshToken to server-side tokenManager\n- tokenManager calls Bluebeam OAuth /oauth2/token endpoint\n- New access token stored in memory for subsequent API calls\n\nNOTE: Requires BB_CLIENT_ID + BB_CLIENT_SECRET in .env\nThe refresh token is never logged or persisted server-side.\n\nRESPONSE\n- success: true\n- message: "Token refreshed successfully"'
+  },
+  'setup-project':{
+    endpoint:'POST /poc/setup-project',
+    desc:'Creates or verifies Studio Project folder structure (resources, review-documents, markup-exports) and uploads custom-columns.xml if not already present.',
+    code:'POST /poc/setup-project\nBody: (none)\n\nWHAT IT DOES\n- Lists existing project folders\n- Creates missing: resources, review-documents, markup-exports\n- Uploads custom-columns.xml to /resources if absent\n\nRESPONSE HIGHLIGHTS\n- folderIds: { resources, review-documents, markup-exports }\n- customColumnsFileId\n- projectSetupDone: true'
+  },
+  'upload-to-project':{
+    endpoint:'POST /poc/upload-to-project',
+    desc:'Injects the 5-step QC Review state model into each PDF (ON by default via pdf-lib — no BB API needed), then uploads to review-documents. Pass injectStateModel=false to skip injection. Writes each file to the DB files table.',
+    code:'POST /poc/upload-to-project\nContent-Type: multipart/form-data\nBody: files[] (PDF), injectStateModel ("false" to skip)\n\nSTATE MODEL INJECTION (default ON)\n- Removes stale models: 5_step_QC_Review, Incorrect_Review_Model, Bad_Model, Old_Review\n- Injects 5-step QC Review via pdf-lib OpenAction JS\n- Idempotent: safe to re-run on same PDF\n\nDB WRITE: files table (projectFileId, fileName, size)\n\nRESPONSE HIGHLIGHTS\n- uploaded[]: { name, projectFileId, size, folderId }'
+  },
+  'configure':{
+    endpoint:'POST /poc/configure',
+    desc:'Updates demoStub with project metadata, reviewer list, and session parameters. Upserts the project into the SQLite projects table.',
+    code:'POST /poc/configure\nBody: {\n  atkinsProjectId, projectName, region,\n  reviewType, qaCategory, discipline,\n  pollingInterval, sessionEndDate,\n  documentId, description, reviewerEmail\n}\n\nDB WRITE: projects table (upsert on atkinsProjectId)\n\nNOTE: sessionEndDate must be an ISO 8601 string.\nDefault is +7 days from server start if not provided.'
+  },
+  'trigger':{
+    endpoint:'POST /poc/trigger',
+    desc:'Initialises run state and resets the log. No Bluebeam API call — internal orchestration only.',
+    code:'POST /poc/trigger\nBody: (none)\n\nWHAT IT DOES\n- Sets pocState.status = "triggered"\n- Clears previous log entries\n- Records documentId, atkinsProjectId, files, reviewers\n\nRESPONSE\n- success: true\n- state: { ...pocState }'
+  },
+  'create-session':{
+    endpoint:'POST /poc/create-session',
+    desc:'Creates the Bluebeam Studio Session using configured stub values. Writes to DB sessions table and schedules the polling job.',
+    code:'POST /poc/create-session\nBody: (none — reads from demoStub)\n\nBB API: POST /publicapi/v1/sessions\nPayload: {\n  Name, Notification: true, Restricted: true,\n  SessionEndDate,\n  DefaultPermissions: [Markup/SaveCopy/PrintCopy/MarkupAlert → Allow,\n                       AddDocuments → Deny]\n}\n\nDB WRITE: sessions table\nPoller scheduled if pollingInterval > 0\n\nRESPONSE HIGHLIGHTS\n- sessionId (stored in pocState)'
+  },
+  'register-webhook':{
+    endpoint:'POST /poc/register-webhook',
+    desc:'Registers a webhook subscription on the Studio Session. Requires a public HTTPS callback URL — automatically skipped if WEBHOOK_CALLBACK_URL is localhost.',
+    code:'POST /poc/register-webhook\nBody: (none)\n\nBB API: POST /publicapi/v2/subscriptions\nPayload: { sourceType: "session", resourceId: sessionId, callbackURI }\n\nNOTES\n- Skipped with warning if WEBHOOK_CALLBACK_URL is localhost\n- Set WEBHOOK_CALLBACK_URL env var to ngrok or public HTTPS URL\n- Incoming events received at POST /webhook/studio-events\n\nRESPONSE HIGHLIGHTS\n- subscriptionId (stored in pocState)\n- skipped: true if localhost'
+  },
+  'checkout-to-session':{
+    endpoint:'POST /poc/checkout-to-session',
+    desc:'Checks each project file out into the active Studio Session. Handles 409 conflicts. Updates DB files table with session file IDs.',
+    code:'POST /poc/checkout-to-session\nBody: (none)\n\nBB API: POST /projects/{id}/files/{fileId}/checkout-to-session\nBody: { SessionId }\n\nCONFLICT HANDLING\n- On 409: DELETE /projects/{id}/files/{fileId}/checkout then retry\n\nDB WRITE: files table updated with bluebeam_session_file_id\n\nRESPONSE HIGHLIGHTS\n- checked[]: { name, projectFileId, sessionFileId }'
+  },
+  'invite-reviewers':{
+    endpoint:'POST /poc/invite-reviewers',
+    desc:'Adds or invites all configured reviewer emails to the active Studio Session. Uses direct-add for Studio account holders, email invite for others.',
+    code:'POST /poc/invite-reviewers\nBody: (none — reads demoStub.reviewers)\n\nBB API (Studio account): POST /sessions/{id}/users\nBB API (email invite):   POST /sessions/{id}/invite\nBody: { Email, Message }\n\nRESPONSE HIGHLIGHTS\n- results[]: { email, success, error? }'
+  },
+  'review':{
+    endpoint:'Non-API step',
+    desc:'Manual handoff: reviewers join the Session in Bluebeam Revu, add markups, set Custom Column values, and update 5-step QC Review states. Click Mark Done when review is complete.',
+    code:'NON-API STEP — Review in Bluebeam Revu\n\nMANUAL STEPS\n1. Open Bluebeam Revu\n2. Studio → Sessions → enter the Session ID\n3. Add markups, set Custom Column values\n4. Update 5-step QC Review state on each markup\n5. Return here → click Mark Done to proceed to extraction'
+  },
+  'downstream-process':{
+    endpoint:'POST /poc/downstream-process',
+    desc:'Combined post-review step: checks session files into project, runs exportmarkups job, parses XML, and writes DB snapshot. Data becomes available in Tab 2 after this runs.',
+    code:'POST /poc/downstream-process\nBody: (none)\n\nSEQUENCE\n1. Checkin: POST /sessions/{id}/files/{sfId}/checkin\n2. Wait for project file settlement (up to 30s)\n3. exportmarkups job: POST /projects/{id}/files/{pfId}/jobs/exportmarkups\n4. Poll job until complete (15s interval, up to 15 attempts)\n5. Download XML from /markup-exports/{file}.xml\n6. Parse XML → normalize markup records\n7. DB WRITE: snapshots table (Tab 2 reads from here)\n\nRESPONSE HIGHLIGHTS\n- markups[]: fully normalized markup array\n- checkinResults, exportResults'
+  },
+  'finalize':{
+    endpoint:'POST /poc/finalize',
+    desc:'Updates the Studio Session configuration to signal closeout. Updates session status in DB to "finalized".',
+    code:'POST /poc/finalize\nBody: (none)\n\nBB API: PUT /publicapi/v1/sessions/{id}\nBody: { Name, Restricted, SessionEndDate }\n\nDB WRITE: sessions.status → "finalized"\n\nRESPONSE\n- success: true'
+  },
+  'snapshot':{
+    endpoint:'POST /poc/snapshot',
+    desc:'Requests a PDF snapshot of each session file, polls until complete, downloads the marked-up PDF, and saves it to the public/ directory.',
+    code:'POST /poc/snapshot\nBody: (none)\n\nBB API: POST /sessions/{id}/files/{sfId}/snapshot\nthen: GET /sessions/{id}/files/{sfId}/snapshot (poll)\n\nOUTPUT\n- PDF saved to public/{docId}_{name}_Reviewed.pdf\n- DB: sessions.status → "complete"\n\nRESPONSE HIGHLIGHTS\n- downloads[]: { name, path, size }'
+  },
+  'cleanup':{
+    endpoint:'POST /poc/cleanup',
+    desc:'Deletes the webhook subscription and the Studio Session. Updates DB status to "cleaned" and clears the polling timer.',
+    code:'POST /poc/cleanup\nBody: (none)\n\nBB API: DELETE /publicapi/v2/subscriptions/{subId}\nBB API: DELETE /publicapi/v1/sessions/{sessionId}\n\nDB WRITE: sessions.status → "cleaned"\nPolling timer cleared for this session\n\nRESPONSE\n- success: true'
+  },
+  'projects-snapshot':{
+    endpoint:'GET /poc/projects/:atkinsId/snapshot',
+    desc:'Returns a full project snapshot from the DB: project metadata, all sessions with their latest markup snapshot, and all associated files. Primary Tab 2 data source.',
+    code:'GET /poc/projects/:atkinsId/snapshot\n(No body)\n\nRETURNS\n- project: { atkins_project_id, project_name, … }\n- sessions[]: { bluebeam_session_id, review_name, status,\n    markup_count, last_snapshot, markups[], files[] }\n- files[]: all project files from DB\n- totalMarkups, sessionCount, fileCount\n\n404 if no data found for the given Atkins ID'
+  }
 };
 
 function devFileSelect(e){devAddFiles(Array.from(e.target.files));e.target.value='';}
-function devDrop(e){e.preventDefault();document.getElementById('devUploadZone').classList.remove('drag-over');devAddFiles(Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.endsWith('.pdf')));}
-function devAddFiles(files){files.forEach(f=>{if(!devFiles.find(s=>s.name===f.name))devFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});devRenderFiles();}
-function devRenderFiles(){document.getElementById('devStagedFiles').innerHTML=devFiles.map(f=>`<div class="dev-staged-file">${f.status==='ok'?`<span class="dev-staged-ok">✓</span>`:f.status==='err'?`<span class="dev-staged-err">✗</span>`:'·'} ${esc(f.name)}</div>`).join('');}
+function devDrop(e){e.preventDefault();document.getElementById('devUploadZone').classList.remove('drag-over');devAddFiles(Array.from(e.dataTransfer.files).filter(function(f){return f.type==='application/pdf'||f.name.endsWith('.pdf');}));}
+function devAddFiles(files){files.forEach(function(f){if(!devFiles.find(function(s){return s.name===f.name;}))devFiles.push({file:f,name:f.name,size:f.size,status:'staged'});});devRenderFiles();}
+function devRenderFiles(){
+  document.getElementById('devStagedFiles').innerHTML=devFiles.map(function(f){
+    return'<div class="dev-staged-file">'+(f.status==='ok'?'<span class="dev-staged-ok">✓</span>':f.status==='err'?'<span class="dev-staged-err">✗</span>':'·')+' '+esc(f.name)+'</div>';
+  }).join('');
+}
 
 function devChipKey(e){
   if(e.key==='Enter'||e.key===','){e.preventDefault();devAddChip(e.target.value.trim().replace(/,$/,''));e.target.value='';}
-  if(e.key==='Backspace'&&!e.target.value){const chips=[...document.querySelectorAll('#devChipBox .chip:not(.primary)')];if(chips.length){const last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email}).catch(()=>{});last.remove();}}
+  if(e.key==='Backspace'&&!e.target.value){
+    var chips=Array.from(document.querySelectorAll('#devChipBox .chip:not(.primary)'));
+    if(chips.length){var last=chips[chips.length-1];api('remove-reviewer',undefined,{email:last.dataset.email}).catch(function(){});last.remove();}
+  }
 }
 function devAddChip(email){
   if(!email||!email.includes('@')||email==='dmolz@bluebeam.com')return;
-  if([...document.querySelectorAll('#devChipBox .chip:not(.primary)')].some(c=>c.dataset.email===email))return;
-  const c=document.createElement('span');c.className='chip';c.dataset.email=email;c.style.fontSize='10px';
-  c.innerHTML=`${esc(email)} <button class="chip-x" onclick="devRemoveChip(this,'${esc(email)}')">×</button>`;
+  if(Array.from(document.querySelectorAll('#devChipBox .chip:not(.primary)')).some(function(c){return c.dataset.email===email;}))return;
+  var c=document.createElement('span');c.className='chip';c.dataset.email=email;c.style.fontSize='10px';
+  c.innerHTML=esc(email)+' <button class="chip-x" onclick="devRemoveChip(this,\''+esc(email)+'\')">×</button>';
   document.getElementById('devChipBox').insertBefore(c,document.getElementById('devChipInput'));
-  api('configure',undefined,{reviewerEmail:email}).catch(()=>{});
+  api('configure',undefined,{reviewerEmail:email}).catch(function(){});
 }
-function devRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email}).catch(()=>{});}
-function devConfig(){const docId=document.getElementById('devDocId').value.trim();const desc=document.getElementById('devDesc').value.trim();const body={};if(docId)body.documentId=docId;if(desc)body.description=desc;if(Object.keys(body).length)api('configure',undefined,body).catch(()=>{});}
+function devRemoveChip(btn,email){btn.closest('.chip').remove();api('remove-reviewer',undefined,{email:email}).catch(function(){});}
+function devConfig(){
+  var docId=document.getElementById('devDocId').value.trim();
+  var desc=document.getElementById('devDesc').value.trim();
+  var body={};if(docId)body.documentId=docId;if(desc)body.description=desc;
+  if(Object.keys(body).length)api('configure',undefined,body).catch(function(){});
+}
 
 function devSetNode(endpoint,state){
-  const node=document.getElementById('fn-'+endpoint);const status=document.getElementById('fs-'+endpoint);
+  var node=document.getElementById('fn-'+endpoint);
+  var status=document.getElementById('fs-'+endpoint);
   if(!node||!status)return;
   node.className='fc-node'+(state==='manual'?' manual':'');
-  if(state==='running')node.classList.add('running');else if(state==='done')node.classList.add('done');else if(state==='error')node.classList.add('error');
-  status.className='fc-node-status '+state;status.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'·';
-  const btn=node.querySelector('.fc-node-btn');
-  if(btn&&state==='done'){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
-  if(btn&&state==='running'){btn.disabled=true;btn.textContent='Running…';}
-  if(btn&&state!=='running'&&state!=='done'){btn.disabled=false;btn.textContent=node.classList.contains('manual')?'Mark Done':'Run';if(node.classList.contains('manual'))btn.className='fc-node-btn manual-btn';else btn.className='fc-node-btn';}
+  if(state==='running')node.classList.add('running');
+  else if(state==='done')node.classList.add('done');
+  else if(state==='error')node.classList.add('error');
+  status.className='fc-node-status '+state;
+  status.textContent=state==='done'?'✓':state==='running'?'⟳':state==='error'?'✗':'·';
+  var btn=node.querySelector('.fc-node-btn');
+  if(btn){
+    if(state==='done'){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
+    else if(state==='running'){btn.disabled=true;btn.textContent='Running…';}
+    else{
+      btn.disabled=false;
+      if(node.classList.contains('manual')){btn.className='fc-node-btn manual-btn';btn.textContent='Mark Done';}
+      else{btn.className='fc-node-btn';btn.textContent='Run';}
+    }
+  }
+}
+
+async function devFireAuth(){
+  var val=(document.getElementById('refreshToken-dev')||{}).value||'';
+  if(!val.trim()){toast('Paste a refresh token in the Auth panel first','warn');return;}
+  devSetNode('auth-refresh','running');
+  try{
+    var r=await fetch('/poc/auth/refresh',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refreshToken:val.trim()})});
+    var d=await r.json();
+    if(!r.ok)throw new Error(d.error||'HTTP '+r.status);
+    devSetNode('auth-refresh','done');
+    document.getElementById('refreshToken-dev').value='';
+    await authTestConnection('dev');await authTestConnection('rw');
+    toast('Token refreshed ✓','ok');
+    await devRefreshLog();
+  }catch(err){
+    devSetNode('auth-refresh','error');
+    toast('Token refresh failed: '+err.message,'err');
+  }
 }
 
 async function devFire(endpoint){
   devSetNode(endpoint,'running');
   try{
-    const data=await api(endpoint);
+    var data=await api(endpoint);
     devSetNode(endpoint,'done');
     if((endpoint==='run-markuplist-job'||endpoint==='downstream-process')&&data.markups){devMarkups=data.markups;devRenderDevMarkups();}
-    if(endpoint==='snapshot'&&data.downloads?.length){
+    if(endpoint==='snapshot'&&data.downloads&&data.downloads.length){
       document.getElementById('devDownloads').style.display='block';
-      document.getElementById('devDownloadLinks').innerHTML=data.downloads.map(d=>`<a href="${esc(d.path)}" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;background:var(--green-l);border:1px solid var(--green);border-radius:7px;color:var(--green);font-size:12px;font-weight:500;text-decoration:none;">⬇ ${esc(d.name)}</a>`).join('');
+      document.getElementById('devDownloadLinks').innerHTML=data.downloads.map(function(d){
+        return'<a href="'+esc(d.path)+'" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:7px 12px;background:var(--green-l);border:1px solid var(--green);border-radius:7px;color:var(--green);font-size:12px;font-weight:500;text-decoration:none;">⬇ '+esc(d.name)+'</a>';
+      }).join('');
     }
-    await devRefreshLog();
-    devRefreshDbInfo();
-    toast(`${endpoint} complete`,'ok',2500);
+    await devRefreshLog();devRefreshDbInfo();
+    toast(endpoint+' complete','ok',2500);
   }catch(err){
     devSetNode(endpoint,'error');
     await devRefreshLog();
-    toast(`${endpoint} failed: ${err.message}`,'err',7000);
+    toast(endpoint+' failed: '+err.message,'err',7000);
   }
 }
 
 async function devUpload(){
-  const pending=devFiles.filter(f=>f.status==='staged');if(!pending.length){toast('No files staged.','warn');return;}
+  var pending=devFiles.filter(function(f){return f.status==='staged';});
+  if(!pending.length){toast('No files staged.','warn');return;}
   devSetNode('upload-to-project','running');
-  const fd=new FormData();pending.forEach(f=>fd.append('files',f.file,f.name));
+  var injectModel=document.getElementById('devInjectModel').checked;
+  var fd=new FormData();
+  pending.forEach(function(f){fd.append('files',f.file,f.name);});
+  fd.append('injectStateModel',injectModel?'true':'false');
   try{
-    const r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
-    const d=await r.json();if(!r.ok)throw new Error(d.error);
-    (d.uploaded||[]).forEach(u=>{const sf=devFiles.find(f=>f.name===u.name);if(sf)sf.status='ok';});
+    var r=await fetch('/poc/upload-to-project',{method:'POST',body:fd});
+    var d=await r.json();if(!r.ok)throw new Error(d.error);
+    (d.uploaded||[]).forEach(function(u){var sf=devFiles.find(function(f){return f.name===u.name;});if(sf)sf.status='ok';});
     devRenderFiles();devSetNode('upload-to-project','done');await devRefreshLog();
-    toast(`Uploaded ${(d.uploaded||[]).length} file(s)`,'ok');
+    toast('Uploaded '+(d.uploaded||[]).length+' file(s)'+(injectModel?' with state model injection':''),'ok');
   }catch(err){
-    devFiles.filter(f=>f.status==='staged').forEach(f=>f.status='err');
+    devFiles.filter(function(f){return f.status==='staged';}).forEach(function(f){f.status='err';});
     devRenderFiles();devSetNode('upload-to-project','error');await devRefreshLog();
-    toast(`upload-to-project failed: ${err.message}`,'err');
+    toast('upload-to-project failed: '+err.message,'err');
   }
 }
 
 function devMarkReviewDone(){
-  const node=document.getElementById('fn-review');const status=document.getElementById('fs-review');
-  if(node){node.classList.remove('manual');node.classList.add('done');}
+  var node=document.getElementById('fn-review');var status=document.getElementById('fs-review');
+  if(node){node.className='fc-node done';}
   if(status){status.className='fc-node-status done';status.textContent='✓';}
-  const btn=node?.querySelector('.fc-node-btn');if(btn){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
-  devShowSnippet('review');
+  var btn=node&&node.querySelector('.fc-node-btn');if(btn){btn.className='fc-node-btn done-btn';btn.textContent='Done';}
+  devShowSnippet('review',true);
 }
 
 function devRenderStatePanel(state){
-  const cards=[
-    {label:'Project ID',value:state.projectId||'—'},
+  var cards=[
+    {label:'BB Project ID',value:state.projectId||'—'},
     {label:'Session ID',value:state.sessionId||'—'},
-    {label:'Webhook ID',value:state.subscriptionId||'—'},
-    {label:'Uploaded Files',value:devFiles.filter(f=>f.status==='ok').length||state.projectFiles?.length||0},
-    {label:'Atkins Project',value:state.stub?.atkinsProjectId||'—',wide:true},
-    {label:'Session End Date',value:state.stub?.sessionEndDate?new Date(state.stub.sessionEndDate).toLocaleDateString():'—',wide:false},
-    {label:'Polling Interval',value:state.stub?.pollingInterval>0?`Every ${state.stub.pollingInterval}h`:'Manual',wide:false}
+    {label:'Webhook Sub ID',value:state.subscriptionId||'—'},
+    {label:'Uploaded Files',value:devFiles.filter(function(f){return f.status==='ok';}).length||((state.projectFiles&&state.projectFiles.length)||0)},
+    {label:'Atkins Project',value:state.stub&&state.stub.atkinsProjectId||'—',wide:true},
+    {label:'Session End Date',value:state.stub&&state.stub.sessionEndDate?new Date(state.stub.sessionEndDate).toLocaleDateString():'—'},
+    {label:'Polling Interval',value:state.stub&&state.stub.pollingInterval>0?'Every '+state.stub.pollingInterval+'h':'Manual'}
   ];
-  document.getElementById('devStateGrid').innerHTML=cards.map(c=>`<div class="dev-state-card ${c.wide?'wide':''}"><div class="dev-state-label">${esc(c.label)}</div><div class="dev-state-value mono">${esc(String(c.value===0||c.value?c.value:'—'))}</div></div>`).join('');
+  document.getElementById('devStateGrid').innerHTML=cards.map(function(c){
+    return'<div class="dev-state-card'+(c.wide?' wide':'')+'"><div class="dev-state-label">'+esc(c.label)+'</div><div class="dev-state-value mono">'+esc(String(c.value!=null?c.value:'—'))+'</div></div>';
+  }).join('');
 }
 
 async function devRefreshDbInfo(healthData){
-  let h=healthData;
-  if(!h){
-    try{h=await fetch('/health').then(r=>r.json());}catch{return;}
-  }
-  const grid=document.getElementById('devDbInfoGrid');
-  if(!grid)return;
-  const dbOk=h.db?.status==='ok';
-  grid.innerHTML=`
-    <div class="db-info-item ${dbOk?'ok':'warn'}">status: <span>${h.db?.status||'—'}</span></div>
-    <div class="db-info-item">projects: <span>${h.db?.projectCount??'—'}</span></div>
-    <div class="db-info-item">pollers: <span>${h.pollers??'—'}</span></div>
-    <div class="db-info-item">bb project: <span>${h.projectId||'—'}</span></div>
-    <div class="db-info-item" style="grid-column:1/-1;">path: <span id="devDbPath">${h.db?.path||'—'}</span></div>`;
+  var h=healthData;
+  if(!h){try{h=await fetch('/health').then(function(r){return r.json();});}catch(e){return;}}
+  var grid=document.getElementById('devDbInfoGrid');if(!grid)return;
+  var dbOk=h.db&&h.db.status==='ok';
+  grid.innerHTML=
+    '<div class="db-info-item '+(dbOk?'ok':'warn')+'">status: <span>'+(h.db&&h.db.status||'—')+'</span></div>'+
+    '<div class="db-info-item">projects: <span>'+(h.db&&h.db.projectCount!=null?h.db.projectCount:'—')+'</span></div>'+
+    '<div class="db-info-item">sessions: <span>'+(h.db&&h.db.sessionCount!=null?h.db.sessionCount:'—')+'</span></div>'+
+    '<div class="db-info-item">pollers: <span>'+(h.pollers!=null?h.pollers:'—')+'</span></div>'+
+    '<div class="db-info-item" style="grid-column:1/-1;">bb project: <span id="devBbProject">'+(h.projectId||'—')+'</span></div>'+
+    '<div class="db-info-item" style="grid-column:1/-1;">db path: <span id="devDbPath">'+(h.db&&h.db.path||'—')+'</span></div>';
 }
 
-function devShowSnippet(endpoint,lock=false){
+function devShowSnippet(endpoint,lock){
   if(lock){
     devSnippetLocked=true;devCurrentSnippet=endpoint;
-    document.querySelectorAll('.fc-node.selected').forEach(n=>n.classList.remove('selected'));
-    const node=document.querySelector(`.fc-node[data-endpoint="${endpoint}"]`);if(node)node.classList.add('selected');
+    Array.from(document.querySelectorAll('.fc-node.selected')).forEach(function(n){n.classList.remove('selected');});
+    var node=document.querySelector('.fc-node[data-endpoint="'+endpoint+'"]');if(node)node.classList.add('selected');
   }
-  const active=lock?endpoint:(devSnippetLocked?devCurrentSnippet:endpoint);
-  const item=DEV_SNIPPETS[active]||DEV_SNIPPETS['setup-project'];
+  var active=lock?endpoint:(devSnippetLocked?devCurrentSnippet:endpoint);
+  var item=DEV_SNIPPETS[active]||DEV_SNIPPETS['auth-refresh'];
   document.getElementById('devSnippetEndpoint').textContent=item.endpoint;
   document.getElementById('devSnippetDesc').textContent=item.desc;
   document.getElementById('devSnippetCode').textContent=item.code;
 }
 
-function devSnippetText(item){return`${item.endpoint}\n\n${item.desc}\n\n${item.code}`;}
+function devSnippetText(item){return item.endpoint+'\n\n'+item.desc+'\n\n'+item.code;}
 async function devCopySnippet(){
-  const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];
-  try{await navigator.clipboard.writeText(devSnippetText(item));const btn=document.getElementById('devCopySnippetBtn');btn.textContent='✓';setTimeout(()=>{btn.textContent='⎘ Copy';},1600);}catch{}
+  var item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['auth-refresh'];
+  try{await navigator.clipboard.writeText(devSnippetText(item));var btn=document.getElementById('devCopySnippetBtn');btn.textContent='✓';setTimeout(function(){btn.textContent='⎘ Copy';},1600);}catch(e){}
 }
 function devDownloadSnippet(){
-  const item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['setup-project'];
-  const blob=new Blob([devSnippetText(item)],{type:'text/plain;charset=utf-8'});
-  const url=URL.createObjectURL(blob);const a=document.createElement('a');
-  const safe=(item.endpoint||'endpoint').replace(/[^a-z0-9-_]+/gi,'-').toLowerCase();
-  a.href=url;a.download=`${safe}-reference.txt`;document.body.appendChild(a);a.click();a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  var item=DEV_SNIPPETS[devCurrentSnippet]||DEV_SNIPPETS['auth-refresh'];
+  var blob=new Blob([devSnippetText(item)],{type:'text/plain;charset=utf-8'});
+  var url=URL.createObjectURL(blob);var a=document.createElement('a');
+  var safe=(item.endpoint||'endpoint').replace(/[^a-z0-9-_]+/gi,'-').toLowerCase();
+  a.href=url;a.download=safe+'-reference.txt';document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
 async function devCopyLogs(){
-  const rows=[...document.querySelectorAll('#devLogEntries .dev-log-entry')].map(r=>r.innerText.trim()).join('\n');
-  if(!rows)return;try{await navigator.clipboard.writeText(rows);toast('Logs copied','ok',2000);}catch{}
+  var rows=Array.from(document.querySelectorAll('#devLogEntries .dev-log-entry')).map(function(r){return r.innerText.trim();}).join('\n');
+  if(!rows)return;try{await navigator.clipboard.writeText(rows);toast('Logs copied','ok',2000);}catch(e){}
 }
 async function devCopyWorkflowSummary(){
-  const s=`AtkinsRéalis / Bluebeam Studio Roundtrip Reference\n\nSetup\n- POST /poc/setup-project\n- POST /poc/upload-to-project\n\nSession\n- POST /poc/configure\n- POST /poc/trigger\n- POST /poc/create-session\n- POST /poc/register-webhook\n- POST /poc/checkout-to-session\n- POST /poc/invite-reviewers\n\nExtraction\n- POST /poc/downstream-process (checkin + exportmarkups + XML parse + DB snapshot)\n- POST /poc/finalize\n- POST /poc/snapshot\n- POST /poc/cleanup\n\nDB Endpoints\n- GET /poc/projects\n- GET /poc/projects/:atkinsId/snapshot\n\nAuth\n- POST /poc/auth/refresh\n- GET /health\n\nResources\n- Dev Portal: https://developers.bluebeam.com/s/?language=en_US\n- Getting Started: https://support.bluebeam.com/developer/getting-started-dev-portal.html`;
-  try{await navigator.clipboard.writeText(s);toast('Workflow summary copied','ok');}catch{}
+  var s='AtkinsRéalis / Bluebeam Studio Roundtrip Reference\n\nAuth\n- POST /poc/auth/refresh\n\nSetup\n- POST /poc/setup-project\n- POST /poc/upload-to-project (state model injection ON by default)\n\nSession\n- POST /poc/configure\n- POST /poc/trigger\n- POST /poc/create-session\n- POST /poc/register-webhook\n- POST /poc/checkout-to-session\n- POST /poc/invite-reviewers\n\nExtraction\n- POST /poc/downstream-process (checkin + exportmarkups + XML parse + DB snapshot)\n- POST /poc/finalize\n- POST /poc/snapshot\n- POST /poc/cleanup\n\nDB Endpoints\n- GET /poc/projects\n- GET /poc/projects/:atkinsId/snapshot\n\nUtility\n- POST /poc/hydrate\n- GET /health\n- GET /poc/state\n- POST /poc/reset';
+  try{await navigator.clipboard.writeText(s);toast('Workflow summary copied','ok');}catch(e){}
 }
 
 async function devRefreshLog(){
-  const state=await fetch('/poc/state').then(r=>r.json());devLastState=state;devRenderStatePanel(state||{});
-  if(state.log?.length){
-    document.getElementById('devLogEntries').innerHTML=[...state.log].reverse().slice(0,60).map(e=>{
-      const t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});
-      return`<div class="dev-log-entry"><span class="dev-log-time">${t}</span><span class="dev-log-msg ${e.type||'info'}">${esc(e.msg)}</span></div>`;
+  var state=await fetch('/poc/state').then(function(r){return r.json();});
+  devLastState=state;
+  devRenderStatePanel(state||{});
+  if(state.log&&state.log.length){
+    document.getElementById('devLogEntries').innerHTML=state.log.slice().reverse().slice(0,60).map(function(e){
+      var t=new Date(e.time).toLocaleTimeString('en-US',{hour12:false});
+      return'<div class="dev-log-entry"><span class="dev-log-time">'+t+'</span><span class="dev-log-msg '+(e.type||'info')+'">'+esc(e.msg)+'</span></div>';
     }).join('');
   }else{
     document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:11px;font-family:var(--mono);">Run a node to see output…</div>';
@@ -2371,37 +2233,67 @@ function devRenderDevMarkups(){
   document.getElementById('devJsonContent').innerHTML=syntaxHL(JSON.stringify(devMarkups,null,2));
 }
 function devRenderDevTable(){
-  const sorted=[...devMarkups].sort((a,b)=>{const av=String(a[devSortKey]??''),bv=String(b[devSortKey]??'');return devSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});});
-  document.getElementById('devMarkupTbody').innerHTML=sorted.map(m=>{
-    const dt=m.DateCreated?new Date(m.DateCreated).toLocaleDateString():'—';
-    return`<tr><td>${m.Page??'—'}</td><td>${esc(m.Type||'—')}</td><td title="${esc(m.Subject||'')}">${esc(m.Subject||'—')}</td><td>${esc(m.Author||'—')}</td><td>${esc(m.Status||'—')}</td><td title="${esc(m.Comment||'')}">${esc(m.Comment||'—')}</td><td>${esc(m.Layer||'—')}</td><td>${esc(m._sourceFile||'—')}</td><td>${dt}</td></tr>`;
+  var sorted=devMarkups.slice().sort(function(a,b){
+    var av=String(a[devSortKey]!=null?a[devSortKey]:'');
+    var bv=String(b[devSortKey]!=null?b[devSortKey]:'');
+    return devSortDir==='asc'?av.localeCompare(bv,undefined,{numeric:true}):bv.localeCompare(av,undefined,{numeric:true});
+  });
+  document.getElementById('devMarkupTbody').innerHTML=sorted.map(function(m){
+    var dt=m.DateCreated?new Date(m.DateCreated).toLocaleDateString():'—';
+    return'<tr>'+
+      '<td>'+(m.Page!=null?m.Page:'—')+'</td>'+
+      '<td>'+esc(m.Type||'—')+'</td>'+
+      '<td title="'+esc(m.Subject||'')+'">'+esc(m.Subject||'—')+'</td>'+
+      '<td>'+esc(m.Author||'—')+'</td>'+
+      '<td>'+esc(m.Status||'—')+'</td>'+
+      '<td title="'+esc(m.Comment||'')+'">'+esc(m.Comment||'—')+'</td>'+
+      '<td>'+esc(m.Layer||'—')+'</td>'+
+      '<td>'+esc(m._sourceFile||'—')+'</td>'+
+      '<td>'+dt+'</td></tr>';
   }).join('');
 }
 function devSort(k){devSortDir=(devSortKey===k&&devSortDir==='asc')?'desc':'asc';devSortKey=k;if(devMarkups.length)devRenderDevTable();}
-function devSetView(v){devView=v;document.getElementById('devBtnTable').classList.toggle('active',v==='table');document.getElementById('devBtnJson').classList.toggle('active',v==='json');document.getElementById('devTableView').style.display=v==='table'?'block':'none';document.getElementById('devJsonView').style.display=v==='json'?'block':'none';}
-async function devCopyJson(){if(!devMarkups.length)return;try{await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));const b=document.getElementById('devCopyBtn');b.textContent='✓ Copied';setTimeout(()=>{b.textContent='⎘ Copy JSON';},2000);}catch{}}
+function devSetView(v){
+  devView=v;
+  document.getElementById('devBtnTable').classList.toggle('active',v==='table');
+  document.getElementById('devBtnJson').classList.toggle('active',v==='json');
+  document.getElementById('devTableView').style.display=v==='table'?'block':'none';
+  document.getElementById('devJsonView').style.display=v==='json'?'block':'none';
+}
+async function devCopyJson(){
+  if(!devMarkups.length)return;
+  try{
+    await navigator.clipboard.writeText(JSON.stringify(devMarkups,null,2));
+    var b=document.getElementById('devCopyBtn');if(b){var orig=b.textContent;b.textContent='✓ Copied';setTimeout(function(){b.textContent=orig;},2000);}
+  }catch(e){}
+}
 
 async function devReset(){
-  await api('reset');devFiles=[];devMarkups=[];devRenderFiles();
-  document.querySelectorAll('#devChipBox .chip:not(.primary)').forEach(c=>c.remove());
+  await api('reset');
+  devFiles=[];devMarkups=[];devRenderFiles();
+  Array.from(document.querySelectorAll('#devChipBox .chip:not(.primary)')).forEach(function(c){c.remove();});
   document.getElementById('devMarkupSection').style.display='none';
   document.getElementById('devDownloads').style.display='none';
-  ['setup-project','upload-to-project','trigger','create-session','register-webhook','checkout-to-session','invite-reviewers','downstream-process','finalize','snapshot','cleanup'].forEach(ep=>devSetNode(ep,'idle'));
-  const rev=document.getElementById('fn-review');if(rev){rev.className='fc-node manual';const s=document.getElementById('fs-review');if(s){s.className='fc-node-status idle';s.textContent='·';}const b=rev.querySelector('.fc-node-btn');if(b){b.className='fc-node-btn manual-btn';b.textContent='Mark Done';}}
-  devSnippetLocked=false;devCurrentSnippet='setup-project';devShowSnippet('setup-project',true);
+  ['auth-refresh','setup-project','upload-to-project','trigger','create-session','register-webhook',
+   'checkout-to-session','invite-reviewers','downstream-process','finalize','snapshot','cleanup'].forEach(function(ep){
+    devSetNode(ep,'idle');
+  });
+  var rev=document.getElementById('fn-review');
+  if(rev){rev.className='fc-node manual';var s=document.getElementById('fs-review');if(s){s.className='fc-node-status idle';s.textContent='·';}var b=rev.querySelector('.fc-node-btn');if(b){b.className='fc-node-btn manual-btn';b.textContent='Mark Done';}}
+  devSnippetLocked=false;devCurrentSnippet='auth-refresh';devShowSnippet('auth-refresh',true);
   document.getElementById('devLogEntries').innerHTML='<div style="color:var(--text-3);font-size:11px;font-family:var(--mono);">Run a node to see output…</div>';
   toast('State reset','ok',2000);
 }
 
-// ── INIT ───────────────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────────────────
 (function init(){
-  document.querySelectorAll('.fc-node[data-endpoint]').forEach(node=>{
-    node.addEventListener('mouseenter',()=>{if(!devSnippetLocked)devShowSnippet(node.dataset.endpoint);});
-    node.addEventListener('click',(e)=>{if(e.target.closest('.fc-node-btn'))return;devShowSnippet(node.dataset.endpoint,true);});
+  Array.from(document.querySelectorAll('.fc-node[data-endpoint]')).forEach(function(node){
+    node.addEventListener('mouseenter',function(){if(!devSnippetLocked)devShowSnippet(node.dataset.endpoint);});
+    node.addEventListener('click',function(e){if(e.target.closest('.fc-node-btn'))return;devShowSnippet(node.dataset.endpoint,true);});
     node.setAttribute('tabindex','0');
-    node.addEventListener('keydown',(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();devShowSnippet(node.dataset.endpoint,true);}});
+    node.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();devShowSnippet(node.dataset.endpoint,true);}});
   });
-  devShowSnippet('setup-project',true);
+  devShowSnippet('auth-refresh',true);
   devRenderStatePanel({});
   t2ValidateId();
 })();
