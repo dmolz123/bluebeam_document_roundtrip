@@ -464,12 +464,33 @@ function normalizeMarkupRecord(record, sourceFile) {
     Locked:       scalar(firstDefined(mapped, ['locked']))
   };
 
+  // Bluebeam exportmarkups XML stores the state model value in a nested
+  // <Statuses> element (or <MarkupStatus>/<StatusText>), not in a flat
+  // <Status> attribute. Extract it here so Status is always populated.
+  if (!known.Status) {
+    // Try <Statuses> — Bluebeam wraps state model value here
+    const statusesRaw = mapped.statuses || mapped.markupstatus || mapped.markupstatuses;
+    if (statusesRaw) {
+      const statusesMap = lowerKeyMap(typeof statusesRaw === 'object' ? statusesRaw : {});
+      const sv = scalar(firstDefined(statusesMap, [
+        'statustext', 'statetext', 'status', 'state', 'value', 'text', 'name', 'label', 'cname', 'cuiname'
+      ]));
+      if (sv) known.Status = sv;
+    }
+    // Fallback: check top-level statustext / statetext / statusvalue
+    if (!known.Status) {
+      const sv2 = scalar(firstDefined(mapped, ['statustext','statetext','statusvalue','statevalue','statusname','statename']));
+      if (sv2) known.Status = sv2;
+    }
+  }
+
   const skip = new Set([
     'id','markupid','markup_id','author','createdby','user','username',
     'type','markuptype','subject','label','title','comment','comments',
     'note','message','reply','contents','status','state','layer','page',
     'pagenumber','pageindex','datecreated','creationdate','created','createddate',
-    'datemodified','moddate','modified','modifieddate','color','checked','locked','custom'
+    'datemodified','moddate','modified','modifieddate','color','checked','locked','custom',
+    'statuses','markupstatus','markupstatuses','statustext','statetext','statusvalue','statevalue'
   ]);
 
   const custom   = {};
@@ -1706,6 +1727,36 @@ app.post('/poc/inject-state-model', upload.single('file'), async (req, res) => {
 // =============================================================================
 // DB QUERY ENDPOINTS
 // =============================================================================
+
+// GET /poc/projects/:atkinsId/debug-snapshot — returns first 3 raw markups from latest snapshot
+// Use this to identify which XML field name contains the state model value
+app.get('/poc/projects/:atkinsId/debug-snapshot', (req, res) => {
+  try {
+    const { atkinsId } = req.params;
+    const sessions = db.getSessionsByProject(atkinsId);
+    const results = sessions.map(s => {
+      const snap = db.getLatestSnapshotBySession(atkinsId, s.bluebeam_session_id);
+      if (!snap || !snap.snapshot_json) return { session: s.bluebeam_session_id, markups: [] };
+      let markups = [];
+      try { markups = JSON.parse(snap.snapshot_json); } catch (_) {}
+      // Return first 3 markups with ALL fields visible for diagnosis
+      return {
+        session: s.bluebeam_session_id,
+        markup_count: markups.length,
+        sample: markups.slice(0, 3).map(m => ({
+          Id: m.Id, Author: m.Author, Subject: m.Subject,
+          Status: m.Status, Type: m.Type, Page: m.Page,
+          CustomKeys: Object.keys(m.Custom || {}),
+          ExtendedKeys: Object.keys(m.ExtendedProperties || {}).slice(0, 20),
+          ExtendedSample: Object.fromEntries(Object.entries(m.ExtendedProperties || {}).slice(0, 10))
+        }))
+      };
+    });
+    res.json({ atkinsId, results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get('/poc/projects', (req, res) => {
   try {
