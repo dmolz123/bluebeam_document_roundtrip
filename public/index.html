@@ -1765,9 +1765,12 @@ async function t2PullSnapshot(){
       });
       sessions=snap.sessions||[];
       project=snap.project||{};
-      markups=sessions.reduce(function(acc,s){
+      var rawMarkups=sessions.reduce(function(acc,s){
         return acc.concat((s.markups||[]).map(function(m){return Object.assign({},m,{_session:s.bluebeam_session_id});}));
       },[]);
+      var getId=function(m){return(m&&(m.ID||m.Id||m.id))||'';};
+      var byId=new Map(rawMarkups.map(function(m){return[getId(m),m];}).filter(function(e){return e[0];}));
+      markups=rawMarkups.map(function(m){return enrichMarkup(m,byId);});
     }catch(snapErr){
       var state=await fetch('/poc/state').then(function(r){return r.json();});
       sessions=t2BuildSessionsFromState(state,projectId);
