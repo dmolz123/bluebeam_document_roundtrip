@@ -10,6 +10,15 @@
  *   - /poc/auth/refresh: NEW — accepts a Bluebeam OAuth refresh token and rotates the
  *                        tokenManager's access token without a server restart
  *
+ * XML PARSING FIXES (this version):
+ *   - normalizeMarkupRecord: <Contents> is the current state model value, not Comment.
+ *     Comment now maps only from comment/comments/note/message/reply (not contents).
+ *     Status maps from state/contents (state value confirmed from BAX format analysis).
+ *   - looksLikeMarkupRecord: records with a 'parent' key are StatusHistory audit entries,
+ *     not real markups — excluded from candidate set.
+ *   - extractMarkupCandidates: skips 'statushistory' subtrees entirely to prevent
+ *     audit child records (Subject: "Set to X") from inflating the markup count.
+ *
  * Full roundtrip flow:
  *   0a. /poc/setup-project          — Create folders + upload custom-columns.xml (once)
  *   0b. /poc/upload-to-project      — Inject state model (default ON) + upload PDF(s) → project + DB
@@ -85,11 +94,9 @@ const CUSTOM_COLUMNS_XML_PATH = path.join(__dirname, 'resources', 'custom-column
 // STATE MODEL — 5-step QC Review
 // =============================================================================
 
-// cName identifiers of custom models to REMOVE before injecting the correct one.
-// Add any incorrect/demo model names here so they are wiped on each run.
 const STATE_MODELS_TO_REMOVE = [
-  '5_step_QC_Review',       // our own model — ensures idempotency on re-runs
-  'Incorrect_Review_Model', // demo "wrong" model that will be pre-loaded to show removal
+  '5_step_QC_Review',
+  'Incorrect_Review_Model',
   'Bad_Model',
   'Old_Review'
 ];
@@ -111,19 +118,11 @@ const QC_STATE_MODEL = {
 // =============================================================================
 // PDF STATE MODEL INJECTION (pdf-lib — no Bluebeam API required)
 // =============================================================================
-
-/**
- * Injects a Collab.addStateModel() call as a document-level JS action.
- * First removes all known custom models (STATE_MODELS_TO_REMOVE) so the PDF
- * always starts from a clean state — ensures idempotency on re-runs.
- * Bluebeam's built-in models (Review, Migration) are unaffected.
- */
 async function injectStateModel(pdfBuffer) {
   const pdfDoc = await PDFDocument.load(pdfBuffer, { ignoreEncryption: true });
   const ctx    = pdfDoc.context;
   const cat    = pdfDoc.catalog;
 
-  // Build removal calls for all known custom models
   const removeCalls = STATE_MODELS_TO_REMOVE
     .map(name => `try{Collab.removeStateModel("${name}");}catch(e){}`)
     .join('\n');
@@ -183,7 +182,7 @@ ${statesObj}
 }
 
 // =============================================================================
-// DEMO STUB — project/session configuration carried across requests
+// DEMO STUB
 // =============================================================================
 let demoStub = {
   atkinsProjectId: process.env.DEMO_ATKINS_PROJECT_ID || '',
@@ -196,7 +195,6 @@ let demoStub = {
   discipline:      '',
   pollingInterval: 0,
   reviewers:       [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }],
-  // Default: +7 days. Only overwritten when sessionEndDate is explicitly passed to /poc/configure.
   sessionEndDate:  new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
 };
 
@@ -446,15 +444,46 @@ function scalar(val) {
   return val;
 }
 
+// Known state model value strings used by Bluebeam's built-in Review model
+// and the custom 5-step QC model. Contents field values matching these are
+// treated as state values, not free-text comments.
+const KNOWN_STATE_PREFIXES = [
+  'Step3', 'Step4', 'Step5',           // 5-step QC model
+  'Accepted', 'Rejected', 'Cancelled', // built-in Review model
+  'Assigned', 'Completed', 'Approved', // common status values
+  'None'
+];
+
+function looksLikeStateValue(str) {
+  if (!str || typeof str !== 'string') return false;
+  const s = str.trim();
+  if (!s) return false;
+  return KNOWN_STATE_PREFIXES.some(prefix => s.startsWith(prefix)) || /^Step\d/.test(s);
+}
+
 function normalizeMarkupRecord(record, sourceFile) {
   const mapped = lowerKeyMap(record);
-  const known  = {
+
+  // ── CONTENTS field handling ──────────────────────────────────────────────
+  // In Bluebeam's BAX/XML export format:
+  //   <Contents> = the CURRENT state model value (e.g. "Assigned", "Step3_Address_Future")
+  //                when a state has been set on the markup.
+  //   <Contents> = free-text comment when the reviewer typed a note directly.
+  //
+  // Strategy: if Contents looks like a state value, use it for Status.
+  // Otherwise use it for Comment. Never use it for both.
+  const rawContents = scalar(firstDefined(mapped, ['contents']));
+  const contentsIsState = looksLikeStateValue(rawContents);
+
+  const known = {
     Id:           scalar(firstDefined(mapped, ['id', 'markupid', 'markup_id'])),
     Author:       scalar(firstDefined(mapped, ['author', 'createdby', 'user', 'username'])),
     Type:         scalar(firstDefined(mapped, ['type', 'markuptype'])),
     Subject:      scalar(firstDefined(mapped, ['subject', 'label', 'title'])),
-    Comment:      scalar(firstDefined(mapped, ['comment', 'comments', 'note', 'message', 'reply', 'contents'])),
-    Status:       scalar(firstDefined(mapped, ['status', 'state'])),
+    // Comment: explicitly exclude 'contents' — handled separately below
+    Comment:      scalar(firstDefined(mapped, ['comment', 'comments', 'note', 'message', 'reply'])),
+    // Status: try state/status first, then fall back to Contents if it looks like a state value
+    Status:       scalar(firstDefined(mapped, ['state', 'status'])) || (contentsIsState ? rawContents : ''),
     Layer:        scalar(firstDefined(mapped, ['layer'])),
     Page:         scalar(firstDefined(mapped, ['page', 'pagenumber', 'pageindex'])),
     DateCreated:  scalar(firstDefined(mapped, ['datecreated', 'creationdate', 'created', 'createddate'])),
@@ -464,11 +493,13 @@ function normalizeMarkupRecord(record, sourceFile) {
     Locked:       scalar(firstDefined(mapped, ['locked']))
   };
 
-  // Bluebeam exportmarkups XML stores the state model value in a nested
-  // <Statuses> element (or <MarkupStatus>/<StatusText>), not in a flat
-  // <Status> attribute. Extract it here so Status is always populated.
+  // If Comment is still empty and Contents was not a state value, use it as comment
+  if (!known.Comment && rawContents && !contentsIsState) {
+    known.Comment = rawContents;
+  }
+
+  // Additional Status fallback: check <Statuses> sub-element (some export formats)
   if (!known.Status) {
-    // Try <Statuses> — Bluebeam wraps state model value here
     const statusesRaw = mapped.statuses || mapped.markupstatus || mapped.markupstatuses;
     if (statusesRaw) {
       const statusesMap = lowerKeyMap(typeof statusesRaw === 'object' ? statusesRaw : {});
@@ -477,7 +508,6 @@ function normalizeMarkupRecord(record, sourceFile) {
       ]));
       if (sv) known.Status = sv;
     }
-    // Fallback: check top-level statustext / statetext / statusvalue
     if (!known.Status) {
       const sv2 = scalar(firstDefined(mapped, ['statustext','statetext','statusvalue','statevalue','statusname','statename']));
       if (sv2) known.Status = sv2;
@@ -490,7 +520,9 @@ function normalizeMarkupRecord(record, sourceFile) {
     'note','message','reply','contents','status','state','layer','page',
     'pagenumber','pageindex','datecreated','creationdate','created','createddate',
     'datemodified','moddate','modified','modifieddate','color','checked','locked','custom',
-    'statuses','markupstatus','markupstatuses','statustext','statetext','statusvalue','statevalue'
+    'statuses','markupstatus','markupstatuses','statustext','statetext','statusvalue','statevalue',
+    // Skip StatusHistory — it's audit trail, handled at extractMarkupCandidates level
+    'statushistory','parent','typeinternal','raw','index'
   ]);
 
   const custom   = {};
@@ -529,19 +561,40 @@ function normalizeMarkupRecord(record, sourceFile) {
 function looksLikeMarkupRecord(obj) {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
   const keys = Object.keys(lowerKeyMap(obj));
-  const hits  = ['author','subject','comment','status','page','layer','type','markupid','id','markuptype']
+
+  // StatusHistory/Status child records have a 'parent' key pointing to the
+  // parent annotation ID. These are audit trail entries ("Set to Assigned"),
+  // not real markup annotations — exclude them to prevent count inflation.
+  if (keys.includes('parent')) return false;
+
+  const hits = ['author','subject','comment','status','page','layer','type','markupid','id','markuptype']
     .filter(k => keys.includes(k)).length;
   return hits >= 2;
 }
 
-function extractMarkupCandidates(node, sourceFile, results = []) {
+function extractMarkupCandidates(node, sourceFile, results = [], _key = '') {
   if (Array.isArray(node)) {
-    for (const item of node) extractMarkupCandidates(item, sourceFile, results);
+    for (const item of node) extractMarkupCandidates(item, sourceFile, results, _key);
     return results;
   }
   if (!node || typeof node !== 'object') return results;
-  if (looksLikeMarkupRecord(node)) results.push(normalizeMarkupRecord(node, sourceFile));
-  for (const value of Object.values(node)) extractMarkupCandidates(value, sourceFile, results);
+
+  // Skip StatusHistory subtrees entirely — they contain audit child records
+  // (Type: Text, Subject: "Set to X") that score as markup candidates but are
+  // not real annotations. The state value is already captured in Contents on
+  // the parent annotation.
+  if (_key.toLowerCase() === 'statushistory') return results;
+
+  if (looksLikeMarkupRecord(node)) {
+    results.push(normalizeMarkupRecord(node, sourceFile));
+    // Don't recurse into a matched record's children — avoids double-counting
+    // nested structures like Custom columns being extracted as separate records.
+    return results;
+  }
+
+  for (const [key, value] of Object.entries(node)) {
+    extractMarkupCandidates(value, sourceFile, results, key);
+  }
   return results;
 }
 
@@ -564,6 +617,7 @@ async function parseBluebeamExportXml(xmlText, sourceFile) {
     const key = [item.Id||'', item.Author||'', item.Subject||'', item.Comment||'', item.Page||'', item.DateCreated||''].join('|');
     if (!seen.has(key)) { seen.add(key); unique.push(item); }
   }
+  logStep(`XML parse: ${candidates.length} candidates → ${unique.length} unique markups after dedup`, 'info');
   return unique;
 }
 
@@ -609,7 +663,6 @@ async function performExportMarkups(accessToken) {
   logStep('Exporting markups to XML...', 'info');
   const results = [];
 
-  // Re-resolve markup-exports folder ID if missing (e.g. after hydration)
   if (!pocState.folderIds[FOLDER_MARKUP_EXPORTS]) {
     logStep('markup-exports folder ID not set — re-querying folders...', 'info');
     const folders = await listProjectFolders(accessToken);
@@ -1097,15 +1150,12 @@ app.post('/poc/setup-project', async (req, res) => {
 
 // =============================================================================
 // STEP 0b — Upload PDF(s)
-// State model injection is ON by default.
-// Pass injectStateModel=false in the multipart body to skip injection.
 // =============================================================================
 app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) throw new Error('No files received');
 
     pocState.status      = 'uploading';
-    // Default TRUE — pass injectStateModel=false explicitly to skip
     const injectModel    = req.body.injectStateModel !== 'false';
     logStep(`Received ${req.files.length} file(s) for upload (injectStateModel=${injectModel})`, 'info');
     if (injectModel) {
@@ -1155,7 +1205,7 @@ app.post('/poc/upload-to-project', upload.array('files'), async (req, res) => {
 });
 
 // =============================================================================
-// STEP 0c — Apply Custom Columns (optional, not used in UI)
+// STEP 0c — Apply Custom Columns (optional)
 // =============================================================================
 app.post('/poc/apply-custom-columns', async (req, res) => {
   try {
@@ -1496,7 +1546,7 @@ app.post('/poc/export-markups', async (req, res) => {
 });
 
 // =============================================================================
-// STEP 9 — Compatibility Route (XML-backed extraction)
+// STEP 9 — Compatibility Route
 // =============================================================================
 app.post('/poc/run-markuplist-job', async (req, res) => {
   try {
@@ -1727,9 +1777,6 @@ app.post('/poc/inject-state-model', upload.single('file'), async (req, res) => {
 // =============================================================================
 // DB QUERY ENDPOINTS
 // =============================================================================
-
-// GET /poc/projects/:atkinsId/debug-snapshot — returns first 3 raw markups from latest snapshot
-// Use this to identify which XML field name contains the state model value
 app.get('/poc/projects/:atkinsId/debug-snapshot', (req, res) => {
   try {
     const { atkinsId } = req.params;
@@ -1739,7 +1786,6 @@ app.get('/poc/projects/:atkinsId/debug-snapshot', (req, res) => {
       if (!snap || !snap.snapshot_json) return { session: s.bluebeam_session_id, markups: [] };
       let markups = [];
       try { markups = JSON.parse(snap.snapshot_json); } catch (_) {}
-      // Return first 3 markups with ALL fields visible for diagnosis
       return {
         session: s.bluebeam_session_id,
         markup_count: markups.length,
