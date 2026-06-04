@@ -1931,12 +1931,12 @@ function t2RenderSessions(sessions,filteredMarkups){
   document.getElementById('t2SessionsTbody').innerHTML=sessions.map(function(sess,i){
     var fc=sess.files&&sess.files.length||0;
     var lp=sess.last_polled_at?new Date(sess.last_polled_at).toLocaleString():'—';
+    var sid=sess.bluebeam_session_id||sess.sessionId||'—';
     var mc=countBySession[sid]||0;
     var hasSnapshot=!!(sess.last_snapshot||sess.markup_count>0);
     var mcLabel=!hasSnapshot
       ?'<span style="font-size:9px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);">no snapshot</span>'
       :'<span style="font-family:var(--mono);font-size:11px;">'+mc+'</span>';
-    var sid=sess.bluebeam_session_id||sess.sessionId||'—';
     var fh=fc?(sess.files||[]).map(function(f){
       var sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':((f.size/1024)||0).toFixed(0)+' KB';
       return'<div class="session-file-item"><span class="sf-icon">📄</span><span class="session-file-name">'+esc(f.name)+'</span><span class="session-file-size">'+sz+'</span></div>';
