@@ -201,7 +201,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .session-id-row{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
 .session-id{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:0.05em;}
 .session-hint{font-size:12px;color:var(--text-2);}
-.summary-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.summary-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
 .sum-card{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:14px;}
 .sum-val{font-size:26px;font-weight:700;color:var(--accent);font-family:var(--mono);line-height:1;}
 .sum-val.green{color:var(--green);}
@@ -1635,14 +1635,33 @@ function enrichMarkup(m,byId){
     if(pid&&byId.has(pid)){var p=byId.get(pid);return getCI(p.ExtendedProperties,key)||getCI(p.Custom,key)||getCI(p.CustomColumns,key)||getCI(p.Columns,key)||getCI(p.Metadata,key)||'';}
     return'';
   }
-  // Stage: check explicit QC field first, then Status (server now maps Contents→Status),
-  // then State, then m.Contents directly as last resort (confirmed field in BAX/XML)
-  var stage=gcv(m,'Review Stage')||m.Status||m.State||m.Contents||'';
-  // Custom columns: Responsibility and Priority live under m.Custom in the server output
+  // Known state value prefixes for Bluebeam's built-in + 5-step QC model
+  var STATE_PREFIXES=['Step3','Step4','Step5','Accepted','Rejected','Cancelled','Assigned','Completed','Approved','None'];
+  function isStateVal(s){
+    if(!s||typeof s!=='string')return false;
+    var t=s.trim();
+    return STATE_PREFIXES.some(function(p){return t.indexOf(p)===0;})||/^Step\d/.test(t);
+  }
+
+  // Stage resolution order:
+  // 1. Explicit 'Review Stage' custom column (most authoritative)
+  // 2. m.Status — server now maps <Contents> → Status when it looks like a state value
+  // 3. m.State
+  // 4. m.Contents directly — fallback for any format variant
+  // 5. m.Comment — handles OLD DB snapshots where state was mistakenly mapped to Comment
+  //    (only use if it looks like a known state prefix, not free text)
+  var stage=gcv(m,'Review Stage')||m.Status||m.State||m.Contents||(isStateVal(m.Comment)?m.Comment:'')||'';
+
+  // Custom columns: Responsibility and Priority
   var responsibility=gcv(m,'Responsibility')||getCI(m.Custom,'Responsibility')||'';
   var priority=gcv(m,'Priority')||getCI(m.Custom,'Priority')||'';
+
+  // Comment: use as-is unless it was consumed as the state value
+  var comment=m.Comment&&isStateVal(m.Comment)?'':m.Comment||'';
+
   return Object.assign({},m,{
-    _status:m.Status||m.State||m.Contents||stage||'',_stage:stage,
+    _status:stage||m.Status||m.State||m.Contents||'',_stage:stage,
+    Comment:comment,
     _discipline:gcv(m,'Discipline'),
     _responsibility:responsibility,
     _priority:priority,
@@ -1668,12 +1687,10 @@ function rwRenderResults(){
   var responsibilities=meaningful.map(function(m){return m._responsibility;}).filter(Boolean);
   var prios=meaningful.map(function(m){return m._priority;}).filter(Boolean);
   var highPrio=prios.filter(function(p){return p.includes('Critical')||p.includes('High');}).length;
-  var critical=prios.filter(function(p){return p.includes('Critical');}).length;
   var authors=Array.from(new Set(meaningful.map(function(m){return m.Author;}).filter(Boolean))).length;
   document.getElementById('rwSummaryCards').innerHTML=
     '<div class="sum-card"><div class="sum-val">'+meaningful.length+'</div><div class="sum-label">Meaningful Markups</div></div>'+
     '<div class="sum-card"><div class="sum-val warn">'+highPrio+'</div><div class="sum-label">High Priority Items</div></div>'+
-    '<div class="sum-card"><div class="sum-val error">'+critical+'</div><div class="sum-label">Critical Items</div></div>'+
     '<div class="sum-card"><div class="sum-val">'+authors+'</div><div class="sum-label">Active Reviewers</div></div>';
   var cl=document.getElementById('rwMarkupCountLabel');
   if(cl)cl.textContent=meaningful.length+' markup'+(meaningful.length!==1?'s':'')+' ('+rwMarkups.length+' total in PDF)';
@@ -1829,7 +1846,7 @@ async function t2PullSnapshot(){
     t2AllMarkups=t2Meaningful;
     t2RenderedSessions=sessions;
     t2RenderOverview(projectId,sessions,project,t2AllMarkups.length);
-    t2RenderSessions(sessions);
+    t2RenderSessions(sessions,t2AllMarkups);
     renderPie('t2StatusPie','t2StatusLegend',t2AllMarkups.map(function(m){return m._stage||m._status||'';}).filter(Boolean),'Review Stages',piePaletteStatus);
     renderPie('t2PriorityPie','t2PriorityLegend',t2AllMarkups.map(function(m){return m._priority||'';}).filter(Boolean),'Priority Items',piePalettePriority);
     renderPie('t2ResponsibilityPie','t2ResponsibilityLegend',t2AllMarkups.map(function(m){return m._responsibility||'';}).filter(Boolean),'Assignments',piePaletteResp);
@@ -1896,7 +1913,14 @@ function t2RenderOverview(projectId,sessions,project,filteredMarkupCount){
     '<div class="t2-ov-card"><div class="t2-ov-val gray">'+active+'</div><div class="t2-ov-label">Active Sessions</div></div>';
 }
 
-function t2RenderSessions(sessions){
+function t2RenderSessions(sessions,filteredMarkups){
+  filteredMarkups=filteredMarkups||[];
+  // Build per-session filtered count from the already-filtered t2AllMarkups array
+  var countBySession={};
+  filteredMarkups.forEach(function(m){
+    var sid=m._session||'';
+    if(sid)countBySession[sid]=(countBySession[sid]||0)+1;
+  });
   function sp(s){
     if(s==='active'||s==='inviting')return'<span class="pill pill-green">Active</span>';
     if(s==='triggered'||s==='creating')return'<span class="pill pill-blue">Starting</span>';
@@ -1907,8 +1931,8 @@ function t2RenderSessions(sessions){
   document.getElementById('t2SessionsTbody').innerHTML=sessions.map(function(sess,i){
     var fc=sess.files&&sess.files.length||0;
     var lp=sess.last_polled_at?new Date(sess.last_polled_at).toLocaleString():'—';
-    var mc=sess.markup_count||0;
-    var hasSnapshot=!!(sess.last_snapshot||mc>0);
+    var mc=countBySession[sid]||0;
+    var hasSnapshot=!!(sess.last_snapshot||sess.markup_count>0);
     var mcLabel=!hasSnapshot
       ?'<span style="font-size:9px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);">no snapshot</span>'
       :'<span style="font-family:var(--mono);font-size:11px;">'+mc+'</span>';
