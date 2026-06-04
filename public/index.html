@@ -172,6 +172,17 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .btn-csv{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;background:var(--white);color:var(--green);border:1px solid var(--green);border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
 .btn-csv:hover{background:var(--green-l);}
 .btn-csv:disabled{opacity:0.4;cursor:not-allowed;}
+/* DOWNSTREAM BUTTON — orange accent to signal it fires API calls */
+.btn-downstream{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:var(--ar-orange-l);color:var(--ar-orange);border:1px solid rgba(232,97,44,0.35);border-radius:6px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.btn-downstream:hover:not(:disabled){background:rgba(232,97,44,0.18);border-color:var(--ar-orange);}
+.btn-downstream:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-downstream.running{background:var(--warn-l);color:var(--warn);border-color:var(--warn);}
+.btn-downstream.done{background:var(--green-l);color:var(--green);border-color:var(--green);}
+/* Project-level downstream banner */
+.t2-downstream-banner{background:var(--ar-orange-l);border:1px solid rgba(232,97,44,0.25);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-top:14px;}
+.t2-downstream-banner-text{flex:1;font-size:12px;color:var(--text-2);line-height:1.5;}
+.t2-downstream-banner-text strong{color:var(--text);}
+.t2-downstream-progress{font-size:11px;font-family:var(--mono);color:var(--warn);margin-top:4px;}
 .table-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .table-toolbar-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;flex-wrap:wrap;}
 .step-list{display:flex;flex-direction:column;gap:6px;}
@@ -247,7 +258,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .t2-ov-val.green{color:var(--green);}
 .t2-ov-val.warn{color:var(--warn);}
 .t2-ov-val.gray{color:var(--text-3);}
-.t2-ov-label{font-size:11px;color:var(--text-2);margin-top:3px;}
 .session-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
 .session-table{width:100%;border-collapse:collapse;font-size:12px;}
 .session-table th{text-align:left;padding:9px 14px;background:var(--bg);border-bottom:1px solid var(--border);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-2);white-space:nowrap;}
@@ -297,7 +307,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .dev-staged-file{font-size:10px;color:var(--text-2);font-family:var(--mono);display:flex;align-items:center;gap:5px;}
 .dev-staged-ok{color:var(--green);}
 .dev-staged-err{color:var(--error);}
-.dev-inject-row{display:flex;align-items:center;gap:5px;margin-top:4px;}
+.dev-inject-row{display:flex;align-items:center;gap:5px;}
 .dev-inject-check{width:13px;height:13px;accent-color:var(--ar-teal);cursor:pointer;flex-shrink:0;}
 .dev-inject-lbl{font-size:10px;color:var(--text-2);cursor:pointer;user-select:none;}
 .dev-action-btns{display:flex;gap:6px;align-items:center;flex-shrink:0;margin-top:20px;}
@@ -625,7 +635,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
     </div>
   </div>
 
-  <!-- Actions — single full-width button, no misalignment -->
   <div id="rwActions">
     <button class="btn-primary" id="rwStartBtn" onclick="rwStart()">Start Review</button>
   </div>
@@ -715,7 +724,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 <div class="page-wrap"><div class="page-inner" style="max-width:920px;">
   <div>
     <div class="page-title">Review Process: Data</div>
-    <div class="page-sub">Look up an AtkinsRéalis Project ID to see all associated sessions, pull a current metadata snapshot, and configure automatic polling. Data is read from the snapshot database.</div>
+    <div class="page-sub">Look up an AtkinsRéalis Project ID to see all associated sessions, pull a current metadata snapshot, and configure automatic polling. Use <strong>Run Downstream</strong> on any session to checkin, export markups, and write a fresh snapshot.</div>
   </div>
 
   <div class="card">
@@ -757,7 +766,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
   </div>
 
   <div id="t2Overview" style="display:none;flex-direction:column;gap:20px;">
-    <!-- Project tile — title = atkinsProjectId, subtitle = project_name if set -->
     <div class="card">
       <div class="card-title">
         <div class="card-title-icon">📁</div>
@@ -776,7 +784,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         <table class="session-table">
           <thead><tr>
             <th>Session ID</th><th>Review Name</th><th>Files</th>
-            <th>Status</th><th>Markups</th><th>Last Polled</th><th></th>
+            <th>Status</th><th>Markups</th><th>Last Polled</th><th colspan="2"></th>
           </tr></thead>
           <tbody id="t2SessionsTbody"></tbody>
         </table>
@@ -875,7 +883,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
   <div class="dev-shell">
     <div class="dev-main-scroll"><div class="dev-main">
 
-      <!-- Auth panel dev tab -->
       <div class="auth-card" id="authCard-dev">
         <div class="auth-card-header" onclick="toggleAuthPanel('dev')">
           <div class="auth-card-left">
@@ -975,7 +982,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
       <!-- FLOW CANVAS -->
       <div class="dev-canvas"><div class="dev-canvas-inner">
 
-        <!-- AUTH PHASE -->
         <div class="phase">
           <div class="phase-header"><span class="phase-badge auth">Authentication</span><div class="phase-line"></div></div>
           <div class="node-grid">
@@ -992,7 +998,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 
         <div class="phase-arrow">↓</div>
 
-        <!-- SETUP PHASE -->
         <div class="phase">
           <div class="phase-header"><span class="phase-badge setup">Setup</span><div class="phase-line"></div></div>
           <div class="node-grid">
@@ -1018,7 +1023,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 
         <div class="phase-arrow">↓</div>
 
-        <!-- SESSION PHASE -->
         <div class="phase">
           <div class="phase-header"><span class="phase-badge session">Session</span><div class="phase-line"></div></div>
           <div class="node-grid">
@@ -1080,7 +1084,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 
         <div class="phase-arrow">↓</div>
 
-        <!-- EXTRACTION PHASE -->
         <div class="phase">
           <div class="phase-header"><span class="phase-badge extract">Extraction &amp; Close</span><div class="phase-line"></div></div>
           <div class="node-grid">
@@ -1127,9 +1130,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
           <div id="devDownloadLinks" style="display:flex;flex-direction:column;gap:5px;"></div>
         </div>
 
-      </div></div><!-- end canvas -->
+      </div></div>
 
-      <!-- Dev markup table -->
       <div class="dev-markup-section" id="devMarkupSection" style="display:none;">
         <div class="dev-markup-toolbar">
           <span style="font-size:12px;font-weight:600;color:var(--text);">Markup Metadata</span>
@@ -1160,9 +1162,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         </div>
       </div>
 
-    </div></div><!-- end dev-main-scroll -->
+    </div></div>
 
-    <!-- SIDEBAR -->
     <aside class="dev-sidebar">
       <div class="sidebar-section" style="flex-shrink:0;">
         <div class="sidebar-section-title">
@@ -1203,7 +1204,7 @@ Exchange a Bluebeam OAuth refresh token for a new access token without restartin
         </div>
       </div>
     </aside>
-  </div><!-- end dev-shell -->
+  </div>
 </div>
 </div>
 
@@ -1262,7 +1263,6 @@ async function copyText(text,btn){
   }catch(e){toast('Copy failed — try manually','warn');}
 }
 
-// ── CSV EXPORT ────────────────────────────────────────────────────────────────
 function exportCSV(rows,filename){
   if(!rows||!rows.length){toast('No data to export','warn');return;}
   const cols=['Page','Author','Type','Subject','Status','Comment','Layer',
@@ -1271,7 +1271,7 @@ function exportCSV(rows,filename){
   const header=cols.map(c=>c.replace(/^_/,'')).join(',');
   const lines=rows.map(r=>cols.map(c=>{
     const v=String(r[c]||'').replace(/"/g,'""');
-    return '"'+v+'"';
+    return'"'+v+'"';
   }).join(','));
   const csv=[header].concat(lines).join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -1283,7 +1283,6 @@ function exportCSV(rows,filename){
   toast('Exported '+rows.length+' rows to CSV','ok',2500);
 }
 
-// Default deadline +7 days
 (function(){
   const d=new Date();d.setDate(d.getDate()+7);
   document.getElementById('rwDeadline').value=d.toISOString().slice(0,10);
@@ -1707,6 +1706,8 @@ var t2SortKey='_session';
 var t2SortDir='asc';
 var t2PollTimer=null;
 var t2CurrentProjectId=null;
+// Track sessions rendered for downstream button callbacks
+var t2RenderedSessions=[];
 
 async function t2LoadKnownProjects(){
   try{
@@ -1779,6 +1780,7 @@ async function t2PullSnapshot(){
       toast('Using live state (no DB snapshot yet): '+snapErr.message,'warn',5000);
     }
     t2AllMarkups=markups;
+    t2RenderedSessions=sessions;
     t2RenderOverview(projectId,sessions,project);
     t2RenderSessions(sessions);
     renderPie('t2StatusPie','t2StatusLegend',t2AllMarkups.map(function(m){return m._stage||m._status||'';}).filter(Boolean),'Statuses');
@@ -1822,7 +1824,6 @@ function t2BuildMarkupsFromState(state,sessions){
 }
 
 function t2RenderOverview(projectId,sessions,project){
-  // FIX: title = atkinsProjectId, subtitle = project_name only if set
   var labelEl=document.getElementById('t2ProjectLabel');
   var subEl=document.getElementById('t2ProjectNameSub');
   var idEl=document.getElementById('t2ProjectIdLabel');
@@ -1858,12 +1859,20 @@ function t2RenderSessions(sessions){
     var fc=sess.files&&sess.files.length||0;
     var lp=sess.last_polled_at?new Date(sess.last_polled_at).toLocaleString():'—';
     var mc=sess.markup_count||0;
-    var mcLabel=mc===0&&!sess.last_polled_at?'<span style="font-size:9px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);">no snapshot</span>':'<span style="font-family:var(--mono);font-size:11px;">'+mc+'</span>';
+    var hasSnapshot=!!(sess.last_snapshot||mc>0);
+    var mcLabel=!hasSnapshot
+      ?'<span style="font-size:9px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;font-family:var(--mono);">no snapshot</span>'
+      :'<span style="font-family:var(--mono);font-size:11px;">'+mc+'</span>';
     var sid=sess.bluebeam_session_id||sess.sessionId||'—';
     var fh=fc?(sess.files||[]).map(function(f){
       var sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':((f.size/1024)||0).toFixed(0)+' KB';
       return'<div class="session-file-item"><span class="sf-icon">📄</span><span class="session-file-name">'+esc(f.name)+'</span><span class="session-file-size">'+sz+'</span></div>';
     }).join(''):'<div style="color:var(--text-3);font-size:11px;padding:6px 0;">No files tracked</div>';
+
+    // Downstream button — shown for all non-demo sessions; label differs by snapshot state
+    var downstreamBtn=sess.isDemo?''
+      :'<button class="btn-downstream" id="t2-ds-btn-'+i+'" onclick="t2RunDownstreamForSession(\''+esc(sid)+'\',\''+esc(t2CurrentProjectId||'')+'\','+i+')" title="Hydrate server state from DB then run checkin → exportmarkups → snapshot">🔄 '+(hasSnapshot?'Re-run':'Pull Markups')+'</button>';
+
     return'<tr>'+
       '<td><span style="font-family:var(--mono);font-size:11px;color:var(--accent);cursor:pointer;" onclick="copyText(\''+esc(sid)+'\',this)" title="Click to copy">'+esc(sid)+'</span>'+(sess.isDemo?'<span style="margin-left:5px;font-size:9px;color:var(--text-3);font-weight:700;text-transform:uppercase;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">demo</span>':'')+'</td>'+
       '<td style="font-weight:500;">'+esc(sess.review_name||sess.reviewName||'—')+'</td>'+
@@ -1871,10 +1880,11 @@ function t2RenderSessions(sessions){
       '<td>'+sp(sess.status)+'</td>'+
       '<td>'+mcLabel+'</td>'+
       '<td style="color:var(--text-3);font-size:11px;">'+lp+'</td>'+
+      '<td>'+downstreamBtn+'</td>'+
       '<td><button class="session-expand-btn" onclick="t2ToggleFiles('+i+')">▾ Files</button></td>'+
       '</tr>'+
       '<tr class="session-files-row" id="t2-session-files-'+i+'">'+
-      '<td colspan="7" style="padding:0;"><div class="session-files-inner">'+fh+'</div></td>'+
+      '<td colspan="8" style="padding:0;"><div class="session-files-inner">'+fh+'</div></td>'+
       '</tr>';
   }).join('');
 }
@@ -1884,6 +1894,70 @@ function t2ToggleFiles(i){
   row.classList.toggle('open');
   var btn=row.previousElementSibling&&row.previousElementSibling.querySelector('.session-expand-btn');
   if(btn)btn.textContent=row.classList.contains('open')?'▴ Files':'▾ Files';
+}
+
+// ─── DOWNSTREAM TRIGGER FROM TAB 2 ───────────────────────────────────────────
+// Step 1: hydrate server state from DB for this specific session
+// Step 2: run downstream-process (checkin → exportmarkups → XML parse → DB snapshot)
+// Step 3: refresh the snapshot view
+async function t2RunDownstreamForSession(bluebeamSessionId,atkinsProjectId,rowIndex){
+  var btn=document.getElementById('t2-ds-btn-'+rowIndex);
+  if(!btn)return;
+
+  // Validate we have a real session ID
+  if(!bluebeamSessionId||bluebeamSessionId==='DEMO-SESSION'){
+    toast('Cannot run downstream on a demo session — start a real review first.','warn');
+    return;
+  }
+
+  btn.disabled=true;
+  btn.className='btn-downstream running';
+  btn.textContent='⟳ Hydrating…';
+
+  try{
+    // Step 1 — Restore server in-memory state from DB for this session
+    btn.textContent='⟳ Hydrating state…';
+    var hydrateResp=await fetch('/poc/hydrate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({bluebeamSessionId:bluebeamSessionId})
+    });
+    var hydrateData=await hydrateResp.json();
+    if(!hydrateResp.ok) throw new Error(hydrateData.error||'Hydration failed: HTTP '+hydrateResp.status);
+
+    logStep_t2('Hydrated: '+hydrateData.sessionFiles+' session file(s), '+hydrateData.projectFiles+' project file(s)');
+
+    // Step 2 — Run downstream processing
+    btn.textContent='⟳ Running downstream…';
+    toast('Running downstream for session '+bluebeamSessionId.slice(0,12)+'…','info',3000);
+
+    var dsResp=await fetch('/poc/downstream-process',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'}
+    });
+    var dsData=await dsResp.json();
+    if(!dsResp.ok) throw new Error(dsData.error||'Downstream failed: HTTP '+dsResp.status);
+
+    var count=(dsData.markups||[]).length;
+    btn.className='btn-downstream done';
+    btn.textContent='✓ '+count+' markup'+(count!==1?'s':'');
+    btn.disabled=false;
+
+    toast('Downstream complete — '+count+' markup(s) saved to snapshot','ok',5000);
+
+    // Step 3 — Refresh the data view
+    await t2PullSnapshot();
+
+  }catch(err){
+    btn.className='btn-downstream';
+    btn.disabled=false;
+    btn.textContent='⚠ Retry';
+    toast('Downstream failed: '+err.message,'err',8000);
+  }
+}
+
+function logStep_t2(msg){
+  console.log('[Tab2 Downstream]',msg);
 }
 
 function t2FilterMarkups(){
@@ -2003,7 +2077,7 @@ var DEV_SNIPPETS={
   'downstream-process':{
     endpoint:'POST /poc/downstream-process',
     desc:'Combined post-review step: checks session files into project, runs exportmarkups job, parses XML, and writes DB snapshot. Data becomes available in Tab 2 after this runs.',
-    code:'POST /poc/downstream-process\nBody: (none)\n\nSEQUENCE\n1. Checkin: POST /sessions/{id}/files/{sfId}/checkin\n2. Wait for project file settlement (up to 30s)\n3. exportmarkups job: POST /projects/{id}/files/{pfId}/jobs/exportmarkups\n4. Poll job until complete (15s interval, up to 15 attempts)\n5. Download XML from /markup-exports/{file}.xml\n6. Parse XML → normalize markup records\n7. DB WRITE: snapshots table (Tab 2 reads from here)\n\nRESPONSE HIGHLIGHTS\n- markups[]: fully normalized markup array\n- checkinResults, exportResults'
+    code:'POST /poc/downstream-process\nBody: (none)\n\nSEQUENCE\n1. Checkin: POST /sessions/{id}/files/{sfId}/checkin\n2. Wait for project file settlement (up to 30s)\n3. exportmarkups job: POST /projects/{id}/files/{pfId}/jobs/exportmarkups\n4. Poll job until complete (15s interval, up to 15 attempts)\n5. Download XML from /markup-exports/{file}.xml\n6. Parse XML → normalize markup records\n7. DB WRITE: snapshots table (Tab 2 reads from here)\n\nNOTE: Run POST /poc/hydrate first if the server was restarted\nsince the session was created.\n\nRESPONSE HIGHLIGHTS\n- markups[]: fully normalized markup array\n- checkinResults, exportResults'
   },
   'finalize':{
     endpoint:'POST /poc/finalize',
@@ -2288,7 +2362,6 @@ async function devReset(){
   toast('State reset','ok',2000);
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
 (function init(){
   Array.from(document.querySelectorAll('.fc-node[data-endpoint]')).forEach(function(node){
     node.addEventListener('mouseenter',function(){if(!devSnippetLocked)devShowSnippet(node.dataset.endpoint);});
