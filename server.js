@@ -430,7 +430,8 @@ function lowerKeyMap(obj) {
 function firstDefined(obj, keys) {
   const map = lowerKeyMap(obj);
   for (const key of keys) {
-    if (typeof map[key.toLowerCase()] !== 'undefined') return map[key.toLowerCase()];
+    const val = map[key.toLowerCase()];
+    if (typeof val !== 'undefined' && val !== null && String(val).trim() !== '') return val;
   }
   return undefined;
 }
@@ -483,7 +484,7 @@ function normalizeMarkupRecord(record, sourceFile) {
     // Comment: explicitly exclude 'contents' — handled separately below
     Comment:      scalar(firstDefined(mapped, ['comment', 'comments', 'note', 'message', 'reply'])),
     // Status: try state/status first, then fall back to Contents if it looks like a state value
-    Status:       scalar(firstDefined(mapped, ['state', 'status'])) || (contentsIsState ? rawContents : ''),
+    Status:       scalar(firstDefined(mapped, ['status', 'state'])) || (contentsIsState ? rawContents : ''),
     Layer:        scalar(firstDefined(mapped, ['layer'])),
     Page:         scalar(firstDefined(mapped, ['page', 'pagenumber', 'pageindex'])),
     DateCreated:  scalar(firstDefined(mapped, ['datecreated', 'creationdate', 'created', 'createddate'])),
