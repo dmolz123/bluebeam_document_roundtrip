@@ -1895,6 +1895,107 @@ app.get('/api/project-markups', (req, res) => {
 });
 
 // =============================================================================
+// REPARSE SNAPSHOT — re-parse existing exported XML and write a fresh snapshot
+// Use this when the XML already exists in markup-exports but the DB snapshot
+// was written by an old server version with incorrect Status mapping.
+// No checkin or re-export needed — just re-downloads and re-parses the XML.
+//
+// POST /poc/reparse-snapshot
+// Body: { bluebeamSessionId: "649-542-454" }  (optional — uses current pocState if omitted)
+// =============================================================================
+app.post('/poc/reparse-snapshot', async (req, res) => {
+  try {
+    const { bluebeamSessionId } = req.body || {};
+
+    // If a session ID is provided and it differs from current pocState, hydrate first
+    if (bluebeamSessionId && bluebeamSessionId !== pocState.sessionId) {
+      logStep(`reparse-snapshot: hydrating session ${bluebeamSessionId} from DB...`, 'info');
+      const session = db.db.prepare('SELECT * FROM sessions WHERE bluebeam_session_id = ?').get(bluebeamSessionId);
+      if (!session) throw new Error(`Session not found in DB: ${bluebeamSessionId}`);
+
+      pocState.sessionId = session.bluebeam_session_id;
+      pocState.status    = session.status || 'active';
+
+      const dbFiles = db.db.prepare('SELECT * FROM files WHERE bluebeam_session_id = ?').all(bluebeamSessionId);
+      const dbProjectFiles = db.db.prepare(
+        `SELECT * FROM files WHERE (bluebeam_session_id = ? OR bluebeam_session_id IS NULL) AND atkins_project_id = ?`
+      ).all(bluebeamSessionId, session.atkins_project_id);
+
+      pocState.projectFiles   = dbProjectFiles.map(f => ({ projectFileId: f.bluebeam_project_file_id, name: f.file_name, size: f.file_size || 0 }));
+      pocState.sessionFileIds = dbFiles.filter(f => f.bluebeam_session_file_id).map(f => ({
+        sessionFileId: f.bluebeam_session_file_id,
+        projectFileId: f.bluebeam_project_file_id,
+        name:          f.file_name
+      }));
+
+      const project = db.getProject(session.atkins_project_id);
+      if (project) demoStub.atkinsProjectId = project.atkins_project_id;
+      else demoStub.atkinsProjectId = session.atkins_project_id;
+
+      logStep(`Restored ${pocState.projectFiles.length} project file(s), ${pocState.sessionFileIds.length} session file(s)`, 'success');
+    }
+
+    if (!pocState.sessionId)              throw new Error('No session in memory. Pass bluebeamSessionId in body or run /poc/hydrate first.');
+    if (!pocState.sessionFileIds.length)  throw new Error('No session files in memory. Pass bluebeamSessionId in body or run /poc/hydrate first.');
+
+    const accessToken = await tokenManager.getValidAccessToken();
+
+    // Re-resolve markup-exports folder if needed
+    if (!pocState.folderIds[FOLDER_MARKUP_EXPORTS]) {
+      const folders = await listProjectFolders(accessToken);
+      const found   = folders.find(f => f.Name === FOLDER_MARKUP_EXPORTS);
+      if (found) pocState.folderIds[FOLDER_MARKUP_EXPORTS] = found.Id;
+      else throw new Error(`Folder "${FOLDER_MARKUP_EXPORTS}" not found — run setup-project first`);
+    }
+
+    logStep('reparse-snapshot: re-parsing existing XML file(s) with current normalizeMarkupRecord...', 'info');
+    const allMarkups = [];
+
+    for (const sf of pocState.sessionFileIds) {
+      const exportFileName = `Markups-${sf.projectFileId}.xml`;
+      logStep(`Downloading and re-parsing "${exportFileName}" for "${sf.name}"...`, 'info');
+
+      let xmlText;
+      try {
+        xmlText = await downloadExportedMarkupXml(accessToken, exportFileName);
+      } catch (xmlErr) {
+        logStep(`Could not download "${exportFileName}": ${xmlErr.message} — skipping`, 'warn');
+        continue;
+      }
+
+      const fileMarkups = await parseBluebeamExportXml(xmlText, sf.name);
+      allMarkups.push(...fileMarkups);
+      logStep(`"${sf.name}" — ${fileMarkups.length} markup(s) re-parsed (Status populated: ${fileMarkups.filter(m => m.Status).length})`, 'success');
+    }
+
+    // Write fresh snapshot to DB
+    db.insertSnapshot({
+      atkinsProjectId:   demoStub.atkinsProjectId || 'UNKNOWN',
+      bluebeamSessionId: pocState.sessionId,
+      markupCount:       allMarkups.length,
+      snapshotJson:      JSON.stringify(allMarkups)
+    });
+    db.updateSessionPolled(pocState.sessionId);
+
+    pocState.markups = allMarkups;
+
+    logStep(`reparse-snapshot complete — ${allMarkups.length} markup(s), snapshot saved to DB`, 'success');
+    logStep(`Status populated on ${allMarkups.filter(m => m.Status).length}/${allMarkups.length} markups`, 'success');
+
+    res.json({
+      success:          true,
+      count:            allMarkups.length,
+      statusPopulated:  allMarkups.filter(m => m.Status).length,
+      sample:           allMarkups.slice(0, 3).map(m => ({ Id: m.Id, Author: m.Author, Status: m.Status, Type: m.Type, Custom: m.Custom })),
+      markups:          allMarkups
+    });
+  } catch (err) {
+    logStep(`reparse-snapshot failed: ${err.message}`, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =============================================================================
 // START
 // =============================================================================
 app.listen(PORT, () => {
