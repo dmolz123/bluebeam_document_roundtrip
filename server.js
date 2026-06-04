@@ -625,9 +625,22 @@ function looksLikeMarkupRecord(obj) {
   // not real markup annotations — exclude them to prevent count inflation.
   if (keys.includes('parent')) return false;
 
-  const hits = ['author','subject','comment','status','page','layer','type','markupid','id','markuptype']
-    .filter(k => keys.includes(k)).length;
-  return hits >= 2;
+  // <Scale> elements are page measurement-scale data, not markups. They carry
+  // ratio + coordinate keys (x1/y1/x2/y2) and an Index of -1. Reject them.
+  const isScaleNode =
+    keys.includes('ratio') ||
+    (keys.includes('x1') && keys.includes('y1') && keys.includes('x2') && keys.includes('y2'));
+  if (isScaleNode) return false;
+
+  // A real markup annotation must have an Author AND a Subject (a Cloud, Text,
+  // Note, etc. drawn by a reviewer). Scale/structural nodes have neither.
+  // Requiring both these specific fields — rather than any 2 of a broad list —
+  // is what separates genuine annotations from page-structure noise.
+  const lk = lowerKeyMap(obj);
+  const hasAuthor  = typeof lk.author  !== 'undefined' && String(scalar(lk.author)).trim()  !== '';
+  const hasSubject = typeof lk.subject !== 'undefined' && String(scalar(lk.subject)).trim() !== '';
+
+  return hasAuthor && hasSubject;
 }
 
 function extractMarkupCandidates(node, sourceFile, results = [], _key = '') {
