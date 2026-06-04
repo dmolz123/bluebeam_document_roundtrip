@@ -1635,11 +1635,18 @@ function enrichMarkup(m,byId){
     if(pid&&byId.has(pid)){var p=byId.get(pid);return getCI(p.ExtendedProperties,key)||getCI(p.Custom,key)||getCI(p.CustomColumns,key)||getCI(p.Columns,key)||getCI(p.Metadata,key)||'';}
     return'';
   }
-  var stage=gcv(m,'Review Stage')||m.Status||m.State||'';
+  // Stage: check explicit QC field first, then Status (server now maps Contents→Status),
+  // then State, then m.Contents directly as last resort (confirmed field in BAX/XML)
+  var stage=gcv(m,'Review Stage')||m.Status||m.State||m.Contents||'';
+  // Custom columns: Responsibility and Priority live under m.Custom in the server output
+  var responsibility=gcv(m,'Responsibility')||getCI(m.Custom,'Responsibility')||'';
+  var priority=gcv(m,'Priority')||getCI(m.Custom,'Priority')||'';
   return Object.assign({},m,{
-    _status:m.Status||m.State||stage||'',_stage:stage,
-    _discipline:gcv(m,'Discipline'),_responsibility:gcv(m,'Responsibility'),
-    _priority:gcv(m,'Priority'),_action:gcv(m,'Action Required'),_due:gcv(m,'Due Date')
+    _status:m.Status||m.State||m.Contents||stage||'',_stage:stage,
+    _discipline:gcv(m,'Discipline'),
+    _responsibility:responsibility,
+    _priority:priority,
+    _action:gcv(m,'Action Required'),_due:gcv(m,'Due Date')
   });
 }
 
@@ -1649,13 +1656,12 @@ function rwRenderResults(){
   var byId=new Map(rwMarkups.map(function(m){return[getId(m),m];}).filter(function(e){return e[0];}));
   rwMarkups=rwMarkups.map(function(m){return enrichMarkup(m,byId);});
 
-  // Filter to meaningful markups only: must have author, subject, or a QC state set
+  // Filter to meaningful markups: must have Author or a known markup Type.
+  // Every real Bluebeam annotation has Author + Type. StatusHistory audit records
+  // are now excluded server-side (parent key guard), so this just removes any
+  // truly empty/structural PDF objects that slipped through.
   var meaningful=rwMarkups.filter(function(m){
-    return(m.Author&&m.Author.trim())||
-           (m.Subject&&m.Subject.trim())||
-           (m._stage&&m._stage.trim())||
-           (m.Status&&m.Status.trim())||
-           (m.Comment&&m.Comment.trim());
+    return(m.Author&&m.Author.trim())||(m.Type&&m.Type.trim()&&m.Type!=='Scale'&&m.Type!=='ViewPort');
   });
 
   var statuses=meaningful.map(function(m){return m._stage||m._status||'';}).filter(Boolean);
@@ -1816,13 +1822,9 @@ async function t2PullSnapshot(){
       toast('Using live state (no DB snapshot yet): '+snapErr.message,'warn',5000);
     }
     t2AllMarkups=markups;
-    // Filter to meaningful markups for charts and table (same logic as Tab 1)
+    // Filter to meaningful markups: Author or a real markup Type (not Scale/ViewPort).
     var t2Meaningful=t2AllMarkups.filter(function(m){
-      return(m.Author&&m.Author.trim())||
-             (m.Subject&&m.Subject.trim())||
-             (m._stage&&m._stage.trim())||
-             (m.Status&&m.Status.trim())||
-             (m.Comment&&m.Comment.trim());
+      return(m.Author&&m.Author.trim())||(m.Type&&m.Type.trim()&&m.Type!=='Scale'&&m.Type!=='ViewPort');
     });
     t2AllMarkups=t2Meaningful;
     t2RenderedSessions=sessions;
