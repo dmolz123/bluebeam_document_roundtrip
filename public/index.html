@@ -679,8 +679,12 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         <div class="summary-row" id="rwSummaryCards"></div>
       </div>
       <div class="card">
-        <div class="card-title"><div class="card-title-icon">🥧</div>Status Distribution</div>
+        <div class="card-title"><div class="card-title-icon">🥧</div>Review Stage Distribution</div>
         <div class="pie-grid"><div class="pie-wrap"><div class="pie-chart" id="rwStatusPie"></div></div><div class="pie-legend" id="rwStatusLegend"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><div class="card-title-icon">🎯</div>Priority Breakdown</div>
+        <div class="pie-grid"><div class="pie-wrap"><div class="pie-chart" id="rwPriorityPie"></div></div><div class="pie-legend" id="rwPriorityLegend"></div></div>
       </div>
       <div class="card">
         <div class="card-title"><div class="card-title-icon">👷</div>Breakdown by Responsibility</div>
@@ -792,10 +796,26 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
     </div>
 
     <div class="card">
-      <div class="card-title"><div class="card-title-icon">🥧</div>Status Distribution (All Sessions)</div>
+      <div class="card-title"><div class="card-title-icon">🥧</div>Review Stage Distribution (All Sessions)</div>
       <div class="pie-grid">
         <div class="pie-wrap"><div class="pie-chart" id="t2StatusPie"></div></div>
         <div class="pie-legend" id="t2StatusLegend"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="card-title-icon">🎯</div>Priority Breakdown (All Sessions)</div>
+      <div class="pie-grid">
+        <div class="pie-wrap"><div class="pie-chart" id="t2PriorityPie"></div></div>
+        <div class="pie-legend" id="t2PriorityLegend"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><div class="card-title-icon">👷</div>Breakdown by Responsibility (All Sessions)</div>
+      <div class="pie-grid">
+        <div class="pie-wrap"><div class="pie-chart" id="t2ResponsibilityPie"></div></div>
+        <div class="pie-legend" id="t2ResponsibilityLegend"></div>
       </div>
     </div>
 
@@ -1570,9 +1590,12 @@ async function rwRunDownstream(){
   }
 }
 
-var piePalette=['#00B5AD','#0d9f6e','#dc2626','#d97706','#7c3aed','#0891b2','#1C3557','#64748b','#14b8a6','#f97316'];
+var piePaletteStatus  =['#00B5AD','#14b8a6','#0891b2','#1C3557','#64748b','#7c3aed','#0d9f6e','#d97706','#dc2626','#f97316'];
+var piePalettePriority=['#dc2626','#d97706','#0d9f6e','#64748b','#1C3557','#0891b2','#7c3aed','#14b8a6','#f97316','#00B5AD'];
+var piePaletteResp    =['#7c3aed','#0891b2','#f97316','#d97706','#1C3557','#0d9f6e','#dc2626','#64748b','#00B5AD','#14b8a6'];
 
-function renderPie(chartId,legendId,items,totalLabel){
+function renderPie(chartId,legendId,items,totalLabel,palette){
+  palette=palette||piePaletteStatus;
   var chart=document.getElementById(chartId);var legend=document.getElementById(legendId);
   var counts={};items.forEach(function(item){counts[item]=(counts[item]||0)+1;});
   var entries=Object.entries(counts).sort(function(a,b){return b[1]-a[1];});
@@ -1586,7 +1609,7 @@ function renderPie(chartId,legendId,items,totalLabel){
   var current=0;
   var segments=entries.map(function(e,idx){
     var start=current;var pct=e[1]/total;current+=pct*360;
-    return{label:e[0],count:e[1],pct:pct,color:piePalette[idx%piePalette.length],start:start,end:current};
+    return{label:e[0],count:e[1],pct:pct,color:palette[idx%palette.length],start:start,end:current};
   });
   chart.style.background='conic-gradient('+segments.map(function(s){return s.color+' '+s.start+'deg '+s.end+'deg';}).join(', ')+')';
   chart.innerHTML='<div class="pie-center"><div class="pie-total">'+total+'</div><div class="pie-total-label">'+esc(totalLabel)+'</div></div>';
@@ -1625,21 +1648,34 @@ function rwRenderResults(){
   function getId(m){return(m&&(m.ID||m.Id||m.id))||'';}
   var byId=new Map(rwMarkups.map(function(m){return[getId(m),m];}).filter(function(e){return e[0];}));
   rwMarkups=rwMarkups.map(function(m){return enrichMarkup(m,byId);});
-  var statuses=rwMarkups.map(function(m){return m._status||m._stage;}).filter(Boolean);
-  var responsibilities=rwMarkups.map(function(m){return m._responsibility;}).filter(Boolean);
-  var prios=rwMarkups.map(function(m){return m._priority;}).filter(Boolean);
-  var withAction=rwMarkups.filter(function(m){return m._action;}).length;
+
+  // Filter to meaningful markups only: must have author, subject, or a QC state set
+  var meaningful=rwMarkups.filter(function(m){
+    return(m.Author&&m.Author.trim())||
+           (m.Subject&&m.Subject.trim())||
+           (m._stage&&m._stage.trim())||
+           (m.Status&&m.Status.trim())||
+           (m.Comment&&m.Comment.trim());
+  });
+
+  var statuses=meaningful.map(function(m){return m._stage||m._status||'';}).filter(Boolean);
+  var responsibilities=meaningful.map(function(m){return m._responsibility;}).filter(Boolean);
+  var prios=meaningful.map(function(m){return m._priority;}).filter(Boolean);
+  var highPrio=prios.filter(function(p){return p.includes('Critical')||p.includes('High');}).length;
   var critical=prios.filter(function(p){return p.includes('Critical');}).length;
-  var authors=Array.from(new Set(rwMarkups.map(function(m){return m.Author;}).filter(Boolean))).length;
+  var authors=Array.from(new Set(meaningful.map(function(m){return m.Author;}).filter(Boolean))).length;
   document.getElementById('rwSummaryCards').innerHTML=
-    '<div class="sum-card"><div class="sum-val">'+rwMarkups.length+'</div><div class="sum-label">Total Markups</div></div>'+
-    '<div class="sum-card"><div class="sum-val green">'+withAction+'</div><div class="sum-label">Action Required</div></div>'+
+    '<div class="sum-card"><div class="sum-val">'+meaningful.length+'</div><div class="sum-label">Meaningful Markups</div></div>'+
+    '<div class="sum-card"><div class="sum-val warn">'+highPrio+'</div><div class="sum-label">High Priority Items</div></div>'+
     '<div class="sum-card"><div class="sum-val error">'+critical+'</div><div class="sum-label">Critical Items</div></div>'+
-    '<div class="sum-card"><div class="sum-val warn">'+authors+'</div><div class="sum-label">Active Reviewers</div></div>';
+    '<div class="sum-card"><div class="sum-val">'+authors+'</div><div class="sum-label">Active Reviewers</div></div>';
   var cl=document.getElementById('rwMarkupCountLabel');
-  if(cl)cl.textContent=rwMarkups.length+' markup'+(rwMarkups.length!==1?'s':'');
-  renderPie('rwStatusPie','rwStatusLegend',statuses,'Statuses');
-  renderPie('rwResponsibilityPie','rwResponsibilityLegend',responsibilities,'Assignments');
+  if(cl)cl.textContent=meaningful.length+' markup'+(meaningful.length!==1?'s':'')+' ('+rwMarkups.length+' total in PDF)';
+  renderPie('rwStatusPie','rwStatusLegend',statuses,'Review Stages',piePaletteStatus);
+  renderPie('rwPriorityPie','rwPriorityLegend',prios,'Priority Items',piePalettePriority);
+  renderPie('rwResponsibilityPie','rwResponsibilityLegend',responsibilities,'Assignments',piePaletteResp);
+  // Use meaningful markups for the table too
+  rwMarkups=meaningful;
   rwRenderTable();
 }
 
@@ -1780,10 +1816,21 @@ async function t2PullSnapshot(){
       toast('Using live state (no DB snapshot yet): '+snapErr.message,'warn',5000);
     }
     t2AllMarkups=markups;
+    // Filter to meaningful markups for charts and table (same logic as Tab 1)
+    var t2Meaningful=t2AllMarkups.filter(function(m){
+      return(m.Author&&m.Author.trim())||
+             (m.Subject&&m.Subject.trim())||
+             (m._stage&&m._stage.trim())||
+             (m.Status&&m.Status.trim())||
+             (m.Comment&&m.Comment.trim());
+    });
+    t2AllMarkups=t2Meaningful;
     t2RenderedSessions=sessions;
-    t2RenderOverview(projectId,sessions,project);
+    t2RenderOverview(projectId,sessions,project,t2AllMarkups.length);
     t2RenderSessions(sessions);
-    renderPie('t2StatusPie','t2StatusLegend',t2AllMarkups.map(function(m){return m._stage||m._status||'';}).filter(Boolean),'Statuses');
+    renderPie('t2StatusPie','t2StatusLegend',t2AllMarkups.map(function(m){return m._stage||m._status||'';}).filter(Boolean),'Review Stages',piePaletteStatus);
+    renderPie('t2PriorityPie','t2PriorityLegend',t2AllMarkups.map(function(m){return m._priority||'';}).filter(Boolean),'Priority Items',piePalettePriority);
+    renderPie('t2ResponsibilityPie','t2ResponsibilityLegend',t2AllMarkups.map(function(m){return m._responsibility||'';}).filter(Boolean),'Assignments',piePaletteResp);
     t2FilterMarkups();
     document.getElementById('t2Overview').style.display='flex';
     document.getElementById('t2EmptyState').style.display='none';
@@ -1823,7 +1870,7 @@ function t2BuildMarkupsFromState(state,sessions){
   return raw.map(function(m){return Object.assign(enrichMarkup(m,byId),{_session:state.sessionId||'—'});});
 }
 
-function t2RenderOverview(projectId,sessions,project){
+function t2RenderOverview(projectId,sessions,project,filteredMarkupCount){
   var labelEl=document.getElementById('t2ProjectLabel');
   var subEl=document.getElementById('t2ProjectNameSub');
   var idEl=document.getElementById('t2ProjectIdLabel');
@@ -1837,7 +1884,7 @@ function t2RenderOverview(projectId,sessions,project){
       subEl.style.display='none';
     }
   }
-  var totalMarkups=sessions.reduce(function(s,sess){return s+(sess.markup_count||0);},0);
+  var totalMarkups=typeof filteredMarkupCount!=='undefined'?filteredMarkupCount:sessions.reduce(function(s,sess){return s+(sess.markup_count||0);},0);
   var totalFiles=sessions.reduce(function(s,sess){return s+(sess.files&&sess.files.length||0);},0);
   var active=sessions.filter(function(s){return s.status==='active'||s.status==='inviting';}).length;
   document.getElementById('t2OverviewCards').innerHTML=
