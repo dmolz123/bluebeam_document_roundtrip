@@ -445,6 +445,18 @@ function scalar(val) {
   return val;
 }
 
+// Project file IDs can come back from SQLite as floats (e.g. 399487942.0)
+// when stored in a REAL/numeric column. Bluebeam's actual file is named with
+// the integer ID, so the exportmarkups filename must use the integer form.
+// This strips any trailing ".0" and normalizes to a clean string.
+function normalizeFileId(id) {
+  if (id == null) return '';
+  let s = String(id).trim();
+  // Strip trailing .0 (or .00, etc.) from float-formatted integers
+  s = s.replace(/\.0+$/, '');
+  return s;
+}
+
 // Known state model value strings used by Bluebeam's built-in Review model
 // and the custom 5-step QC model. Contents field values matching these are
 // treated as state values, not free-text comments.
@@ -703,7 +715,7 @@ async function performExportMarkups(accessToken) {
   }
 
   for (const sf of pocState.sessionFileIds) {
-    const exportFileName = `Markups-${sf.projectFileId}.xml`;
+    const exportFileName = `Markups-${normalizeFileId(sf.projectFileId)}.xml`;
     logStep(`Submitting exportmarkups job for "${sf.name}" → ${exportFileName}...`, 'info');
 
     const jobResp = await fetch(
@@ -764,7 +776,7 @@ async function performMarkupExtractionFromXml(accessToken) {
       }
     }
 
-    const exportFileName = `Markups-${sf.projectFileId}.xml`;
+    const exportFileName = `Markups-${normalizeFileId(sf.projectFileId)}.xml`;
     logStep(`Downloading and parsing exported XML for "${sf.name}"...`, 'info');
 
     const xmlText    = await downloadExportedMarkupXml(accessToken, exportFileName);
@@ -1050,7 +1062,7 @@ app.post('/poc/hydrate', async (req, res) => {
     ).all(session.bluebeam_session_id, session.atkins_project_id);
 
     pocState.projectFiles = dbProjectFiles.map(f => ({
-      projectFileId: f.bluebeam_project_file_id,
+      projectFileId: normalizeFileId(f.bluebeam_project_file_id),
       name:          f.file_name,
       size:          f.file_size || 0
     }));
@@ -1059,7 +1071,7 @@ app.post('/poc/hydrate', async (req, res) => {
       .filter(f => f.bluebeam_session_file_id)
       .map(f => ({
         sessionFileId: f.bluebeam_session_file_id,
-        projectFileId: f.bluebeam_project_file_id,
+        projectFileId: normalizeFileId(f.bluebeam_project_file_id),
         name:          f.file_name
       }));
 
@@ -1951,10 +1963,10 @@ app.post('/poc/reparse-snapshot', async (req, res) => {
         `SELECT * FROM files WHERE (bluebeam_session_id = ? OR bluebeam_session_id IS NULL) AND atkins_project_id = ?`
       ).all(bluebeamSessionId, session.atkins_project_id);
 
-      pocState.projectFiles   = dbProjectFiles.map(f => ({ projectFileId: f.bluebeam_project_file_id, name: f.file_name, size: f.file_size || 0 }));
+      pocState.projectFiles   = dbProjectFiles.map(f => ({ projectFileId: normalizeFileId(f.bluebeam_project_file_id), name: f.file_name, size: f.file_size || 0 }));
       pocState.sessionFileIds = dbFiles.filter(f => f.bluebeam_session_file_id).map(f => ({
         sessionFileId: f.bluebeam_session_file_id,
-        projectFileId: f.bluebeam_project_file_id,
+        projectFileId: normalizeFileId(f.bluebeam_project_file_id),
         name:          f.file_name
       }));
 
@@ -1982,7 +1994,7 @@ app.post('/poc/reparse-snapshot', async (req, res) => {
     const allMarkups = [];
 
     for (const sf of pocState.sessionFileIds) {
-      const exportFileName = `Markups-${sf.projectFileId}.xml`;
+      const exportFileName = `Markups-${normalizeFileId(sf.projectFileId)}.xml`;
       logStep(`Downloading and re-parsing "${exportFileName}" for "${sf.name}"...`, 'info');
 
       let xmlText;
@@ -2041,7 +2053,7 @@ app.post('/poc/debug-raw-xml', async (req, res) => {
       pocState.sessionId = bluebeamSessionId;
       pocState.sessionFileIds = dbFiles.filter(f => f.bluebeam_session_file_id).map(f => ({
         sessionFileId: f.bluebeam_session_file_id,
-        projectFileId: f.bluebeam_project_file_id,
+        projectFileId: normalizeFileId(f.bluebeam_project_file_id),
         name:          f.file_name
       }));
     }
@@ -2050,7 +2062,7 @@ app.post('/poc/debug-raw-xml', async (req, res) => {
 
     const accessToken = await tokenManager.getValidAccessToken();
     const sf = pocState.sessionFileIds[0];
-    const exportFileName = `Markups-${sf.projectFileId}.xml`;
+    const exportFileName = `Markups-${normalizeFileId(sf.projectFileId)}.xml`;
 
     const xmlText = await downloadExportedMarkupXml(accessToken, exportFileName);
     const parsed = await parseStringPromise(xmlText, { explicitArray: false, mergeAttrs: true, trim: true });
