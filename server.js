@@ -2026,6 +2026,64 @@ app.post('/poc/reparse-snapshot', async (req, res) => {
 });
 
 // =============================================================================
+// DEBUG: dump raw XML for the current/specified session's first file
+// Shows the actual parsed XML structure BEFORE normalization, so we can see
+// exactly which element/attribute holds the state value.
+// =============================================================================
+app.post('/poc/debug-raw-xml', async (req, res) => {
+  try {
+    const { bluebeamSessionId } = req.body || {};
+
+    if (bluebeamSessionId && bluebeamSessionId !== pocState.sessionId) {
+      const session = db.db.prepare('SELECT * FROM sessions WHERE bluebeam_session_id = ?').get(bluebeamSessionId);
+      if (!session) throw new Error(`Session not found: ${bluebeamSessionId}`);
+      const dbFiles = db.db.prepare('SELECT * FROM files WHERE bluebeam_session_id = ?').all(bluebeamSessionId);
+      pocState.sessionId = bluebeamSessionId;
+      pocState.sessionFileIds = dbFiles.filter(f => f.bluebeam_session_file_id).map(f => ({
+        sessionFileId: f.bluebeam_session_file_id,
+        projectFileId: f.bluebeam_project_file_id,
+        name:          f.file_name
+      }));
+    }
+
+    if (!pocState.sessionFileIds.length) throw new Error('No session files. Pass bluebeamSessionId in body.');
+
+    const accessToken = await tokenManager.getValidAccessToken();
+    const sf = pocState.sessionFileIds[0];
+    const exportFileName = `Markups-${sf.projectFileId}.xml`;
+
+    const xmlText = await downloadExportedMarkupXml(accessToken, exportFileName);
+    const parsed = await parseStringPromise(xmlText, { explicitArray: false, mergeAttrs: true, trim: true });
+
+    // Find the first node that has a Subject of "Cloud" (the real markup) and dump it raw
+    let firstRealMarkup = null;
+    function findMarkup(node) {
+      if (firstRealMarkup) return;
+      if (Array.isArray(node)) { node.forEach(findMarkup); return; }
+      if (!node || typeof node !== 'object') return;
+      const lk = {};
+      for (const [k,v] of Object.entries(node)) lk[k.toLowerCase()] = v;
+      if (lk.subject && String(scalar(lk.subject)).trim() && !lk.parent) {
+        firstRealMarkup = node;
+        return;
+      }
+      Object.values(node).forEach(findMarkup);
+    }
+    findMarkup(parsed);
+
+    res.json({
+      exportFileName,
+      rawXmlSnippet: xmlText.slice(0, 4000),
+      firstRealMarkupKeys: firstRealMarkup ? Object.keys(firstRealMarkup) : [],
+      firstRealMarkupRaw: firstRealMarkup || null,
+      topLevelKeys: Object.keys(parsed || {})
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// =============================================================================
 // START
 // =============================================================================
 app.listen(PORT, () => {
