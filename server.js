@@ -601,9 +601,39 @@ function extractMarkupCandidates(node, sourceFile, results = [], _key = '') {
 
 async function downloadExportedMarkupXml(accessToken, exportFileName) {
   const xmlPath  = `/${FOLDER_MARKUP_EXPORTS}/${exportFileName}`;
-  const fileMeta = await getProjectFileByPath(accessToken, xmlPath);
+
+  let fileMeta = null;
+
+  // First try: by-path (fast, exact)
+  try {
+    fileMeta = await getProjectFileByPath(accessToken, xmlPath);
+  } catch (pathErr) {
+    logStep(`by-path lookup failed for "${xmlPath}": ${pathErr.message} — falling back to folder listing`, 'warn');
+  }
+
+  // Fallback: list all project files and find by name match
+  if (!fileMeta || !fileMeta.DownloadUrl) {
+    logStep(`Scanning project files for "${exportFileName}"...`, 'info');
+    const allFiles = await listProjectFiles(accessToken);
+    // Match by exact name, or by name within the markup-exports folder
+    const match = allFiles.find(f =>
+      f.Name === exportFileName ||
+      (f.Path && f.Path.toLowerCase().includes(exportFileName.toLowerCase()))
+    );
+    if (!match) {
+      throw new Error(`Exported XML "${exportFileName}" not found via by-path or folder scan. Has exportmarkups job completed?`);
+    }
+    logStep(`Found "${exportFileName}" via folder scan (fileId=${match.Id}, path=${match.Path})`, 'info');
+    // Need to get DownloadUrl — re-fetch the file metadata by ID
+    const fileResp = await fetch(`${API_V1}/projects/${POC_PROJECT_ID}/files/${match.Id}`, {
+      headers: authHeaders(accessToken)
+    });
+    if (!fileResp.ok) throw new Error(`Failed to get file metadata for "${exportFileName}": ${fileResp.status}`);
+    fileMeta = await fileResp.json();
+  }
+
   if (!fileMeta.DownloadUrl) throw new Error(`DownloadUrl missing for exported XML: ${xmlPath}`);
-  logStep(`Downloading exported XML from path=${xmlPath} (fileId=${fileMeta.Id})...`, 'info');
+  logStep(`Downloading exported XML "${exportFileName}" (fileId=${fileMeta.Id})...`, 'info');
   const xmlResp = await fetch(fileMeta.DownloadUrl);
   if (!xmlResp.ok) throw new Error(`Failed to download exported XML "${exportFileName}": ${xmlResp.status}`);
   return xmlResp.text();
