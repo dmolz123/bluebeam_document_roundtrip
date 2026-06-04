@@ -474,6 +474,43 @@ function looksLikeStateValue(str) {
   return KNOWN_STATE_PREFIXES.some(prefix => s.startsWith(prefix)) || /^Step\d/.test(s);
 }
 
+// Extract the current state value from a markup's StatusHistory.
+// The state model value (e.g. "Step4_Revisions_Made") is NOT stored on the
+// parent annotation — Bluebeam records it only inside:
+//   <StatusHistory><Status><State>Step4_Revisions_Made</State></Status></StatusHistory>
+// When multiple Status entries exist (the reviewer changed state more than once),
+// the most recent one (latest ModDate/CreationDate, or highest Index) wins.
+function extractStateFromStatusHistory(record) {
+  const mapped = lowerKeyMap(record);
+  const sh = mapped.statushistory;
+  if (!sh || typeof sh !== 'object') return '';
+
+  // <Status> can be a single object or an array of objects
+  const shMap = lowerKeyMap(sh);
+  let statuses = shMap.status;
+  if (!statuses) return '';
+  if (!Array.isArray(statuses)) statuses = [statuses];
+
+  // Build {state, when} for each history entry that has a State
+  const entries = statuses.map(s => {
+    const sm = lowerKeyMap(s);
+    const state = scalar(firstDefined(sm, ['state', 'status', 'statustext', 'statetext']));
+    const when  = scalar(firstDefined(sm, ['moddate', 'creationdate', 'datemodified', 'datecreated'])) || '';
+    const index = parseInt(scalar(firstDefined(sm, ['index'])), 10);
+    return { state: state ? String(state).trim() : '', when, index: isNaN(index) ? -Infinity : index };
+  }).filter(e => e.state);
+
+  if (!entries.length) return '';
+
+  // Pick the most recent: prefer latest timestamp, fall back to highest index
+  entries.sort((a, b) => {
+    if (a.when && b.when) return String(a.when).localeCompare(String(b.when));
+    return a.index - b.index;
+  });
+
+  return entries[entries.length - 1].state;
+}
+
 function normalizeMarkupRecord(record, sourceFile) {
   const mapped = lowerKeyMap(record);
 
@@ -488,6 +525,11 @@ function normalizeMarkupRecord(record, sourceFile) {
   const rawContents = scalar(firstDefined(mapped, ['contents']));
   const contentsIsState = looksLikeStateValue(rawContents);
 
+  // PRIMARY state source: the latest <State> inside <StatusHistory>.
+  // This is where Bluebeam actually records the current state model value —
+  // the parent annotation's <Contents> is usually empty.
+  const historyState = extractStateFromStatusHistory(record);
+
   const known = {
     Id:           scalar(firstDefined(mapped, ['id', 'markupid', 'markup_id'])),
     Author:       scalar(firstDefined(mapped, ['author', 'createdby', 'user', 'username'])),
@@ -495,8 +537,11 @@ function normalizeMarkupRecord(record, sourceFile) {
     Subject:      scalar(firstDefined(mapped, ['subject', 'label', 'title'])),
     // Comment: explicitly exclude 'contents' — handled separately below
     Comment:      scalar(firstDefined(mapped, ['comment', 'comments', 'note', 'message', 'reply'])),
-    // Status: try state/status first, then fall back to Contents if it looks like a state value
-    Status:       scalar(firstDefined(mapped, ['status', 'state'])) || (contentsIsState ? rawContents : ''),
+    // Status resolution order:
+    //   1. StatusHistory latest <State> (authoritative — where Bluebeam stores it)
+    //   2. top-level state/status
+    //   3. Contents if it looks like a state value
+    Status:       historyState || scalar(firstDefined(mapped, ['status', 'state'])) || (contentsIsState ? rawContents : ''),
     Layer:        scalar(firstDefined(mapped, ['layer'])),
     Page:         scalar(firstDefined(mapped, ['page', 'pagenumber', 'pageindex'])),
     DateCreated:  scalar(firstDefined(mapped, ['datecreated', 'creationdate', 'created', 'createddate'])),
