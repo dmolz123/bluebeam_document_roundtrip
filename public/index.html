@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bluebeam Studio — AtkinsRéalis QA/QC</title>
+<title>Bluebeam Studio — QA/QC Review</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -172,13 +172,11 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 .btn-csv{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;background:var(--white);color:var(--green);border:1px solid var(--green);border-radius:7px;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0;}
 .btn-csv:hover{background:var(--green-l);}
 .btn-csv:disabled{opacity:0.4;cursor:not-allowed;}
-/* DOWNSTREAM BUTTON — orange accent to signal it fires API calls */
 .btn-downstream{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:var(--ar-orange-l);color:var(--ar-orange);border:1px solid rgba(232,97,44,0.35);border-radius:6px;font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .btn-downstream:hover:not(:disabled){background:rgba(232,97,44,0.18);border-color:var(--ar-orange);}
 .btn-downstream:disabled{opacity:0.5;cursor:not-allowed;}
 .btn-downstream.running{background:var(--warn-l);color:var(--warn);border-color:var(--warn);}
 .btn-downstream.done{background:var(--green-l);color:var(--green);border-color:var(--green);}
-/* Project-level downstream banner */
 .t2-downstream-banner{background:var(--ar-orange-l);border:1px solid rgba(232,97,44,0.25);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-top:14px;}
 .t2-downstream-banner-text{flex:1;font-size:12px;color:var(--text-2);line-height:1.5;}
 .t2-downstream-banner-text strong{color:var(--text);}
@@ -446,11 +444,11 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
     <div class="header-logo">
       <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
         <rect width="32" height="32" rx="5" fill="none"/>
-        <text x="4" y="23" font-family="'Inter',sans-serif" font-size="18" font-weight="700" fill="#00B5AD">AR</text>
+        <text x="4" y="23" font-family="'Inter',sans-serif" font-size="18" font-weight="700" fill="#00B5AD">BB</text>
       </svg>
     </div>
     <div class="header-wordmark">
-      <div class="header-title">AtkinsRéalis <span style="opacity:0.45;font-weight:400;">/ Bluebeam Studio</span></div>
+      <div class="header-title">Bluebeam Studio</div>
       <div class="header-sub">QA/QC Document Review — PoC</div>
     </div>
   </div>
@@ -474,7 +472,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 <div class="page-wrap"><div class="page-inner">
   <div>
     <div class="page-title">Start a Document Review</div>
-    <div class="page-sub">Configure your AtkinsRéalis project, upload drawings, add reviewers, and launch the Bluebeam Studio Session. Run downstream processing after review to pull markup metadata into the dashboard.</div>
+    <div class="page-sub">Configure your project, upload drawings, add reviewers, and launch the Bluebeam Studio Session. Run downstream processing after review to pull markup metadata into the dashboard.</div>
   </div>
 
   <!-- Auth -->
@@ -515,7 +513,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
     <div class="card-title"><div class="card-title-icon">🏗️</div>Project Identity</div>
     <div class="field-row cols-2">
       <div class="field">
-        <label>Atkins Project ID <span style="color:var(--error)">*</span></label>
+        <label>Project ID <span style="color:var(--error)">*</span></label>
         <div class="project-id-wrap">
           <input type="text" id="rwAtkinsId" placeholder="ATK-2024-0001" oninput="rwValidateProjectId()" style="font-family:var(--mono);font-size:13px;letter-spacing:0.03em;">
           <span class="project-id-status hint" id="rwAtkinsIdStatus">e.g. ATK-2024-0001</span>
@@ -728,7 +726,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
 <div class="page-wrap"><div class="page-inner" style="max-width:920px;">
   <div>
     <div class="page-title">Review Process: Data</div>
-    <div class="page-sub">Look up an AtkinsRéalis Project ID to see all associated sessions, pull a current metadata snapshot, and configure automatic polling. Use <strong>Run Downstream</strong> on any session to checkin, export markups, and write a fresh snapshot.</div>
+    <div class="page-sub">Look up a Project ID to see all associated sessions, pull a current metadata snapshot, and configure automatic polling. Use <strong>Run Downstream</strong> on any session to checkin, export markups, and write a fresh snapshot.</div>
   </div>
 
   <div class="card">
@@ -741,7 +739,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         </select>
       </div>
       <div class="field" style="flex:1;">
-        <label>Atkins Project ID</label>
+        <label>Project ID</label>
         <div class="project-id-wrap">
           <input type="text" id="t2AtkinsId" placeholder="ATK-2024-0001" oninput="t2ValidateId()" style="font-family:var(--mono);font-size:13px;letter-spacing:0.03em;">
           <span class="project-id-status hint" id="t2AtkinsIdStatus">e.g. ATK-2024-0001</span>
@@ -850,7 +848,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
   <div class="empty-state" id="t2EmptyState">
     <div class="empty-state-icon">📋</div>
     <div class="empty-state-title">No project loaded</div>
-    <div class="empty-state-sub">Select a project from the dropdown or enter an Atkins Project ID and click <strong>Pull Snapshot</strong>.<br>Projects appear in the dropdown after a review is started from the Setup tab.</div>
+    <div class="empty-state-sub">Select a project from the dropdown or enter a Project ID and click <strong>Pull Snapshot</strong>.<br>Projects appear in the dropdown after a review is started from the Setup tab.</div>
   </div>
 </div></div>
 </div>
@@ -1492,7 +1490,7 @@ function rwSetStep(id,state,label){
 
 async function rwStart(){
   if(!rwFiles.length){toast('Please add at least one PDF.','warn');return;}
-  if(!rwValidateProjectId()){toast('Please enter a valid Atkins Project ID (e.g. ATK-2024-0001).','warn');return;}
+  if(!rwValidateProjectId()){toast('Please enter a valid Project ID (e.g. ATK-2024-0001).','warn');return;}
   var name=document.getElementById('rwName').value.trim();
   if(!name){toast('Please enter a review name.','warn');return;}
   var disc=document.getElementById('rwDiscipline').value;
@@ -1635,30 +1633,16 @@ function enrichMarkup(m,byId){
     if(pid&&byId.has(pid)){var p=byId.get(pid);return getCI(p.ExtendedProperties,key)||getCI(p.Custom,key)||getCI(p.CustomColumns,key)||getCI(p.Columns,key)||getCI(p.Metadata,key)||'';}
     return'';
   }
-  // Known state value prefixes for Bluebeam's built-in + 5-step QC model
   var STATE_PREFIXES=['Step3','Step4','Step5','Accepted','Rejected','Cancelled','Assigned','Completed','Approved','None'];
   function isStateVal(s){
     if(!s||typeof s!=='string')return false;
     var t=s.trim();
     return STATE_PREFIXES.some(function(p){return t.indexOf(p)===0;})||/^Step\d/.test(t);
   }
-
-  // Stage resolution order:
-  // 1. Explicit 'Review Stage' custom column (most authoritative)
-  // 2. m.Status — server now maps <Contents> → Status when it looks like a state value
-  // 3. m.State
-  // 4. m.Contents directly — fallback for any format variant
-  // 5. m.Comment — handles OLD DB snapshots where state was mistakenly mapped to Comment
-  //    (only use if it looks like a known state prefix, not free text)
   var stage=gcv(m,'Review Stage')||m.Status||m.State||m.Contents||(isStateVal(m.Comment)?m.Comment:'')||'';
-
-  // Custom columns: Responsibility and Priority
   var responsibility=gcv(m,'Responsibility')||getCI(m.Custom,'Responsibility')||'';
   var priority=gcv(m,'Priority')||getCI(m.Custom,'Priority')||'';
-
-  // Comment: use as-is unless it was consumed as the state value
   var comment=m.Comment&&isStateVal(m.Comment)?'':m.Comment||'';
-
   return Object.assign({},m,{
     _status:stage||m.Status||m.State||m.Contents||'',_stage:stage,
     Comment:comment,
@@ -1674,15 +1658,9 @@ function rwRenderResults(){
   function getId(m){return(m&&(m.ID||m.Id||m.id))||'';}
   var byId=new Map(rwMarkups.map(function(m){return[getId(m),m];}).filter(function(e){return e[0];}));
   rwMarkups=rwMarkups.map(function(m){return enrichMarkup(m,byId);});
-
-  // Filter to meaningful markups: must have Author or a known markup Type.
-  // Every real Bluebeam annotation has Author + Type. StatusHistory audit records
-  // are now excluded server-side (parent key guard), so this just removes any
-  // truly empty/structural PDF objects that slipped through.
   var meaningful=rwMarkups.filter(function(m){
     return(m.Author&&m.Author.trim())||(m.Type&&m.Type.trim()&&m.Type!=='Scale'&&m.Type!=='ViewPort');
   });
-
   var statuses=meaningful.map(function(m){return m._stage||m._status||'';}).filter(Boolean);
   var responsibilities=meaningful.map(function(m){return m._responsibility;}).filter(Boolean);
   var prios=meaningful.map(function(m){return m._priority;}).filter(Boolean);
@@ -1697,7 +1675,6 @@ function rwRenderResults(){
   renderPie('rwStatusPie','rwStatusLegend',statuses,'Review Stages',piePaletteStatus);
   renderPie('rwPriorityPie','rwPriorityLegend',prios,'Priority Items',piePalettePriority);
   renderPie('rwResponsibilityPie','rwResponsibilityLegend',responsibilities,'Assignments',piePaletteResp);
-  // Use meaningful markups for the table too
   rwMarkups=meaningful;
   rwRenderTable();
 }
@@ -1765,7 +1742,6 @@ var t2SortKey='_session';
 var t2SortDir='asc';
 var t2PollTimer=null;
 var t2CurrentProjectId=null;
-// Track sessions rendered for downstream button callbacks
 var t2RenderedSessions=[];
 
 async function t2LoadKnownProjects(){
@@ -1812,7 +1788,7 @@ function t2ValidateId(){
 
 async function t2PullSnapshot(){
   var projectId=document.getElementById('t2AtkinsId').value.trim().toUpperCase();
-  if(!PROJECT_ID_RE.test(projectId)){toast('Invalid Atkins Project ID.','warn');return;}
+  if(!PROJECT_ID_RE.test(projectId)){toast('Invalid Project ID.','warn');return;}
   t2CurrentProjectId=projectId;
   var btn=document.getElementById('t2PullBtn');
   btn.disabled=true;btn.textContent='Pulling…';
@@ -1839,7 +1815,6 @@ async function t2PullSnapshot(){
       toast('Using live state (no DB snapshot yet): '+snapErr.message,'warn',5000);
     }
     t2AllMarkups=markups;
-    // Filter to meaningful markups: Author or a real markup Type (not Scale/ViewPort).
     var t2Meaningful=t2AllMarkups.filter(function(m){
       return(m.Author&&m.Author.trim())||(m.Type&&m.Type.trim()&&m.Type!=='Scale'&&m.Type!=='ViewPort');
     });
@@ -1915,7 +1890,6 @@ function t2RenderOverview(projectId,sessions,project,filteredMarkupCount){
 
 function t2RenderSessions(sessions,filteredMarkups){
   filteredMarkups=filteredMarkups||[];
-  // Build per-session filtered count from the already-filtered t2AllMarkups array
   var countBySession={};
   filteredMarkups.forEach(function(m){
     var sid=m._session||'';
@@ -1941,11 +1915,8 @@ function t2RenderSessions(sessions,filteredMarkups){
       var sz=f.size>1048576?(f.size/1048576).toFixed(1)+' MB':((f.size/1024)||0).toFixed(0)+' KB';
       return'<div class="session-file-item"><span class="sf-icon">📄</span><span class="session-file-name">'+esc(f.name)+'</span><span class="session-file-size">'+sz+'</span></div>';
     }).join(''):'<div style="color:var(--text-3);font-size:11px;padding:6px 0;">No files tracked</div>';
-
-    // Downstream button — shown for all non-demo sessions; label differs by snapshot state
     var downstreamBtn=sess.isDemo?''
       :'<button class="btn-downstream" id="t2-ds-btn-'+i+'" onclick="t2RunDownstreamForSession(\''+esc(sid)+'\',\''+esc(t2CurrentProjectId||'')+'\','+i+')" title="Hydrate server state from DB then run checkin → exportmarkups → snapshot">🔄 '+(hasSnapshot?'Re-run':'Pull Markups')+'</button>';
-
     return'<tr>'+
       '<td><span style="font-family:var(--mono);font-size:11px;color:var(--accent);cursor:pointer;" onclick="copyText(\''+esc(sid)+'\',this)" title="Click to copy">'+esc(sid)+'</span>'+(sess.isDemo?'<span style="margin-left:5px;font-size:9px;color:var(--text-3);font-weight:700;text-transform:uppercase;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 5px;">demo</span>':'')+'</td>'+
       '<td style="font-weight:500;">'+esc(sess.review_name||sess.reviewName||'—')+'</td>'+
@@ -1969,26 +1940,17 @@ function t2ToggleFiles(i){
   if(btn)btn.textContent=row.classList.contains('open')?'▴ Files':'▾ Files';
 }
 
-// ─── DOWNSTREAM TRIGGER FROM TAB 2 ───────────────────────────────────────────
-// Step 1: hydrate server state from DB for this specific session
-// Step 2: run downstream-process (checkin → exportmarkups → XML parse → DB snapshot)
-// Step 3: refresh the snapshot view
 async function t2RunDownstreamForSession(bluebeamSessionId,atkinsProjectId,rowIndex){
   var btn=document.getElementById('t2-ds-btn-'+rowIndex);
   if(!btn)return;
-
-  // Validate we have a real session ID
   if(!bluebeamSessionId||bluebeamSessionId==='DEMO-SESSION'){
     toast('Cannot run downstream on a demo session — start a real review first.','warn');
     return;
   }
-
   btn.disabled=true;
   btn.className='btn-downstream running';
   btn.textContent='⟳ Hydrating…';
-
   try{
-    // Step 1 — Restore server in-memory state from DB for this session
     btn.textContent='⟳ Hydrating state…';
     var hydrateResp=await fetch('/poc/hydrate',{
       method:'POST',
@@ -1997,30 +1959,21 @@ async function t2RunDownstreamForSession(bluebeamSessionId,atkinsProjectId,rowIn
     });
     var hydrateData=await hydrateResp.json();
     if(!hydrateResp.ok) throw new Error(hydrateData.error||'Hydration failed: HTTP '+hydrateResp.status);
-
     logStep_t2('Hydrated: '+hydrateData.sessionFiles+' session file(s), '+hydrateData.projectFiles+' project file(s)');
-
-    // Step 2 — Run downstream processing
     btn.textContent='⟳ Running downstream…';
     toast('Running downstream for session '+bluebeamSessionId.slice(0,12)+'…','info',3000);
-
     var dsResp=await fetch('/poc/downstream-process',{
       method:'POST',
       headers:{'Content-Type':'application/json'}
     });
     var dsData=await dsResp.json();
     if(!dsResp.ok) throw new Error(dsData.error||'Downstream failed: HTTP '+dsResp.status);
-
     var count=(dsData.markups||[]).length;
     btn.className='btn-downstream done';
     btn.textContent='✓ '+count+' markup'+(count!==1?'s':'');
     btn.disabled=false;
-
     toast('Downstream complete — '+count+' markup(s) saved to snapshot','ok',5000);
-
-    // Step 3 — Refresh the data view
     await t2PullSnapshot();
-
   }catch(err){
     btn.className='btn-downstream';
     btn.disabled=false;
@@ -2168,9 +2121,9 @@ var DEV_SNIPPETS={
     code:'POST /poc/cleanup\nBody: (none)\n\nBB API: DELETE /publicapi/v2/subscriptions/{subId}\nBB API: DELETE /publicapi/v1/sessions/{sessionId}\n\nDB WRITE: sessions.status → "cleaned"\nPolling timer cleared for this session\n\nRESPONSE\n- success: true'
   },
   'projects-snapshot':{
-    endpoint:'GET /poc/projects/:atkinsId/snapshot',
+    endpoint:'GET /poc/projects/:id/snapshot',
     desc:'Returns a full project snapshot from the DB: project metadata, all sessions with their latest markup snapshot, and all associated files. Primary Tab 2 data source.',
-    code:'GET /poc/projects/:atkinsId/snapshot\n(No body)\n\nRETURNS\n- project: { atkins_project_id, project_name, … }\n- sessions[]: { bluebeam_session_id, review_name, status,\n    markup_count, last_snapshot, markups[], files[] }\n- files[]: all project files from DB\n- totalMarkups, sessionCount, fileCount\n\n404 if no data found for the given Atkins ID'
+    code:'GET /poc/projects/:id/snapshot\n(No body)\n\nRETURNS\n- project: { atkins_project_id, project_name, … }\n- sessions[]: { bluebeam_session_id, review_name, status,\n    markup_count, last_snapshot, markups[], files[] }\n- files[]: all project files from DB\n- totalMarkups, sessionCount, fileCount\n\n404 if no data found for the given Project ID'
   }
 };
 
@@ -2303,7 +2256,7 @@ function devRenderStatePanel(state){
     {label:'Session ID',value:state.sessionId||'—'},
     {label:'Webhook Sub ID',value:state.subscriptionId||'—'},
     {label:'Uploaded Files',value:devFiles.filter(function(f){return f.status==='ok';}).length||((state.projectFiles&&state.projectFiles.length)||0)},
-    {label:'Atkins Project',value:state.stub&&state.stub.atkinsProjectId||'—',wide:true},
+    {label:'Project ID',value:state.stub&&state.stub.atkinsProjectId||'—',wide:true},
     {label:'Session End Date',value:state.stub&&state.stub.sessionEndDate?new Date(state.stub.sessionEndDate).toLocaleDateString():'—'},
     {label:'Polling Interval',value:state.stub&&state.stub.pollingInterval>0?'Every '+state.stub.pollingInterval+'h':'Manual'}
   ];
@@ -2357,7 +2310,7 @@ async function devCopyLogs(){
   if(!rows)return;try{await navigator.clipboard.writeText(rows);toast('Logs copied','ok',2000);}catch(e){}
 }
 async function devCopyWorkflowSummary(){
-  var s='AtkinsRéalis / Bluebeam Studio Roundtrip Reference\n\nAuth\n- POST /poc/auth/refresh\n\nSetup\n- POST /poc/setup-project\n- POST /poc/upload-to-project (state model injection ON by default)\n\nSession\n- POST /poc/configure\n- POST /poc/trigger\n- POST /poc/create-session\n- POST /poc/register-webhook\n- POST /poc/checkout-to-session\n- POST /poc/invite-reviewers\n\nExtraction\n- POST /poc/downstream-process (checkin + exportmarkups + XML parse + DB snapshot)\n- POST /poc/finalize\n- POST /poc/snapshot\n- POST /poc/cleanup\n\nDB Endpoints\n- GET /poc/projects\n- GET /poc/projects/:atkinsId/snapshot\n\nUtility\n- POST /poc/hydrate\n- GET /health\n- GET /poc/state\n- POST /poc/reset';
+  var s='Bluebeam Studio Roundtrip Reference\n\nAuth\n- POST /poc/auth/refresh\n\nSetup\n- POST /poc/setup-project\n- POST /poc/upload-to-project (state model injection ON by default)\n\nSession\n- POST /poc/configure\n- POST /poc/trigger\n- POST /poc/create-session\n- POST /poc/register-webhook\n- POST /poc/checkout-to-session\n- POST /poc/invite-reviewers\n\nExtraction\n- POST /poc/downstream-process (checkin + exportmarkups + XML parse + DB snapshot)\n- POST /poc/finalize\n- POST /poc/snapshot\n- POST /poc/cleanup\n\nDB Endpoints\n- GET /poc/projects\n- GET /poc/projects/:id/snapshot\n\nUtility\n- POST /poc/hydrate\n- GET /health\n- GET /poc/state\n- POST /poc/reset';
   try{await navigator.clipboard.writeText(s);toast('Workflow summary copied','ok');}catch(e){}
 }
 
