@@ -6,7 +6,7 @@ This repository contains a proof-of-concept integration demonstrating how an ext
 
 This project is **not an official Bluebeam product** and is not supported by Bluebeam. It is provided solely as a reference implementation for evaluation and development purposes.
 
-At any point in time, the endpoints used in this sample code may be deprecated or deplaced. Please check the most current Bluebeam API documentation.
+At any point in time, the endpoints used in this sample code may be deprecated or replaced. Please check the most current Bluebeam API documentation.
 
 ---
 
