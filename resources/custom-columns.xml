@@ -1,186 +1,154 @@
-<!-- 
-  Bluebeam Studio PoC — Custom Columns Definition
-  Schema: BluebeamUserDefinedColumns (direct Revu export format).
-  This is the only schema accepted by the importcustomcolumns API job.
-  Generated from a real Revu export and extended with project review columns.
- -->
-<BluebeamUserDefinedColumns>
-<!--  Review Stage  -->
-<BSIColumnItem Index="0" Subtype="Choice">
-<n>Review Stage</n>
-<DisplayOrder>0</DisplayOrder>
-<Deleted>False</Deleted>
-<Format>Normal</Format>
-<Precision>2</Precision>
-<Items>
-<Item Index="0">
-<Value>Step 1 – Out for Review</Value>
-</Item>
-<Item Index="1">
-<Value>Step 2 – Reviewer Comments Received</Value>
-</Item>
-<Item Index="2">
-<Value>Step 3 – Comments Under Coordination</Value>
-</Item>
-<Item Index="3">
-<Value>Step 4 – Responses Issued to Reviewer</Value>
-</Item>
-<Item Index="4">
-<Value>Step 5 – Final Review in Progress</Value>
-</Item>
-<Item Index="5">
-<Value>Step 6 – Approved for Construction</Value>
-</Item>
-<Item Index="6">
-<Value>Step 7 – Approved with Comments</Value>
-</Item>
-<Item Index="7">
-<Value>Step 8 – Revise and Resubmit</Value>
-</Item>
-<Item Index="8">
-<Value>Void – Superseded by Revision</Value>
-</Item>
-<Item Index="9">
-<Value>On Hold – Pending Information</Value>
-</Item>
-</Items>
-<AllowCustom>False</AllowCustom>
-</BSIColumnItem>
-<!--  Discipline  -->
-<BSIColumnItem Index="1" Subtype="Choice">
-<n>Discipline</n>
-<DisplayOrder>1</DisplayOrder>
-<Deleted>False</Deleted>
-<Format>Normal</Format>
-<Precision>2</Precision>
-<Items>
-<Item Index="0">
-<Value>Architectural</Value>
-</Item>
-<Item Index="1">
-<Value>Structural</Value>
-</Item>
-<Item Index="2">
-<Value>Mechanical</Value>
-</Item>
-<Item Index="3">
-<Value>Electrical</Value>
-</Item>
-<Item Index="4">
-<Value>Plumbing</Value>
-</Item>
-<Item Index="5">
-<Value>Civil</Value>
-</Item>
-<Item Index="6">
-<Value>Fire Protection</Value>
-</Item>
-<Item Index="7">
-<Value>Geotechnical</Value>
-</Item>
-<Item Index="8">
-<Value>Landscape</Value>
-</Item>
-<Item Index="9">
-<Value>Interior Design</Value>
-</Item>
-<Item Index="10">
-<Value>Technology / AV / Security</Value>
-</Item>
-<Item Index="11">
-<Value>General / Multi-Discipline</Value>
-</Item>
-</Items>
-<AllowCustom>True</AllowCustom>
-</BSIColumnItem>
-<!--  Responsibility  -->
-<BSIColumnItem Index="2" Subtype="Choice">
-<n>Responsibility</n>
-<DisplayOrder>2</DisplayOrder>
-<Deleted>False</Deleted>
-<Format>Normal</Format>
-<Precision>2</Precision>
-<Items>
-<Item Index="0">
-<Value>Owner</Value>
-</Item>
-<Item Index="1">
-<Value>GC</Value>
-</Item>
-<Item Index="2">
-<Value>Contractor</Value>
-</Item>
-<Item Index="3">
-<Value>Architect</Value>
-</Item>
-<Item Index="4">
-<Value>Engineer</Value>
-</Item>
-<Item Index="5">
-<Value>Project Manager</Value>
-</Item>
-<Item Index="6">
-<Value>Coordinator</Value>
-</Item>
-<Item Index="7">
-<Value>Consultant</Value>
-</Item>
-<Item Index="8">
-<Value>Authority Having Jurisdiction</Value>
-</Item>
-</Items>
-<AllowCustom>False</AllowCustom>
-</BSIColumnItem>
-<!--  Priority  -->
-<BSIColumnItem Index="3" Subtype="Choice">
-<n>Priority</n>
-<DisplayOrder>3</DisplayOrder>
-<Deleted>False</Deleted>
-<Format>Normal</Format>
-<Precision>2</Precision>
-<Items>
-<Item Index="0">
-<Value>Critical – Blocks Construction</Value>
-</Item>
-<Item Index="1">
-<Value>High – Resolve Before Next Submittal</Value>
-</Item>
-<Item Index="2">
-<Value>Medium – Resolve This Review Cycle</Value>
-</Item>
-<Item Index="3">
-<Value>Low – Address at Convenience</Value>
-</Item>
-<Item Index="4">
-<Value>For Information Only</Value>
-</Item>
-</Items>
-<AllowCustom>False</AllowCustom>
-</BSIColumnItem>
-<!--  Action Required  -->
-<BSIColumnItem Index="4" Subtype="Text">
-<n>Action Required</n>
-<DisplayOrder>4</DisplayOrder>
-<Deleted>False</Deleted>
-<Format>Normal</Format>
-<Precision>2</Precision>
-<Multiline>True</Multiline>
-</BSIColumnItem>
-<!--  Due Date  -->
-<BSIColumnItem Index="5" Subtype="Date">
-<n>Due Date</n>
-<DisplayOrder>5</DisplayOrder>
-<Deleted>False</Deleted>
-<Format>MM/dd/yyyy</Format>
-<Precision>2</Precision>
-</BSIColumnItem>
-<!--  Reference No.  -->
-<BSIColumnItem Index="6" Subtype="Text">
-<n>Reference No.</n>
-<DisplayOrder>6</DisplayOrder>
-<Deleted>False</Deleted>
-<Format>Normal</Format>
-<Precision>2</Precision>
-<Multiline>False</Multiline>
-</BSIColumnItem>
-</BluebeamUserDefinedColumns>
+<?xml version="1.0" encoding="utf-8"?>
+<MarkupColumns>
+  <!--
+    SpecStream Custom Columns — Baker Hughes / ITO Review Workflow
+    Generated for SpecStream PoC reference implementation.
+    Fields derived from Dashboard SOW and SpecTrack mockup.
+
+    Column Types:
+      Text        = free-text entry
+      List        = dropdown (values defined in <Items>)
+      Number      = numeric input
+      CheckMark   = yes/no checkbox
+      Date        = date picker
+  -->
+
+  <!-- ─── RISK & REVIEW ─────────────────────────────────────── -->
+  <Column>
+    <Name>Risk Assessment</Name>
+    <Type>Text</Type>
+    <Width>200</Width>
+    <DefaultValue></DefaultValue>
+  </Column>
+
+  <Column>
+    <Name>Category of Risk</Name>
+    <Type>List</Type>
+    <Width>130</Width>
+    <DefaultValue>NA</DefaultValue>
+    <Items>
+      <Item>High</Item>
+      <Item>Medium</Item>
+      <Item>Low</Item>
+      <Item>NA</Item>
+    </Items>
+  </Column>
+
+  <Column>
+    <Name>Risk Status</Name>
+    <Type>List</Type>
+    <Width>120</Width>
+    <DefaultValue>Open</DefaultValue>
+    <Items>
+      <Item>Open</Item>
+      <Item>Mitigated</Item>
+      <Item>Closed</Item>
+    </Items>
+  </Column>
+
+  <Column>
+    <Name>Action Taken</Name>
+    <Type>Text</Type>
+    <Width>220</Width>
+    <DefaultValue></DefaultValue>
+  </Column>
+
+  <!-- ─── ITO SUBMISSION ────────────────────────────────────── -->
+  <Column>
+    <Name>ITO Submission Stamp</Name>
+    <Type>List</Type>
+    <Width>150</Width>
+    <DefaultValue>No</DefaultValue>
+    <Items>
+      <Item>Yes</Item>
+      <Item>No</Item>
+    </Items>
+  </Column>
+
+  <!-- ─── BUSINESS POSITION ────────────────────────────────── -->
+  <Column>
+    <Name>Business Position</Name>
+    <Type>List</Type>
+    <Width>140</Width>
+    <DefaultValue>No</DefaultValue>
+    <Items>
+      <Item>Yes</Item>
+      <Item>No</Item>
+    </Items>
+  </Column>
+
+  <Column>
+    <Name>Send to OTR</Name>
+    <Type>List</Type>
+    <Width>110</Width>
+    <DefaultValue>No</DefaultValue>
+    <Items>
+      <Item>Yes</Item>
+      <Item>No</Item>
+    </Items>
+  </Column>
+
+  <!-- ─── TASK / WORKFLOW METADATA ─────────────────────────── -->
+  <Column>
+    <Name>Department</Name>
+    <Type>List</Type>
+    <Width>130</Width>
+    <DefaultValue></DefaultValue>
+    <Items>
+      <Item>Materials</Item>
+      <Item>ITO</Item>
+      <Item>Engineering</Item>
+      <Item>Procurement</Item>
+      <Item>Contracts</Item>
+      <Item>HSE</Item>
+      <Item>Quality</Item>
+      <Item>Other</Item>
+    </Items>
+  </Column>
+
+  <Column>
+    <Name>Customer</Name>
+    <Type>Text</Type>
+    <Width>140</Width>
+    <DefaultValue></DefaultValue>
+  </Column>
+
+  <Column>
+    <Name>Prioritization</Name>
+    <Type>List</Type>
+    <Width>110</Width>
+    <DefaultValue>Medium</DefaultValue>
+    <Items>
+      <Item>High</Item>
+      <Item>Medium</Item>
+      <Item>Low</Item>
+    </Items>
+  </Column>
+
+  <Column>
+    <Name>Comment Type</Name>
+    <Type>List</Type>
+    <Width>130</Width>
+    <DefaultValue>Internal</DefaultValue>
+    <Items>
+      <Item>Internal</Item>
+      <Item>External</Item>
+      <Item>NA</Item>
+    </Items>
+  </Column>
+
+  <Column>
+    <Name>Spec Title</Name>
+    <Type>Text</Type>
+    <Width>200</Width>
+    <DefaultValue></DefaultValue>
+  </Column>
+
+  <Column>
+    <Name>Due Date</Name>
+    <Type>Date</Type>
+    <Width>110</Width>
+    <DefaultValue></DefaultValue>
+  </Column>
+
+</MarkupColumns>
