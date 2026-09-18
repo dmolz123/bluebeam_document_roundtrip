@@ -283,7 +283,7 @@ function authHeaders(accessToken, extra = {}) {
 // =============================================================================
 app.set('trust proxy', true); // so req.protocol is https behind a proxy (Render)
 const APP_BASE_URL = (process.env.APP_BASE_URL || '').replace(/\/+$/, '');
-const OAUTH_SCOPES = 'jobs full_user offline_access';
+const OAUTH_SCOPES = 'offline_access profile openid';
 const crypto = require('crypto');
 const querystring = require('querystring');
 
@@ -433,11 +433,18 @@ app.get('/auth/callback', async (req, res) => {
   if (!code) return res.status(400).send('Authorization failed: no code returned.');
   if (!state || !_consumeState(String(state))) return res.status(400).send('Authorization failed: state missing or expired. Start again at /auth/login.');
   try {
-    const creds = Buffer.from(`${process.env.BB_CLIENT_ID}:${process.env.BB_CLIENT_SECRET}`).toString('base64');
+    // Mirror the proven bh-markup-viewer exchange: credentials in the BODY
+    // (client_id + client_secret), not a Basic header, for the code grant.
     const resp = await fetch('https://api.bluebeam.com/oauth2/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${creds}` },
-      body: querystring.stringify({ grant_type: 'authorization_code', code: String(code), redirect_uri: bbRedirectUri(req) })
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+      body: querystring.stringify({
+        grant_type: 'authorization_code',
+        code: String(code),
+        client_id: process.env.BB_CLIENT_ID,
+        client_secret: process.env.BB_CLIENT_SECRET,
+        redirect_uri: bbRedirectUri(req)
+      })
     });
     const text = await resp.text();
     if (!resp.ok) return res.status(502).send('Token exchange failed: ' + resp.status + ' ' + text.slice(0, 300));
