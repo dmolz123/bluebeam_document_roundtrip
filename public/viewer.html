@@ -131,6 +131,7 @@
     <input id="sid" placeholder="000-000-000" spellcheck="false" aria-label="Studio Session ID" />
   </div>
   <button class="btn primary" id="loadBtn">Load markups</button>
+  <button class="btn" id="exportBcf" title="Export markups as BCF 2.1 for ACC, Newforma, and other openBIM tools">&#8681; Export BCF</button>
   <button class="btn" id="openTop">&#9638; Open in Revu</button>
   <span class="badge-live" id="liveBadge" hidden>LIVE</span>
 </header>
@@ -369,6 +370,16 @@
     toast('Launching Revu &#8594; Session '+sid+' (allow the browser prompt)');
   }
 
+  function exportBcf(){
+    var sid=curSid()||STATE.sid;
+    if(!sid){toast('Enter a Session ID first');return;}
+    var url='/api/export/bcf/'+encodeURIComponent(sid);
+    var a=document.createElement('a');
+    a.href=url; a.download='studio-'+sid+'-markups.bcfzip';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('Exporting BCF for Session '+sid+' &#8594; check your downloads');
+  }
+
   var toastT;
   function toast(msg){var t=q('toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},2400);}
   function banner(kind,msg){var b=q('banner');b.className='banner show '+kind;b.innerHTML=msg;}
@@ -424,6 +435,7 @@
   // boot
   q('loadBtn').onclick=function(){ loadSession(); };
   q('sid').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); loadSession(); } });
+  q('exportBcf').onclick=exportBcf;
   q('openTop').onclick=openRevu;
   q('pageSel').addEventListener('change',function(){ STATE.page=+this.value; renderPage(); });
   q('labelToggle').addEventListener('change', renderLabels);

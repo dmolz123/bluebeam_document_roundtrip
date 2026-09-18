@@ -411,6 +411,42 @@ app.get('/api/sessions/:sid/files/:fid/pdf', async (req, res) => {
   }
 });
 
+// ---- BCF 2.1 export — portable QA/QC issues out of Studio ------------------
+// Merged Session markups -> a BCF 2.1 (.bcfzip) that ACC, Newforma Konekt, and
+// other openBIM tools import natively. Builder lives in ./bcf.js (testable in
+// isolation; zero new dependencies).
+const { buildBcfBuffer } = require('./bcf');
+
+// Export a Session's markups as a BCF 2.1 (.bcfzip) download.
+app.get('/api/export/bcf/:sid', async (req, res) => {
+  const sid = req.params.sid;
+  const [sess, files] = await Promise.all([
+    bbGet(`/publicapi/v1/sessions/${encodeURIComponent(sid)}`),
+    bbGet(`/publicapi/v1/sessions/${encodeURIComponent(sid)}/files`),
+  ]);
+  if (!sess.ok) return bbFail(res, sess, 'GET session');
+  const fileList = viewerFilesArray(files.json);
+  const file = viewerPickPdf(fileList);
+  let markups = [];
+  let fileMeta = null;
+  if (file) {
+    const fid = file.Id != null ? file.Id : file.id;
+    fileMeta = { id: fid, name: file.Name || file.name || '' };
+    const mm = await getMergedMarkups(sid, fid);
+    if (mm.ok) markups = mm.markups;
+  }
+  try {
+    const buf = buildBcfBuffer(sess.json, fileMeta, markups);
+    const safe = String(sid).replace(/[^0-9A-Za-z_-]/g, '') || 'session';
+    res.set('Content-Type', 'application/octet-stream');
+    res.set('Content-Disposition', `attachment; filename="studio-${safe}-markups.bcfzip"`);
+    res.set('X-Bcf-Topic-Count', String(markups.length));
+    res.send(buf);
+  } catch (e) {
+    res.status(500).json({ error: 'BCF export error: ' + e.message });
+  }
+});
+
 // ---- Browser OAuth (authorization-code) — authenticate without Postman -----
 const _pendingStates = new Map();
 function _newState() { const s = crypto.randomBytes(16).toString('hex'); _pendingStates.set(s, Date.now() + 10 * 60 * 1000); return s; }
