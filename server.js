@@ -195,7 +195,17 @@ let demoStub = {
   discipline:      '',
   pollingInterval: 0,
   reviewers:       [{ email: 'dmolz@bluebeam.com', hasStudioAccount: true }],
-  sessionEndDate:  new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+  sessionEndDate:  new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+  // Session-level user privileges applied at creation and adjustable live via
+  // /poc/set-session-permissions.
+  sessionPermissions: [
+    { Type: 'Markup',       Allow: 'Allow' },
+    { Type: 'SaveCopy',     Allow: 'Allow' },
+    { Type: 'PrintCopy',    Allow: 'Allow' },
+    { Type: 'MarkupAlert',  Allow: 'Allow' },
+    { Type: 'AddDocuments', Allow: 'Deny'  },
+    { Type: 'FullControl',  Allow: 'Deny'  }
+  ]
 };
 
 // =============================================================================
@@ -267,6 +277,207 @@ function authHeaders(accessToken, extra = {}) {
     ...extra
   };
 }
+
+// =============================================================================
+// ADDED: Browser OAuth, Markup Viewer API, and live Session-Permission control
+// =============================================================================
+app.set('trust proxy', true); // so req.protocol is https behind a proxy (Render)
+const APP_BASE_URL = (process.env.APP_BASE_URL || '').replace(/\/+$/, '');
+const OAUTH_SCOPES = 'jobs full_user offline_access';
+const crypto = require('crypto');
+const querystring = require('querystring');
+
+function bbRedirectUri(req) {
+  return (APP_BASE_URL || (req.protocol + '://' + req.get('host'))) + '/auth/callback';
+}
+
+// Authenticated GET against the Studio API → { ok, status, json }.
+async function bbGet(pathPart, opts = {}) {
+  try {
+    const token = await tokenManager.getValidAccessToken();
+    const res = await fetch('https://api.bluebeam.com' + pathPart, {
+      ...opts,
+      headers: { Authorization: `Bearer ${token}`, client_id: CLIENT_ID, Accept: 'application/json', ...(opts.headers || {}) }
+    });
+    const text = await res.text();
+    let json = null; if (text) { try { json = JSON.parse(text); } catch { json = text; } }
+    return { ok: res.ok, status: res.status, json };
+  } catch (e) {
+    return { ok: false, status: 500, json: { error: e.message } };
+  }
+}
+function bbFail(res, r, where) {
+  const hint = r.status === 401
+    ? 'Studio returned 401. Authenticate via /auth/login, or refresh the token.'
+    : `Studio API error at ${where} (HTTP ${r.status}).`;
+  res.status(r.status && r.status >= 400 ? r.status : 502).json({ error: hint, status: r.status, detail: r.json });
+}
+
+// ---- Markup Viewer: decode hex-UTF16 text + join list/details by `name` -----
+function decodeMarkupText(s) {
+  if (typeof s !== 'string' || !s) return s || '';
+  const hex = s.replace(/\s+/g, '');
+  if (!/^[0-9a-fA-F]+$/.test(hex) || hex.length % 4 !== 0) return s;
+  const looksUtf16 = /^(feff|fffe)/i.test(hex) || /^(00[0-9a-fA-F]{2})+$/.test(hex) || /(00[0-9a-fA-F]{2}){3,}/.test(hex);
+  if (!looksUtf16) return s;
+  try {
+    const bytes = [];
+    for (let i = 0; i < hex.length; i += 2) bytes.push(parseInt(hex.substr(i, 2), 16));
+    let buf = Buffer.from(bytes);
+    if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+      const sw = Buffer.alloc(buf.length);
+      for (let j = 0; j + 1 < buf.length; j += 2) { sw[j] = buf[j + 1]; sw[j + 1] = buf[j]; }
+      buf = sw;
+    }
+    const text = buf.toString('utf16le').replace(/^﻿/, '').replace(/ +$/g, '');
+    return text.trim() || s;
+  } catch { return s; }
+}
+function mergeMarkups(list, details) {
+  list = Array.isArray(list) ? list : [];
+  details = Array.isArray(details) ? details : [];
+  const detByName = new Map();
+  details.forEach((d) => { if (d && d.name != null) detByName.set(String(d.name), d); });
+  const samePositional = details.length === list.length;
+  const out = list.map((m, i) => {
+    let d = m.name != null ? detByName.get(String(m.name)) : null;
+    if (!d && samePositional) d = details[i];
+    const rect = d && Array.isArray(d.rect) && d.rect.length === 4 ? d.rect : null;
+    return {
+      markupId: m.markupId, name: m.name, pageNumber: m.pageNumber,
+      subject: decodeMarkupText(m.subject || (d && d.subject) || ''),
+      status: m.status || '', type: m.type || (d && d.type) || '',
+      author: m.displayName || m.email || (d && d.author) || '',
+      contents: decodeMarkupText((d && d.contents) || m.comments || ''),
+      rect,
+    };
+  });
+  return out.sort((a, b) => ((a.pageNumber || 0) - (b.pageNumber || 0)) || ((a.markupId || 0) - (b.markupId || 0)));
+}
+async function getMergedMarkups(sid, fid) {
+  const [listR, detR] = await Promise.all([
+    bbGet(`/publicapi/v2/sessions/${encodeURIComponent(sid)}/files/${encodeURIComponent(fid)}/markups`),
+    bbGet(`/publicapi/v2/sessions/${encodeURIComponent(sid)}/files/${encodeURIComponent(fid)}/markups/details?limit=1000`),
+  ]);
+  if (!listR.ok && !detR.ok) return { ok: false, r: listR.ok ? detR : listR };
+  return { ok: true, markups: mergeMarkups(listR.json, detR.json) };
+}
+function viewerFilesArray(json) {
+  if (json && Array.isArray(json.Files)) return json.Files;
+  if (Array.isArray(json)) return json;
+  if (json && Array.isArray(json.ProjectFiles)) return json.ProjectFiles;
+  return [];
+}
+function viewerPickPdf(list) {
+  const pdfs = list.filter((f) => /\.pdf$/i.test(f.Name || f.name || ''));
+  return (pdfs[0] || list[0] || null);
+}
+
+// Aggregate call the Markup Viewer tab uses for a Session ID.
+app.get('/api/load/:sid', async (req, res) => {
+  const sid = req.params.sid;
+  const [sess, files] = await Promise.all([
+    bbGet(`/publicapi/v1/sessions/${encodeURIComponent(sid)}`),
+    bbGet(`/publicapi/v1/sessions/${encodeURIComponent(sid)}/files`),
+  ]);
+  if (!sess.ok) return bbFail(res, sess, 'GET session');
+  const fileList = viewerFilesArray(files.json);
+  const file = viewerPickPdf(fileList);
+  if (!file) return res.json({ session: sess.json, file: null, markups: [], pdfUrl: null });
+  const fid = file.Id != null ? file.Id : file.id;
+  const mm = await getMergedMarkups(sid, fid);
+  res.json({
+    session: sess.json,
+    file: { id: fid, name: file.Name || file.name || '' },
+    markups: mm.ok ? mm.markups : [],
+    pdfUrl: `/api/sessions/${encodeURIComponent(sid)}/files/${encodeURIComponent(fid)}/pdf`,
+  });
+});
+
+// Stream the Session document PDF (via its DownloadUrl) so pdf.js can render it same-origin.
+app.get('/api/sessions/:sid/files/:fid/pdf', async (req, res) => {
+  const r = await bbGet(`/publicapi/v1/sessions/${encodeURIComponent(req.params.sid)}/files/${encodeURIComponent(req.params.fid)}`);
+  if (!r.ok) return bbFail(res, r, 'GET file detail');
+  const url = r.json && r.json.DownloadUrl;
+  if (!url) return res.status(404).json({ error: 'No DownloadUrl on this Session file.' });
+  try {
+    const up = await fetch(url);
+    if (!up.ok) return res.status(up.status).send('upstream ' + up.status);
+    res.set('Content-Type', up.headers.get('content-type') || 'application/pdf');
+    res.set('Cache-Control', 'private, max-age=120');
+    res.send(Buffer.from(await up.arrayBuffer()));
+  } catch (e) {
+    res.status(502).json({ error: 'PDF proxy error: ' + e.message });
+  }
+});
+
+// ---- Browser OAuth (authorization-code) — authenticate without Postman -----
+const _pendingStates = new Map();
+function _newState() { const s = crypto.randomBytes(16).toString('hex'); _pendingStates.set(s, Date.now() + 10 * 60 * 1000); return s; }
+function _consumeState(s) { const e = _pendingStates.get(s); if (!e) return false; _pendingStates.delete(s); return Date.now() < e; }
+
+app.get('/auth/status', async (req, res) => {
+  try { const t = await tokenManager.getTokens(); res.json({ authenticated: !!(t && t.refresh_token) }); }
+  catch { res.json({ authenticated: false }); }
+});
+app.get('/auth/login', (req, res) => {
+  const p = new URLSearchParams({
+    response_type: 'code', client_id: CLIENT_ID,
+    redirect_uri: bbRedirectUri(req), scope: OAUTH_SCOPES, state: _newState()
+  });
+  res.redirect('https://api.bluebeam.com/oauth2/authorize?' + p.toString());
+});
+app.get('/auth/callback', async (req, res) => {
+  const { code, state, error, error_description } = req.query;
+  if (error) return res.status(400).send('Authorization failed: ' + (error_description || error));
+  if (!code) return res.status(400).send('Authorization failed: no code returned.');
+  if (!state || !_consumeState(String(state))) return res.status(400).send('Authorization failed: state missing or expired. Start again at /auth/login.');
+  try {
+    const creds = Buffer.from(`${process.env.BB_CLIENT_ID}:${process.env.BB_CLIENT_SECRET}`).toString('base64');
+    const resp = await fetch('https://api.bluebeam.com/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${creds}` },
+      body: querystring.stringify({ grant_type: 'authorization_code', code: String(code), redirect_uri: bbRedirectUri(req) })
+    });
+    const text = await resp.text();
+    if (!resp.ok) return res.status(502).send('Token exchange failed: ' + resp.status + ' ' + text.slice(0, 300));
+    const data = JSON.parse(text);
+    await tokenManager.saveTokens(data.access_token, data.refresh_token, data.expires_in);
+    res.set('Content-Type', 'text/html').send(
+      '<!doctype html><meta charset=utf-8><title>Connected</title>' +
+      '<body style="font:15px system-ui;max-width:640px;margin:60px auto;color:#12202E">' +
+      '<h2 style="color:#1F8A54">Connected to Bluebeam Studio</h2>' +
+      '<p>The server now holds a refresh token and will keep access tokens fresh automatically.</p>' +
+      '<p><a href="/">Back to the app &rarr;</a></p></body>'
+    );
+  } catch (e) {
+    res.status(502).send('Token exchange failed: ' + e.message);
+  }
+});
+
+// ---- Live session-permission control (session-level user privileges) --------
+app.post('/poc/set-session-permissions', async (req, res) => {
+  try {
+    if (!pocState.sessionId) throw new Error('No active session — create a session first.');
+    const perms = (req.body && Array.isArray(req.body.permissions)) ? req.body.permissions : null;
+    if (!perms || !perms.length) throw new Error('No permissions provided.');
+    const accessToken = await tokenManager.getValidAccessToken();
+    const results = [];
+    for (const p of perms) {
+      const r = await fetch(`${API_V1}/sessions/${pocState.sessionId}/permissions`, {
+        method: 'POST', headers: authHeaders(accessToken),
+        body: JSON.stringify({ Type: p.Type, Allow: p.Allow })
+      });
+      logStep(`Session permission ${p.Type}=${p.Allow} (${r.status})`, r.ok ? 'info' : 'warn');
+      results.push({ type: p.Type, allow: p.Allow, status: r.status, ok: r.ok });
+    }
+    demoStub.sessionPermissions = perms;
+    res.json({ success: true, sessionId: pocState.sessionId, results });
+  } catch (err) {
+    logStep(err.message, 'error');
+    res.status(500).json({ error: err.message });
+  }
+});
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -1011,9 +1222,13 @@ app.post('/poc/configure', (req, res) => {
     qaCategory,
     discipline,
     pollingInterval,
-    sessionEndDate
+    sessionEndDate,
+    sessionPermissions
   } = req.body || {};
 
+  if (Array.isArray(sessionPermissions) && sessionPermissions.length) {
+    demoStub.sessionPermissions = sessionPermissions;
+  }
   if (documentId)      demoStub.documentId      = documentId;
   if (description)     demoStub.description     = description;
   if (atkinsProjectId) demoStub.atkinsProjectId = atkinsProjectId;
@@ -1391,13 +1606,7 @@ app.post('/poc/create-session', async (req, res) => {
         Notification:   true,
         Restricted:     true,
         SessionEndDate: demoStub.sessionEndDate,
-        DefaultPermissions: [
-          { Type: 'Markup',       Allow: 'Allow' },
-          { Type: 'SaveCopy',     Allow: 'Allow' },
-          { Type: 'PrintCopy',    Allow: 'Allow' },
-          { Type: 'MarkupAlert',  Allow: 'Allow' },
-          { Type: 'AddDocuments', Allow: 'Deny'  }
-        ]
+        DefaultPermissions: demoStub.sessionPermissions
       })
     });
 
@@ -1408,6 +1617,15 @@ app.post('/poc/create-session', async (req, res) => {
     pocState.createdAt  = new Date().toISOString();
 
     logStep(`Session created: ID=${pocState.sessionId}`, 'success');
+
+    // Apply the chosen session-level permissions explicitly (session-wide defaults).
+    for (const p of demoStub.sessionPermissions) {
+      const permResp = await fetch(`${API_V1}/sessions/${pocState.sessionId}/permissions`, {
+        method: 'POST', headers: authHeaders(accessToken),
+        body: JSON.stringify({ Type: p.Type, Allow: p.Allow })
+      });
+      logStep(`Session permission: ${p.Type}=${p.Allow} (${permResp.status})`, 'info');
+    }
     logStep(`Session name: ${sessionName}`, 'info');
     logStep(`Session end date: ${demoStub.sessionEndDate}`, 'info');
 

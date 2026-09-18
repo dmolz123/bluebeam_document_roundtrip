@@ -462,9 +462,10 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
   </div>
 </header>
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('rw')">Review Setup</button>
-  <button class="tab-btn" onclick="switchTab('data')">Review Data</button>
-  <button class="tab-btn" onclick="switchTab('dev')">Developer Console</button>
+  <button class="tab-btn active" data-tab="rw" onclick="switchTab('rw')">Review Setup</button>
+  <button class="tab-btn" data-tab="data" onclick="switchTab('data')">Review Data</button>
+  <button class="tab-btn" data-tab="dev" onclick="switchTab('dev')">Developer Console</button>
+  <button class="tab-btn" data-tab="viewer" onclick="switchTab('viewer')">Markup Viewer</button>
 </div>
 
 <!-- ═══ TAB 1 — REVIEW SETUP ═══ -->
@@ -498,13 +499,32 @@ textarea{resize:vertical;min-height:72px;line-height:1.5;}
         </div>
       </div>
       <div class="auth-btn-row">
-        <button class="btn-auth btn-auth-primary" onclick="authRefreshToken('rw')">↻ Refresh Token</button>
+        <button class="btn-auth btn-auth-primary" onclick="window.location='/auth/login'">🔐 Sign in with Bluebeam</button>
+        <button class="btn-auth btn-auth-ghost" onclick="authRefreshToken('rw')">↻ Refresh Token</button>
         <button class="btn-auth btn-auth-ghost" onclick="authTestConnection('rw')">⚡ Test Connection</button>
         <div class="auth-meta-row" style="margin-left:8px;" id="authMeta-rw">
           <div class="auth-meta-item ok" id="authMetaProject-rw">Project: <span>—</span></div>
           <div class="auth-meta-item" id="authMetaPollers-rw">Pollers: <span>—</span></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Session Permissions -->
+  <div class="card">
+    <div class="card-title"><div class="card-title-icon">🛡️</div>Session Permissions</div>
+    <p class="field-hint" style="margin:0 0 12px;">Set what invited users are allowed to do in the Studio session. Applied session-wide when the session is created, and can be re-applied to the active session at any time.</p>
+    <div class="perm-grid" id="rwPermissionsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px 18px;">
+      <label class="perm-item"><input type="checkbox" id="perm-Markup" checked> Markup <span class="field-hint">add and edit markups</span></label>
+      <label class="perm-item"><input type="checkbox" id="perm-SaveCopy" checked> Save Copy <span class="field-hint">save a local copy</span></label>
+      <label class="perm-item"><input type="checkbox" id="perm-PrintCopy" checked> Print Copy <span class="field-hint">print the document</span></label>
+      <label class="perm-item"><input type="checkbox" id="perm-MarkupAlert" checked> Markup Alert <span class="field-hint">notify on new markups</span></label>
+      <label class="perm-item"><input type="checkbox" id="perm-AddDocuments"> Add Documents <span class="field-hint">upload files to the session</span></label>
+      <label class="perm-item"><input type="checkbox" id="perm-FullControl"> Full Control <span class="field-hint">full session control</span></label>
+    </div>
+    <div class="auth-btn-row" style="margin-top:14px;">
+      <button class="btn-auth btn-auth-ghost" onclick="rwApplyPermissions()">✔ Apply permissions to session</button>
+      <span class="field-hint" id="rwPermStatus" style="align-self:center;"></span>
     </div>
   </div>
 
@@ -1226,6 +1246,11 @@ Exchange a Bluebeam OAuth refresh token for a new access token without restartin
 </div>
 </div>
 
+<!-- ═══ TAB 4 — MARKUP VIEWER ═══ -->
+<div class="tab-content" id="tab-viewer">
+  <iframe id="mvFrame" title="Markup Viewer" style="width:100%;height:calc(100vh - 130px);min-height:520px;border:0;display:block;"></iframe>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════════════════════════════
 // UTILITIES
@@ -1242,14 +1267,46 @@ async function api(path,method='POST',body=null){
 }
 
 function switchTab(t){
-  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
-    b.classList.toggle('active',(i===0&&t==='rw')||(i===1&&t==='data')||(i===2&&t==='dev'));
+  document.querySelectorAll('.tab-btn').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('data-tab')===t);
   });
-  ['rw','data','dev'].forEach(id=>{
-    document.getElementById('tab-'+id).classList.toggle('active',id===t);
+  ['rw','data','dev','viewer'].forEach(id=>{
+    const el=document.getElementById('tab-'+id);
+    if(el) el.classList.toggle('active',id===t);
   });
   if(t==='data') t2LoadKnownProjects();
   if(t==='dev'){devRefreshLog();devRefreshDbInfo();}
+  if(t==='viewer'){
+    const f=document.getElementById('mvFrame');
+    if(f && !f.getAttribute('src')) f.setAttribute('src','/viewer.html');
+  }
+}
+
+// ── Session permissions ──────────────────────────────────────────────────────
+const PERM_TYPES=['Markup','SaveCopy','PrintCopy','MarkupAlert','AddDocuments','FullControl'];
+function rwGatherPermissions(){
+  return PERM_TYPES.map(function(type){
+    var el=document.getElementById('perm-'+type);
+    return {Type:type, Allow: (el && el.checked) ? 'Allow' : 'Deny'};
+  });
+}
+async function rwApplyPermissions(){
+  var status=document.getElementById('rwPermStatus');
+  var perms=rwGatherPermissions();
+  if(status){status.textContent='Applying…';status.style.color='';}
+  try{
+    var r=await fetch('/poc/set-session-permissions',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({permissions:perms})
+    });
+    var d=await r.json().catch(function(){return {};});
+    if(!r.ok) throw new Error((d&&d.error)||('HTTP '+r.status));
+    if(status){status.textContent='Applied to session.';status.style.color='var(--ok,#3fb950)';}
+    toast('Session permissions applied.','ok');
+  }catch(e){
+    if(status){status.textContent='Failed: '+e.message;status.style.color='var(--error,#f85149)';}
+    toast('Could not apply permissions: '+e.message,'warn');
+  }
 }
 
 function syntaxHL(json){
@@ -1509,6 +1566,7 @@ async function rwStart(){
     documentId:atkinsId+'-'+name.replace(/\s+/g,'-').replace(/[^a-zA-Z0-9-]/g,'').slice(0,20),
     description:[region,reviewType,disc,desc||name].filter(Boolean).join(' — ')};
   if(sessionEndDate)configBody.sessionEndDate=sessionEndDate;
+  configBody.sessionPermissions=rwGatherPermissions();
   await api('configure',undefined,configBody);
   var btn=document.getElementById('rwStartBtn');
   btn.disabled=true;btn.textContent='Setting up…';
