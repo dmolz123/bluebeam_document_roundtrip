@@ -96,10 +96,39 @@ function bcfStatus(raw) {
   return 'Open';
 }
 
-function buildBcfBuffer(session, file, markups) {
-  const nowIso = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
+// The single source of truth for how one Studio markup becomes an issue.
+// Both the BCF file export and the Newforma API push consume this, so they can
+// never drift apart. Returns plain fields; callers render XML or JSON.
+function markupToIssue(m, session, file) {
   const sid = (session && session.Id) || '';
   const docName = (file && file.name) || '';
+  const rawStatus = m.status || '';
+  const title = [m.subject || m.type || 'Markup',
+    rawStatus ? '(' + rawStatus.replace(/_/g, ' ') + ')' : '',
+    'Sheet ' + (m.pageNumber || 1)].filter(Boolean).join(' ');
+  const author = m.author || 'Unknown';
+  const descLines = [];
+  if (m.contents) descLines.push(m.contents);
+  descLines.push('Sheet: ' + (m.pageNumber || 1));
+  if (m.type) descLines.push('Markup type: ' + m.type);
+  if (rawStatus) descLines.push('Studio status: ' + rawStatus);
+  if (Array.isArray(m.rect)) descLines.push('PDF rect: [' + m.rect.join(', ') + ']');
+  descLines.push('Source: Bluebeam Studio Session ' + sid + (docName ? ' / ' + docName : ''));
+  return {
+    key: String(m.markupId != null ? m.markupId : (m.name || title)),
+    title,
+    topicType: 'Issue',
+    topicStatus: bcfStatus(rawStatus),
+    labels: rawStatus ? [rawStatus] : [],
+    description: descLines.join('\n'),
+    comment: m.contents || '',
+    author,
+    rawStatus,
+  };
+}
+
+function buildBcfBuffer(session, file, markups) {
+  const nowIso = new Date().toISOString().replace(/\.\d+Z$/, 'Z');
   const entries = [];
   entries.push({
     name: 'bcf.version',
@@ -111,37 +140,25 @@ function buildBcfBuffer(session, file, markups) {
   });
   (markups || []).forEach((m, i) => {
     const topicGuid = bcfGuid();
-    const rawStatus = m.status || '';
-    const title = [m.subject || m.type || 'Markup',
-      rawStatus ? '(' + rawStatus.replace(/_/g, ' ') + ')' : '',
-      'Sheet ' + (m.pageNumber || 1)].filter(Boolean).join(' ');
-    const author = m.author || 'Unknown';
-    const descLines = [];
-    if (m.contents) descLines.push(m.contents);
-    descLines.push('Sheet: ' + (m.pageNumber || 1));
-    if (m.type) descLines.push('Markup type: ' + m.type);
-    if (rawStatus) descLines.push('Studio status: ' + rawStatus);
-    if (Array.isArray(m.rect)) descLines.push('PDF rect: [' + m.rect.join(', ') + ']');
-    descLines.push('Source: Bluebeam Studio Session ' + sid + (docName ? ' / ' + docName : ''));
-    const description = descLines.join('\n');
-    const labels = rawStatus ? '    <Labels>' + xmlEsc(rawStatus) + '</Labels>\n' : '';
-    const commentXml = m.contents
+    const issue = markupToIssue(m, session, file);
+    const labels = issue.labels.length ? '    <Labels>' + xmlEsc(issue.labels[0]) + '</Labels>\n' : '';
+    const commentXml = issue.comment
       ? '  <Comment Guid="' + bcfGuid() + '">\n' +
         '    <Date>' + nowIso + '</Date>\n' +
-        '    <Author>' + xmlEsc(author) + '</Author>\n' +
-        '    <Comment>' + xmlEsc(m.contents) + '</Comment>\n' +
+        '    <Author>' + xmlEsc(issue.author) + '</Author>\n' +
+        '    <Comment>' + xmlEsc(issue.comment) + '</Comment>\n' +
         '  </Comment>\n'
       : '';
     const markupXml =
       '<?xml version="1.0" encoding="UTF-8"?>\n' +
       '<Markup>\n' +
-      '  <Topic Guid="' + topicGuid + '" TopicType="Issue" TopicStatus="' + bcfStatus(rawStatus) + '">\n' +
-      '    <Title>' + xmlEsc(title) + '</Title>\n' +
+      '  <Topic Guid="' + topicGuid + '" TopicType="' + xmlEsc(issue.topicType) + '" TopicStatus="' + xmlEsc(issue.topicStatus) + '">\n' +
+      '    <Title>' + xmlEsc(issue.title) + '</Title>\n' +
       '    <Index>' + i + '</Index>\n' +
       labels +
       '    <CreationDate>' + nowIso + '</CreationDate>\n' +
-      '    <CreationAuthor>' + xmlEsc(author) + '</CreationAuthor>\n' +
-      '    <Description>' + xmlEsc(description) + '</Description>\n' +
+      '    <CreationAuthor>' + xmlEsc(issue.author) + '</CreationAuthor>\n' +
+      '    <Description>' + xmlEsc(issue.description) + '</Description>\n' +
       '  </Topic>\n' +
       commentXml +
       '</Markup>\n';
@@ -150,4 +167,4 @@ function buildBcfBuffer(session, file, markups) {
   return zipStore(entries);
 }
 
-module.exports = { buildBcfBuffer, zipStore, crc32, bcfStatus };
+module.exports = { buildBcfBuffer, markupToIssue, zipStore, crc32, bcfStatus };

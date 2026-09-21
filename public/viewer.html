@@ -132,6 +132,8 @@
   </div>
   <button class="btn primary" id="loadBtn">Load markups</button>
   <button class="btn" id="exportBcf" title="Export markups as BCF 2.1 for ACC, Newforma, and other openBIM tools">&#8681; Export BCF</button>
+  <button class="btn" id="pushNewforma" title="Push these markups into Newforma Konekt via its BCF API">&#8599; Push to Newforma</button>
+  <label class="autosync" id="autosyncWrap" title="Automatically push to Newforma after each load" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;"><input type="checkbox" id="autosync"> Auto-sync</label>
   <button class="btn" id="openTop">&#9638; Open in Revu</button>
   <span class="badge-live" id="liveBadge" hidden>LIVE</span>
 </header>
@@ -380,6 +382,33 @@
     toast('Exporting BCF for Session '+sid+' &#8594; check your downloads');
   }
 
+  // Grey out the Newforma controls when the server has no credentials set.
+  async function nfStatus(){
+    try{
+      var s=await fetch('/api/push/newforma/status').then(function(r){return r.json();});
+      if(!s || !s.configured){
+        q('pushNewforma').disabled=true;
+        q('pushNewforma').title='Newforma not configured on the server (set NEWFORMA_BCF_* env vars)';
+        q('autosync').disabled=true;
+        q('autosyncWrap').style.opacity='0.5';
+      }
+    }catch(e){}
+  }
+
+  async function pushNewforma(silent){
+    var sid=curSid()||STATE.sid;
+    if(!sid){ if(!silent) toast('Enter a Session ID first'); return; }
+    var btn=q('pushNewforma'); var old=btn.innerHTML;
+    btn.disabled=true; btn.textContent='Pushing…';
+    try{
+      var r=await fetch('/api/push/newforma/'+encodeURIComponent(sid),{method:'POST'});
+      var d=await r.json().catch(function(){return {};});
+      if(!r.ok && r.status!==207){ throw new Error((d&&d.error)||('HTTP '+r.status)); }
+      toast('Newforma: '+(d.pushed||0)+' pushed, '+(d.skipped||0)+' already synced'+(d.failed?(', '+d.failed+' failed'):''));
+    }catch(e){ toast('Newforma push failed: '+e.message); }
+    finally{ btn.disabled=false; btn.innerHTML=old; }
+  }
+
   var toastT;
   function toast(msg){var t=q('toast');t.innerHTML=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('show');},2400);}
   function banner(kind,msg){var b=q('banner');b.className='banner show '+kind;b.innerHTML=msg;}
@@ -419,6 +448,7 @@
              : (pageMarkups()[0] && pageMarkups()[0].markupId) || (STATE.markups[0] && STATE.markups[0].markupId);
       if(pick) await select(pick, !preferId);
       toast('Loaded '+STATE.markups.length+' markup'+(STATE.markups.length===1?'':'s')+' from Session '+sid);
+      try{ var as=q('autosync'); if(as && as.checked && !as.disabled && STATE.markups.length) pushNewforma(true); }catch(e){}
     }catch(e){
       banner('err','Network error talking to the viewer backend.');
       q('list').innerHTML='<div class="empty">Network error.</div>';
@@ -436,6 +466,10 @@
   q('loadBtn').onclick=function(){ loadSession(); };
   q('sid').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); loadSession(); } });
   q('exportBcf').onclick=exportBcf;
+  q('pushNewforma').onclick=function(){ pushNewforma(false); };
+  (function(){ var on=false; try{ on=localStorage.getItem('nf_autosync')==='1'; }catch(e){} q('autosync').checked=on; })();
+  q('autosync').onchange=function(){ try{ localStorage.setItem('nf_autosync', this.checked?'1':'0'); }catch(e){} toast(this.checked?'Auto-sync to Newforma is on':'Auto-sync off'); };
+  nfStatus();
   q('openTop').onclick=openRevu;
   q('pageSel').addEventListener('change',function(){ STATE.page=+this.value; renderPage(); });
   q('labelToggle').addEventListener('change', renderLabels);

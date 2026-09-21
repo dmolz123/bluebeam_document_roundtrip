@@ -416,6 +416,7 @@ app.get('/api/sessions/:sid/files/:fid/pdf', async (req, res) => {
 // other openBIM tools import natively. Builder lives in ./bcf.js (testable in
 // isolation; zero new dependencies).
 const { buildBcfBuffer } = require('./bcf');
+const { pushSessionToNewforma, newformaConfigured, newformaConfig } = require('./newforma');
 
 // Export a Session's markups as a BCF 2.1 (.bcfzip) download.
 app.get('/api/export/bcf/:sid', async (req, res) => {
@@ -444,6 +445,42 @@ app.get('/api/export/bcf/:sid', async (req, res) => {
     res.send(buf);
   } catch (e) {
     res.status(500).json({ error: 'BCF export error: ' + e.message });
+  }
+});
+
+// ---- Direct push to Newforma Konekt (BCF REST API) -------------------------
+// Whether the server has Newforma credentials configured (token never returned).
+app.get('/api/push/newforma/status', (req, res) => {
+  const c = newformaConfig();
+  res.json({ configured: newformaConfigured(), base: c.base || null, projectId: c.projectId || null, version: c.version });
+});
+
+// Push a Session's markups into Newforma as BCF topics + comments.
+app.post('/api/push/newforma/:sid', async (req, res) => {
+  const sid = req.params.sid;
+  if (!newformaConfigured()) {
+    return res.status(400).json({ error: 'Newforma is not configured on the server. Set NEWFORMA_BCF_BASE, NEWFORMA_BCF_PROJECT_ID, and NEWFORMA_BCF_TOKEN.' });
+  }
+  const [sess, files] = await Promise.all([
+    bbGet(`/publicapi/v1/sessions/${encodeURIComponent(sid)}`),
+    bbGet(`/publicapi/v1/sessions/${encodeURIComponent(sid)}/files`),
+  ]);
+  if (!sess.ok) return bbFail(res, sess, 'GET session');
+  const fileList = viewerFilesArray(files.json);
+  const file = viewerPickPdf(fileList);
+  let markups = [];
+  let fileMeta = null;
+  if (file) {
+    const fid = file.Id != null ? file.Id : file.id;
+    fileMeta = { id: fid, name: file.Name || file.name || '' };
+    const mm = await getMergedMarkups(sid, fid);
+    if (mm.ok) markups = mm.markups;
+  }
+  try {
+    const summary = await pushSessionToNewforma(sid, sess.json, fileMeta, markups);
+    res.status(summary.ok ? 200 : 207).json(summary);
+  } catch (e) {
+    res.status(502).json({ error: 'Newforma push error: ' + e.message });
   }
 });
 
